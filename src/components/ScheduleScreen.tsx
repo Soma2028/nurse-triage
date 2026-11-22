@@ -156,7 +156,7 @@ export function ScheduleScreen({ schedule, settings, now, onSetDays }: Props) {
                     key={key}
                     type="button"
                     onClick={() => tap(key)}
-                    aria-label={`${shortDate(key)} ${schedule[key] ? KIND_NAME[schedule[key]] : '通常日'}${key === today ? '（今日）' : ''}`}
+                    aria-label={`${shortDate(key)} ${schedule[key] ? KIND_NAME[schedule[key]] : 'ふだんの日'}${key === today ? '（今日）' : ''}`}
                     className={`flex min-h-11 min-w-0 flex-col items-center justify-center rounded-xl text-sm leading-none tabular-nums focus-visible:outline-2 focus-visible:outline-primary-ink ${
                       schedule[key] ? KIND_CELL[schedule[key]] : 'text-ink hover:bg-paper'
                     } ${key === today ? 'ring-2 ring-tag-yellow ring-inset' : ''} ${key < today ? 'opacity-45' : ''}`}

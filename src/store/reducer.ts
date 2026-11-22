@@ -66,7 +66,7 @@ function completeTask(state: State, task: Task, now: number): State {
       done: [{ ...task, doneAt: now }, ...state.done],
     },
     'complete',
-    `「${task.title}」を完了にしました`,
+    `『${task.title}』おつかれさま！`,
     now,
   )
 }
@@ -94,7 +94,7 @@ export function reducer(state: State, action: Action): State {
           done: state.done.filter((t) => t.id !== action.id),
         },
         'remove',
-        `「${target.title}」を削除しました`,
+        `『${target.title}』を消したよ`,
         action.now,
       )
     }
@@ -132,20 +132,14 @@ export function reducer(state: State, action: Action): State {
 
     case 'clearAll':
       if (state.tasks.length === 0 && state.done.length === 0) return state
-      return withUndo(
-        state,
-        { tasks: [], done: [] },
-        'clear',
-        'すべての課題を消しました',
-        action.now,
-      )
+      return withUndo(state, { tasks: [], done: [] }, 'clear', '課題をぜんぶ消したよ', action.now)
 
     case 'resetSample':
       return withUndo(
         state,
         { tasks: action.tasks, done: [] },
         'reset',
-        'サンプルに戻しました',
+        'サンプルに戻したよ',
         action.now,
       )
 
