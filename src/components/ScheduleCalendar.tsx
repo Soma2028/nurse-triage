@@ -162,7 +162,7 @@ export function ScheduleCalendar({ schedule, settings, now, onSetDays }: Props) 
         </div>
 
         {/* カレンダー（360px 幅でも1マス44px以上になるよう、ここだけ左右の余白を詰める） */}
-        <div className="-mx-1 mt-1 sm:mx-0">
+        <div className="-mx-1 mt-1">
           <div
             aria-hidden
             className="grid grid-cols-7 text-center text-xs text-slate-500 dark:text-slate-400"
@@ -176,7 +176,7 @@ export function ScheduleCalendar({ schedule, settings, now, onSetDays }: Props) 
               </span>
             ))}
           </div>
-          <div className="grid grid-cols-7 gap-px sm:gap-0.5">
+          <div className="grid grid-cols-7 gap-px">
             {cells.map((key, i) =>
               key === null ? (
                 <span key={`blank-${i}`} aria-hidden />
