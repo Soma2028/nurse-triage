@@ -3,6 +3,8 @@
 看護学生向けの、課題の優先順位を出す Web アプリです。
 課題を「締切・残りの作業量・使える時間」から評価し、トリアージタッグのように **赤・黄・緑** で並べます。
 
+**公開版：<https://nurse-triage-amber.vercel.app>**（データはブラウザ内だけに保存されます）
+
 ## 目的
 
 実習期間中は、実習記録・看護過程・事前学習・技術試験・定期試験・国試対策が同時にやってきて、何から手をつけるか決められなくなりがちです。
@@ -97,6 +99,14 @@ npm run dev        # 開発サーバー（http://localhost:5173）
 | `npm run preview` | ビルド結果をローカルで確認        |
 | `npm run lint`    | ESLint                            |
 | `npm run format`  | Prettier で整形                   |
+
+## デプロイ
+
+Vercel にデプロイしています（Vite プリセット、ビルドは `npm run build`、出力は `dist/`）。
+
+```sh
+npx vercel --prod
+```
 
 ## 技術構成
 
