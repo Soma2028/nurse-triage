@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useCallback, useMemo, useState } from 'react'
 import { HomeScreen } from './components/HomeScreen'
+import { CharaSpeech } from './components/Speech'
 import { BottomNav, DesktopNav, type Screen } from './components/Nav'
 import { ScheduleScreen } from './components/ScheduleScreen'
 import { SettingsScreen } from './components/SettingsScreen'
@@ -16,6 +17,7 @@ import {
   isPracticeToday,
   todayHours,
 } from './logic/schedule'
+import { homeSpeech } from './logic/speech'
 import { baseTransition } from './motion'
 import { useStore } from './store/context'
 import { sampleTasks } from './store/sample'
@@ -49,6 +51,7 @@ export default function App() {
   const redCount = analysed.filter((a) => a.triage === 'red').length
   const remainTotal = analysed.reduce((s, a) => s + a.remain, 0)
   const shortage = firstShortage(analysed)
+  const speech = useMemo(() => homeSpeech(analysed, plan), [analysed, plan])
   const editing =
     sheet.open && sheet.editingId ? state.tasks.find((t) => t.id === sheet.editingId) : undefined
 
@@ -93,6 +96,7 @@ export default function App() {
                 shortage={shortage}
                 redCount={redCount}
                 remainTotal={remainTotal}
+                greeting={<CharaSpeech speech={speech} />}
                 onTogglePractice={togglePractice}
                 onAdvance={advance}
                 onComplete={complete}

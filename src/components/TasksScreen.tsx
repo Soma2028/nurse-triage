@@ -5,6 +5,7 @@ import { TASK_TYPES } from '../constants'
 import { cardInView } from '../motion'
 import type { Analysed, Task } from '../types'
 import { formatDue } from '../utils/format'
+import { Chara } from './Chara'
 import { OverloadWarning } from './OverloadWarning'
 import { PageTitle } from './PageTitle'
 import { Segmented } from './Segmented'
@@ -70,9 +71,12 @@ export function TasksScreen({
         <>
           <OverloadWarning a={shortage} />
           {analysed.length === 0 ? (
-            <p className="ui-card p-6 text-center text-sm text-ink-muted">
-              未完了の課題はないよ。右上の＋から追加できるよ。
-            </p>
+            <div className="ui-card flex items-center gap-3 p-5">
+              <Chara mood="happy" size={56} />
+              <p className="text-sm text-ink-muted">
+                未完了の課題はないよ。新しい課題は右上の＋から追加してね。
+              </p>
+            </div>
           ) : (
             <ol className="grid grid-cols-1 gap-3 two:grid-cols-2">
               {analysed.map((a, i) => (
