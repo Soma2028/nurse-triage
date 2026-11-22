@@ -33,7 +33,8 @@ export default function App() {
     setEditingId(id)
     // 1カラム表示ではフォームが下にあるので、そこまでスクロールする
     requestAnimationFrame(() => {
-      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      formRef.current?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' })
       formRef.current?.querySelector('input')?.focus({ preventScroll: true })
     })
   }

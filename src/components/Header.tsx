@@ -62,12 +62,12 @@ export function Header({
             >
               <span
                 aria-hidden
-                className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${
+                className={`relative h-7 w-12 shrink-0 rounded-full transition-colors motion-reduce:transition-none ${
                   practiceMode ? 'bg-tag-yellow' : 'bg-white/30'
                 }`}
               >
                 <span
-                  className={`absolute top-1 left-1 size-5 rounded-full bg-white shadow transition-transform ${
+                  className={`absolute top-1 left-1 size-5 rounded-full bg-white shadow transition-transform motion-reduce:transition-none ${
                     practiceMode ? 'translate-x-5' : ''
                   }`}
                 />

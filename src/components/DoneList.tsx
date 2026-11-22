@@ -2,14 +2,13 @@ import { TASK_TYPES } from '../constants'
 import type { Task } from '../types'
 import { formatDue } from '../utils/format'
 import { Button } from './Button'
+import { Chevron } from './Chevron'
 
 export function DoneList({ done, onRestore }: { done: Task[]; onRestore: (id: string) => void }) {
   return (
     <details className="group rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
       <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 px-4 py-2 font-heading text-lg font-bold select-none [&::-webkit-details-marker]:hidden">
-        <span aria-hidden className="text-sm transition-transform group-open:rotate-90">
-          ▶
-        </span>
+        <Chevron />
         完了した課題
         <span className="text-sm font-medium text-slate-500 dark:text-slate-400">
           （{done.length}件）

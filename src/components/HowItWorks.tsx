@@ -1,4 +1,5 @@
 import { Button } from './Button'
+import { Chevron } from './Chevron'
 
 interface Props {
   onResetSample: () => void
@@ -9,9 +10,7 @@ export function HowItWorks({ onResetSample, onClearAll }: Props) {
   return (
     <details className="group rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
       <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 px-4 py-2 font-heading text-lg font-bold select-none [&::-webkit-details-marker]:hidden">
-        <span aria-hidden className="text-sm transition-transform group-open:rotate-90">
-          ▶
-        </span>
+        <Chevron />
         優先度の決め方
       </summary>
       <div className="space-y-3 px-4 pb-4 text-sm leading-relaxed text-slate-700 dark:text-slate-300">
