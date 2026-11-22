@@ -154,3 +154,36 @@ describe('analyse: 残り時間と並び順', () => {
     expect(a.score).toBeCloseTo((0.6 * 0.125 + 0.4 / 3) * 100)
   })
 })
+
+describe('analyse: 実習スケジュール', () => {
+  // NOW = 2026-11-23(月) 9:00 JST
+  const off3: Record<string, 'off'> = {
+    '2026-11-24': 'off',
+    '2026-11-25': 'off',
+    '2026-11-26': 'off',
+  }
+
+  it('休みの日を入れると使える時間が減り、shortage が増えて赤になる', () => {
+    // 5日後締切・残り12h、H=4 → 印なしなら avail 20h・ratio 0.6（黄）
+    const t = task({ dueIn: 5 * DAY_MS, estHours: 12 })
+    const S4: Settings = { practiceMode: false, hoursPractice: 2.5, hoursNormal: 4 }
+    const [before] = analyse([t], S4, NOW)
+    expect(before.avail).toBeCloseTo(20)
+    expect(before.triage).toBe('yellow')
+    const [after] = analyse([t], S4, NOW, off3)
+    expect(after.avail).toBeCloseTo(8)
+    expect(after.shortage).toBeCloseTo(4)
+    expect(after.triage).toBe('red')
+  })
+
+  it('今日が実習日なら（トグルが OFF でも）rec / proc の score が上がる', () => {
+    const rec = task({ type: 'rec', dueIn: 2 * DAY_MS })
+    const S3: Settings = { practiceMode: false, hoursPractice: 3, hoursNormal: 3 }
+    const plain = analyse([rec], S3, NOW, { '2026-11-24': 'practice' })[0].score
+    const practice = analyse([rec], S3, NOW, {
+      '2026-11-23': 'practice',
+      '2026-11-24': 'practice',
+    })[0].score
+    expect(practice).toBeGreaterThan(plain)
+  })
+})

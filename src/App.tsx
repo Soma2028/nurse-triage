@@ -7,7 +7,8 @@ import { TaskList } from './components/TaskList'
 import { TodayPlan } from './components/TodayPlan'
 import { UndoToast } from './components/UndoToast'
 import { buildPlan } from './logic/plan'
-import { analyse, dailyHours, firstShortage } from './logic/priority'
+import { analyse, firstShortage } from './logic/priority'
+import { todayHours } from './logic/schedule'
 import { useStore } from './store/context'
 import { sampleTasks } from './store/sample'
 import type { Task } from './types'
@@ -21,7 +22,7 @@ export default function App() {
     () => analyse(state.tasks, state.settings, now),
     [state.tasks, state.settings, now],
   )
-  const hours = dailyHours(state.settings)
+  const hours = todayHours(state.settings, {}, now)
   const plan = useMemo(() => buildPlan(analysed, hours), [analysed, hours])
   const redCount = analysed.filter((a) => a.triage === 'red').length
   const remainTotal = analysed.reduce((s, a) => s + a.remain, 0)

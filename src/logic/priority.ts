@@ -5,7 +5,8 @@ import {
   PRACTICE_BOOST_TYPES,
   TASK_TYPES,
 } from '../constants'
-import type { Analysed, Settings, Task, Triage, TriageLabel } from '../types'
+import type { Analysed, Schedule, Settings, Task, Triage, TriageLabel } from '../types'
+import { availHours, isPracticeToday } from './schedule'
 
 /** この値（h）を超えて足りないと赤にする */
 const SHORTAGE_RED = 0.25
@@ -15,17 +16,10 @@ const YELLOW_DAYS = 3
 
 const TRIAGE_ORDER: Record<Triage, number> = { red: 0, yellow: 1, green: 2 }
 
-/** 今日（＝現在のモード）の1日に使える時間 */
-export function dailyHours(settings: Settings): number {
-  return settings.practiceMode ? settings.hoursPractice : settings.hoursNormal
-}
-
 /** 種類の重み。実習中は rec / proc に上乗せ */
-export function typeWeight(task: Task, settings: Settings): number {
+export function typeWeight(task: Task, practice: boolean): number {
   const base = TASK_TYPES[task.type].weight
-  return settings.practiceMode && PRACTICE_BOOST_TYPES.includes(task.type)
-    ? base + PRACTICE_BOOST
-    : base
+  return practice && PRACTICE_BOOST_TYPES.includes(task.type) ? base + PRACTICE_BOOST : base
 }
 
 /** 残り作業時間 h */
@@ -43,10 +37,15 @@ function judge(ms: number, ratio: number, shortage: number): [Triage, TriageLabe
 
 /**
  * 未完了の課題を評価し、赤 → 黄 → 緑、同色内は score の高い順に並べて返す。
- * 純粋関数（now を引数で受け取る）。
+ * 純粋関数（now を引数で受け取る）。schedule があれば日ごとの使える時間で avail を計算する。
  */
-export function analyse(tasks: readonly Task[], settings: Settings, now: number): Analysed[] {
-  const H = dailyHours(settings)
+export function analyse(
+  tasks: readonly Task[],
+  settings: Settings,
+  now: number,
+  schedule: Schedule = {},
+): Analysed[] {
+  const practice = isPracticeToday(settings, schedule, now)
   const open = tasks.filter((t) => t.doneAt == null)
 
   // 締切順の積み上げ：各課題の締切までに終わらせるべき remain の合計
@@ -67,9 +66,9 @@ export function analyse(tasks: readonly Task[], settings: Settings, now: number)
     const ms = task.due - now
     const days = ms / DAY_MS
     const remain = remainHours(task)
-    const avail = Math.max(0, days) * H
+    const avail = availHours(now, task.due, settings, schedule, now)
     const ratio = remain / Math.max(avail, 0.1)
-    const w = typeWeight(task, settings)
+    const w = typeWeight(task, practice)
     const imp = IMPORTANCE_FACTOR[task.importance]
     const score =
       (0.6 * (Math.min(ratio, 2) / 2) + 0.4 * (1 / (1 + Math.max(days, 0)))) * w * imp * 100

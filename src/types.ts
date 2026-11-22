@@ -15,10 +15,18 @@ export interface Task {
 }
 
 export interface Settings {
-  practiceMode: boolean // 実習期間中か
+  practiceMode: boolean // 実習期間中か（スケジュールに今日以降の印がないときに使う）
   hoursPractice: number // 実習中の1日の作業時間
   hoursNormal: number // 通常期の1日の作業時間
+  /** スケジュールの自動判定を「今日だけ」手動で上書きしたもの */
+  practiceOverride?: { date: string; on: boolean }
 }
+
+/** カレンダーの印。印のない日は通常日 */
+export type DayKind = 'practice' | 'off'
+
+/** 日付キー（ローカル時刻の YYYY-MM-DD）→ 印 */
+export type Schedule = Record<string, DayKind>
 
 export type Triage = 'red' | 'yellow' | 'green'
 
