@@ -19,7 +19,6 @@ import {
 import { homeSpeech } from './logic/speech'
 import { baseTransition } from './motion'
 import { useStore } from './store/context'
-import { sampleTasks } from './store/sample'
 import type { Task } from './types'
 
 /** 追加・編集パネルの状態。editingId が null なら新規追加 */
@@ -130,10 +129,6 @@ export default function App() {
                 practiceNote={practiceNote}
                 onTogglePractice={togglePractice}
                 onChangeSettings={(patch) => dispatch({ type: 'setSettings', patch })}
-                onResetSample={() => {
-                  const t = Date.now()
-                  dispatch({ type: 'resetSample', now: t, tasks: sampleTasks(t) })
-                }}
                 onClearAll={() => dispatch({ type: 'clearAll', now: Date.now() })}
               />
             )}

@@ -11,7 +11,6 @@ interface Props {
   practiceNote: string | null
   onTogglePractice: () => void
   onChangeSettings: (patch: Partial<Settings>) => void
-  onResetSample: () => void
   onClearAll: () => void
 }
 
@@ -81,7 +80,6 @@ export function SettingsScreen({
   practiceNote,
   onTogglePractice,
   onChangeSettings,
-  onResetSample,
   onClearAll,
 }: Props) {
   return (
@@ -133,13 +131,6 @@ export function SettingsScreen({
               課題はこの端末の中だけに保存されるよ。消しても5秒間は元に戻せるよ。
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={onResetSample}
-                className="min-h-11 rounded-full border border-line bg-surface px-4 text-sm font-bold text-ink transition hover:bg-paper"
-              >
-                サンプルに戻す
-              </button>
               <button
                 type="button"
                 onClick={onClearAll}

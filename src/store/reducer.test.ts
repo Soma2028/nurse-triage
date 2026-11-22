@@ -168,10 +168,9 @@ describe('reducer: 実習スケジュール', () => {
     expect(s.settings.hoursNormal).toBe(6)
   })
 
-  it('すべて消す・サンプルに戻すはスケジュールを消さない', () => {
+  it('すべて消すはスケジュールを消さない', () => {
     let s: State = { ...base(), schedule: { '2026-11-24': 'off' } }
     s = reducer(s, { type: 'clearAll', now: NOW })
-    s = reducer(s, { type: 'resetSample', now: NOW, tasks: [] })
     expect(s.schedule).toEqual({ '2026-11-24': 'off' })
   })
 
