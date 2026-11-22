@@ -1,8 +1,8 @@
 @import 'tailwindcss';
 
 /*
- * 色は役割ごとのトークンにまとめ、ダークモードは下の :root の上書きで CSS 変数ごと切り替える
- * （各所に dark: を書かない）。夢のタネの生成り・炭色に合わせ、差し色は紺。
+ * 色は役割ごとのトークンにまとめる。夢のタネの生成り・炭色に合わせ、差し色は紺。
+ * ライトのみ（ダークモードには対応しない）。
  * タッグの赤・黄・緑は判定の意味を持つので、それ以外の場所では使わない。
  */
 @theme {
@@ -39,26 +39,6 @@
 /* 背の低いスマホ（iPhone SE など）。utils/useMedia.ts の SHORT_SCREEN と同じ条件 */
 @custom-variant short (@media (max-width: 860px) and (max-height: 740px));
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-paper: #1c1915;
-    --color-surface: #26221d;
-    --color-ink: #f1ece4;
-    --color-ink-muted: #b3aa9c;
-    --color-line: #3a342c;
-    --color-line-strong: #4d463c;
-
-    --color-primary: #3a679f;
-    --color-primary-strong: #4a7bb8;
-    --color-primary-ink: #a9c3e6;
-    --color-primary-soft: #263244;
-    --color-on-primary: #ffffff;
-
-    --color-danger: #f97066;
-    --color-danger-soft: #3b211d;
-  }
-}
-
 /* 画面の部品の見た目をそろえる共通クラス（夢のタネと同じ考え方）。
    角の丸み：大きなカード 3xl / 行・入力欄 2xl / カレンダーのマス xl / ボタン・タグ full */
 @layer components {
@@ -92,7 +72,7 @@
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
-    color-scheme: light dark;
+    color-scheme: light;
   }
   /* iPhone で1画面に収まったページを引っぱっても全体が弾まないように */
   html,
