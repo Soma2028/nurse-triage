@@ -1,0 +1,37 @@
+import type { Importance, Settings, TaskType } from './types'
+
+export interface TaskTypePreset {
+  label: string
+  weight: number
+  defaultHours: number
+}
+
+export const TASK_TYPES: Record<TaskType, TaskTypePreset> = {
+  rec: { label: '実習記録', weight: 1.5, defaultHours: 2 },
+  proc: { label: '看護過程（アセスメント・関連図・計画）', weight: 1.4, defaultHours: 5 },
+  pre: { label: '実習前の事前学習', weight: 1.3, defaultHours: 5 },
+  osce: { label: '技術試験・OSCE練習', weight: 1.25, defaultHours: 3 },
+  exam: { label: '定期試験・小テスト', weight: 1.2, defaultHours: 8 },
+  report: { label: 'レポート', weight: 1.0, defaultHours: 4 },
+  gw: { label: 'グループワーク', weight: 1.0, defaultHours: 2 },
+  kokushi: { label: '国試対策', weight: 0.9, defaultHours: 6 },
+  etc: { label: 'その他', weight: 0.8, defaultHours: 1 },
+}
+
+export const TASK_TYPE_KEYS = Object.keys(TASK_TYPES) as TaskType[]
+
+/** 実習期間中に重みを上乗せする種類と、その量 */
+export const PRACTICE_BOOST_TYPES: readonly TaskType[] = ['rec', 'proc']
+export const PRACTICE_BOOST = 0.2
+
+export const IMPORTANCE_FACTOR: Record<Importance, number> = { 1: 0.8, 2: 1.0, 3: 1.25 }
+export const IMPORTANCE_LABEL: Record<Importance, string> = { 1: '低', 2: '中', 3: '高' }
+
+export const DEFAULT_SETTINGS: Settings = {
+  practiceMode: false,
+  hoursPractice: 2.5,
+  hoursNormal: 4,
+}
+
+export const HOUR_MS = 60 * 60 * 1000
+export const DAY_MS = 24 * HOUR_MS
