@@ -2,13 +2,20 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import { DoneList } from './components/DoneList'
 import { Header } from './components/Header'
 import { HowItWorks } from './components/HowItWorks'
+import { ScheduleCalendar } from './components/ScheduleCalendar'
 import { TaskForm } from './components/TaskForm'
 import { TaskList } from './components/TaskList'
 import { TodayPlan } from './components/TodayPlan'
 import { UndoToast } from './components/UndoToast'
 import { buildPlan } from './logic/plan'
 import { analyse, firstShortage } from './logic/priority'
-import { todayHours } from './logic/schedule'
+import {
+  autoPracticeToday,
+  dayKey,
+  hasUpcoming,
+  isPracticeToday,
+  todayHours,
+} from './logic/schedule'
 import { useStore } from './store/context'
 import { sampleTasks } from './store/sample'
 import type { Task } from './types'
@@ -18,11 +25,22 @@ export default function App() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const formRef = useRef<HTMLDivElement>(null)
 
+  const { settings, schedule } = state
   const analysed = useMemo(
-    () => analyse(state.tasks, state.settings, now),
-    [state.tasks, state.settings, now],
+    () => analyse(state.tasks, settings, now, schedule),
+    [state.tasks, settings, now, schedule],
   )
-  const hours = todayHours(state.settings, {}, now)
+  const hours = todayHours(settings, schedule, now)
+  const practice = isPracticeToday(settings, schedule, now)
+  const practiceNote = !hasUpcoming(schedule, now)
+    ? null
+    : practice !== autoPracticeToday(schedule, now)
+      ? '今日だけ手動で切り替え中'
+      : schedule[dayKey(now)] === 'off'
+        ? '今日は休み（スケジュール）'
+        : practice
+          ? '今日は実習日（スケジュール）'
+          : '今日は通常日（スケジュール）'
   const plan = useMemo(() => buildPlan(analysed, hours), [analysed, hours])
   const redCount = analysed.filter((a) => a.triage === 'red').length
   const remainTotal = analysed.reduce((s, a) => s + a.remain, 0)
@@ -50,16 +68,18 @@ export default function App() {
   return (
     <div className="min-h-dvh pb-24">
       <Header
-        settings={state.settings}
+        practice={practice}
+        practiceNote={practiceNote}
         redCount={redCount}
         remainTotal={remainTotal}
-        hours={hours}
+        todayHours={hours}
+        modeHours={practice ? settings.hoursPractice : settings.hoursNormal}
         shortage={shortage}
-        onTogglePractice={(on) => dispatch({ type: 'setSettings', patch: { practiceMode: on } })}
+        onTogglePractice={() => dispatch({ type: 'togglePracticeToday', now: Date.now() })}
         onChangeHours={(h) =>
           dispatch({
             type: 'setSettings',
-            patch: state.settings.practiceMode ? { hoursPractice: h } : { hoursNormal: h },
+            patch: practice ? { hoursPractice: h } : { hoursNormal: h },
           })
         }
       />
@@ -85,6 +105,12 @@ export default function App() {
               onCancel={() => setEditingId(null)}
             />
           </div>
+          <ScheduleCalendar
+            schedule={schedule}
+            settings={settings}
+            now={now}
+            onSetDays={(dates, kind) => dispatch({ type: 'setDays', dates, kind })}
+          />
           <HowItWorks
             onResetSample={() => {
               const t = Date.now()

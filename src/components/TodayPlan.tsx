@@ -19,6 +19,12 @@ export function TodayPlan({ plan }: { plan: Plan }) {
         </span>
       </h2>
 
+      {hours === 0 && (
+        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+          今日は休みの日です。課題の割り振りはありません。
+        </p>
+      )}
+
       {/* 積み上げバー（読み上げはリストに任せる） */}
       <div
         aria-hidden

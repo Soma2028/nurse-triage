@@ -46,6 +46,10 @@ export function HowItWorks({ onResetSample, onClearAll }: Props) {
           同じ色の中は、逼迫度・締切の近さに、種類の重み（実習記録・看護過程が重め。実習期間中はさらに重く）と重要度を掛けた点数の高い順に並べます。
         </p>
         <p>今日のプランは、1日に使える時間を上の課題から0.5時間単位で割り振ったものです。</p>
+        <p>
+          <strong>実習スケジュール</strong>
+          ：カレンダーで実習日・休みの印を付けると、使える時間を日ごとに（実習日は実習中の時間、休みは0時間、印のない日は通常期の時間で）合計します。今日が実習日なら「実習期間中」も自動で切り替わります（手動で今日だけ変えることもできます）。
+        </p>
         <div className="flex flex-wrap gap-2 border-t border-slate-200 pt-3 dark:border-slate-700">
           <Button onClick={onResetSample}>サンプルに戻す</Button>
           <Button variant="danger" onClick={onClearAll}>

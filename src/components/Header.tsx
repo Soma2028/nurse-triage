@@ -1,14 +1,20 @@
-import type { Analysed, Settings } from '../types'
+import type { Analysed } from '../types'
 import { formatHours } from '../utils/format'
 import { OverloadWarning } from './OverloadWarning'
 
 interface Props {
-  settings: Settings
+  /** 今日が実習中か（スケジュールまたはトグル） */
+  practice: boolean
+  /** トグルの下に出す補足（スケジュールから自動判定しているときなど） */
+  practiceNote: string | null
   redCount: number
   remainTotal: number
-  hours: number
+  /** 今日使える時間（休みの日は 0） */
+  todayHours: number
+  /** いまのモードの「1日に使える時間」（−／＋で変える値） */
+  modeHours: number
   shortage: Analysed | undefined
-  onTogglePractice: (on: boolean) => void
+  onTogglePractice: () => void
   onChangeHours: (hours: number) => void
 }
 
@@ -28,15 +34,17 @@ function Stat({ label, value, unit }: { label: string; value: string; unit?: str
 }
 
 export function Header({
-  settings,
+  practice,
+  practiceNote,
   redCount,
   remainTotal,
-  hours,
+  todayHours,
+  modeHours,
   shortage,
   onTogglePractice,
   onChangeHours,
 }: Props) {
-  const { practiceMode } = settings
+  const hours = modeHours
   const step = (d: number) => onChangeHours(Math.min(MAX_H, Math.max(MIN_H, hours + d)))
   const stepBtn =
     'inline-flex size-11 items-center justify-center rounded-lg bg-white/15 text-xl font-bold hover:bg-white/25 disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-white'
@@ -53,33 +61,41 @@ export function Header({
           </div>
 
           <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-            <button
-              type="button"
-              role="switch"
-              aria-checked={practiceMode}
-              onClick={() => onTogglePractice(!practiceMode)}
-              className="-ml-1 flex min-h-11 items-center gap-2 rounded-lg px-1 text-sm font-medium focus-visible:outline-2 focus-visible:outline-white"
-            >
-              <span
-                aria-hidden
-                className={`relative h-7 w-12 shrink-0 rounded-full transition-colors motion-reduce:transition-none ${
-                  practiceMode ? 'bg-tag-yellow' : 'bg-white/30'
-                }`}
+            <div className="flex flex-col">
+              <button
+                type="button"
+                role="switch"
+                aria-checked={practice}
+                aria-describedby={practiceNote ? 'practice-note' : undefined}
+                onClick={onTogglePractice}
+                className="-ml-1 flex min-h-11 items-center gap-2 rounded-lg px-1 text-sm font-medium focus-visible:outline-2 focus-visible:outline-white"
               >
                 <span
-                  className={`absolute top-1 left-1 size-5 rounded-full bg-white shadow transition-transform motion-reduce:transition-none ${
-                    practiceMode ? 'translate-x-5' : ''
+                  aria-hidden
+                  className={`relative h-7 w-12 shrink-0 rounded-full transition-colors motion-reduce:transition-none ${
+                    practice ? 'bg-tag-yellow' : 'bg-white/30'
                   }`}
-                />
-              </span>
-              実習期間中
-            </button>
+                >
+                  <span
+                    className={`absolute top-1 left-1 size-5 rounded-full bg-white shadow transition-transform motion-reduce:transition-none ${
+                      practice ? 'translate-x-5' : ''
+                    }`}
+                  />
+                </span>
+                実習期間中
+              </button>
+              {practiceNote && (
+                <p id="practice-note" className="-mt-1 pl-1 text-xs text-white/75">
+                  {practiceNote}
+                </p>
+              )}
+            </div>
 
             <div className="flex items-center gap-2 text-sm">
               <span id="hours-label" className="font-medium">
                 1日に使える時間
                 <span className="block text-xs text-white/75">
-                  （{practiceMode ? '実習中' : '通常期'}）
+                  （{practice ? '実習中' : '通常期'}）
                 </span>
               </span>
               <div className="flex items-center gap-1" role="group" aria-labelledby="hours-label">
@@ -115,7 +131,7 @@ export function Header({
         <dl className="mt-4 grid grid-cols-3 gap-2">
           <Stat label="赤タッグ" value={String(redCount)} unit="件" />
           <Stat label="残り作業の合計" value={formatHours(remainTotal).replace('h', '')} unit="h" />
-          <Stat label="今日使える時間" value={formatHours(hours).replace('h', '')} unit="h" />
+          <Stat label="今日使える時間" value={formatHours(todayHours).replace('h', '')} unit="h" />
         </dl>
 
         <OverloadWarning a={shortage} />
