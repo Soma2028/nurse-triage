@@ -1,11 +1,15 @@
-import { useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
+import { DoneList } from './components/DoneList'
 import { Header } from './components/Header'
+import { HowItWorks } from './components/HowItWorks'
 import { TaskForm } from './components/TaskForm'
-import { TodayPlan } from './components/TodayPlan'
 import { TaskList } from './components/TaskList'
+import { TodayPlan } from './components/TodayPlan'
+import { UndoToast } from './components/UndoToast'
 import { buildPlan } from './logic/plan'
 import { analyse, dailyHours, firstShortage } from './logic/priority'
 import { useStore } from './store/context'
+import { sampleTasks } from './store/sample'
 import type { Task } from './types'
 
 export default function App() {
@@ -39,8 +43,10 @@ export default function App() {
     setEditingId(null)
   }
 
+  const dismissUndo = useCallback(() => dispatch({ type: 'dismissUndo' }), [dispatch])
+
   return (
-    <div className="min-h-dvh">
+    <div className="min-h-dvh pb-24">
       <Header
         settings={state.settings}
         redCount={redCount}
@@ -55,6 +61,7 @@ export default function App() {
           })
         }
       />
+
       <main className="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-4 py-6 wide:grid-cols-[minmax(0,1fr)_22rem]">
         <TaskList
           analysed={analysed}
@@ -64,7 +71,8 @@ export default function App() {
           onEdit={startEdit}
           onRemove={(id) => dispatch({ type: 'remove', id, now: Date.now() })}
         />
-        <aside className="flex flex-col gap-6">
+
+        <aside className="flex min-w-0 flex-col gap-6">
           <TodayPlan plan={plan} />
           <div ref={formRef} className="scroll-mt-4">
             <TaskForm
@@ -75,8 +83,25 @@ export default function App() {
               onCancel={() => setEditingId(null)}
             />
           </div>
+          <HowItWorks
+            onResetSample={() => {
+              const t = Date.now()
+              dispatch({ type: 'resetSample', now: t, tasks: sampleTasks(t) })
+            }}
+            onClearAll={() => dispatch({ type: 'clearAll', now: Date.now() })}
+          />
         </aside>
+
+        <div className="wide:col-span-2">
+          <DoneList done={state.done} onRestore={(id) => dispatch({ type: 'restore', id })} />
+        </div>
       </main>
+
+      <UndoToast
+        undo={state.undo}
+        onUndo={() => dispatch({ type: 'undo' })}
+        onDismiss={dismissUndo}
+      />
     </div>
   )
 }

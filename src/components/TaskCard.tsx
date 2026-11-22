@@ -55,7 +55,7 @@ export function TaskCard({ a, rank, editing, onAdvance, onComplete, onEdit, onRe
     >
       {/* トリアージタッグ */}
       <div
-        className={`relative flex w-16 shrink-0 flex-col items-center justify-start gap-1 px-1 pt-7 pb-3 text-center sm:w-20 ${style.tag}`}
+        className={`relative flex w-16 shrink-0 flex-col items-center justify-start gap-1 px-0.5 pt-7 pb-3 text-center sm:w-20 ${style.tag}`}
         aria-label={`順位${rank}・${style.name}「${label}」`}
       >
         <span
@@ -65,7 +65,10 @@ export function TaskCard({ a, rank, editing, onAdvance, onComplete, onEdit, onRe
         <span aria-hidden className="font-heading text-3xl leading-none font-black">
           {rank}
         </span>
-        <span aria-hidden className="text-xs leading-tight font-bold">
+        <span
+          aria-hidden
+          className="text-[11px] leading-tight font-bold tracking-tighter whitespace-nowrap sm:text-xs sm:tracking-normal"
+        >
           {label}
         </span>
       </div>
@@ -98,7 +101,7 @@ export function TaskCard({ a, rank, editing, onAdvance, onComplete, onEdit, onRe
           <Reason a={a} />
         </p>
 
-        <div className="mt-2 -ml-1 flex flex-wrap gap-1">
+        <div className="mt-2 -ml-1 flex flex-wrap gap-0.5 sm:gap-1">
           <Button
             onClick={onAdvance}
             aria-label={`「${task.title}」の進捗を${PROGRESS_STEP}%進める`}

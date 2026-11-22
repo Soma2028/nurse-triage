@@ -53,13 +53,16 @@ export function Header({
           </div>
 
           <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-            <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm font-medium">
-              <button
-                type="button"
-                role="switch"
-                aria-checked={practiceMode}
-                onClick={() => onTogglePractice(!practiceMode)}
-                className={`relative h-7 w-12 shrink-0 rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${
+            <button
+              type="button"
+              role="switch"
+              aria-checked={practiceMode}
+              onClick={() => onTogglePractice(!practiceMode)}
+              className="-ml-1 flex min-h-11 items-center gap-2 rounded-lg px-1 text-sm font-medium focus-visible:outline-2 focus-visible:outline-white"
+            >
+              <span
+                aria-hidden
+                className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${
                   practiceMode ? 'bg-tag-yellow' : 'bg-white/30'
                 }`}
               >
@@ -68,9 +71,9 @@ export function Header({
                     practiceMode ? 'translate-x-5' : ''
                   }`}
                 />
-              </button>
+              </span>
               実習期間中
-            </label>
+            </button>
 
             <div className="flex items-center gap-2 text-sm">
               <span id="hours-label" className="font-medium">
