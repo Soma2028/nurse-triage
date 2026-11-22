@@ -1,61 +1,48 @@
-import { Button } from './Button'
 import { Chevron } from './Chevron'
 
-interface Props {
-  onResetSample: () => void
-  onClearAll: () => void
-}
-
-export function HowItWorks({ onResetSample, onClearAll }: Props) {
+/** 優先度の決め方（折りたたみ） */
+export function HowItWorks() {
   return (
-    <details className="group rounded-xl border border-line bg-surface">
-      <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 px-4 py-2 font-heading text-lg font-bold select-none [&::-webkit-details-marker]:hidden">
+    <details className="group ui-card">
+      <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2 px-4 py-2 font-bold select-none [&::-webkit-details-marker]:hidden">
         <Chevron />
         優先度の決め方
       </summary>
-      <div className="space-y-3 px-4 pb-4 text-sm leading-relaxed text-ink">
+      <div className="space-y-3 px-4 pb-4 text-sm leading-relaxed text-ink-muted">
         <p>
-          各課題の<strong>残り作業時間</strong>（見込み時間×未完了の割合）と、締切までに
-          <strong>使える時間</strong>（残り日数×1日に使える時間）を比べて、逼迫度を出します。
+          課題ごとに<b className="text-ink">残りの作業時間</b>と、締切までに
+          <b className="text-ink">使える時間</b>
+          をくらべて、どれくらい追い込まれているかを出しているよ。
         </p>
         <ul className="space-y-1.5">
-          <li>
-            <span className="mr-1 inline-block rounded bg-tag-red px-1.5 font-bold text-white">
-              赤
+          <li className="flex gap-2">
+            <span className="shrink-0 rounded-full bg-tag-red px-2 font-bold text-white">赤</span>
+            <span>
+              締切を過ぎた・24時間を切った・使える時間の7割以上が必要・ほかの課題と合わせると間に合わない
             </span>
-            期限切れ、締切まで24時間未満、使える時間の7割以上が必要、または他の課題と合わせると間に合わない
           </li>
-          <li>
-            <span className="mr-1 inline-block rounded bg-tag-yellow px-1.5 font-bold text-ink">
+          <li className="flex gap-2">
+            <span className="shrink-0 rounded-full bg-tag-yellow px-2 font-bold text-slate-900">
               黄
             </span>
-            締切まで3日以内、または使える時間の3割以上が必要
+            <span>締切まで3日以内、または使える時間の3割以上が必要</span>
           </li>
-          <li>
-            <span className="mr-1 inline-block rounded bg-tag-green px-1.5 font-bold text-white">
-              緑
-            </span>
-            それ以外。計画的に進めれば間に合う
+          <li className="flex gap-2">
+            <span className="shrink-0 rounded-full bg-tag-green px-2 font-bold text-white">緑</span>
+            <span>それ以外。計画的に進めれば間に合う</span>
           </li>
         </ul>
         <p>
-          <strong>他の課題と合わせて不足</strong>
-          ：締切の早い順に残り作業を積み上げ、その課題の締切までに使える時間を超えた分です。1件ずつ見ると間に合うのに、まとめると足りない課題を見つけます。
+          <b className="text-ink">ほかの課題と合わせると足りない</b>
+          ：締切の早い順に残りの作業を積み上げて、その締切までに使える時間を超えた分。1件ずつなら間に合うのに、まとめると足りない課題に気づけるよ。
         </p>
         <p>
-          同じ色の中は、逼迫度・締切の近さに、種類の重み（実習記録・看護過程が重め。実習期間中はさらに重く）と重要度を掛けた点数の高い順に並べます。
+          同じ色の中は、追い込まれ具合と締切の近さに、種類の重み（実習記録と看護過程は重め。実習中はさらに重く）と成績・単位への影響を掛けた点数の順。
         </p>
-        <p>今日のプランは、1日に使える時間を上の課題から0.5時間単位で割り振ったものです。</p>
+        <p>今日のプランは、今日使える時間を上の課題から0.5h ずつ割り振ったものだよ。</p>
         <p>
-          <strong>実習スケジュール</strong>
-          ：カレンダーで実習日・休みの印を付けると、使える時間を日ごとに（実習日は実習中の時間、休みは0時間、印のない日は通常期の時間で）合計します。今日が実習日なら「実習期間中」も自動で切り替わります（手動で今日だけ変えることもできます）。
+          スケジュールで実習・休みの印を付けると、使える時間を日ごとに数えるよ（実習の日は実習中の時間、休みは0h）。今日が実習の日なら「実習中」も自動でオンになるよ。
         </p>
-        <div className="flex flex-wrap gap-2 border-t border-line pt-3">
-          <Button onClick={onResetSample}>サンプルに戻す</Button>
-          <Button variant="danger" onClick={onClearAll}>
-            すべて消す
-          </Button>
-        </div>
       </div>
     </details>
   )

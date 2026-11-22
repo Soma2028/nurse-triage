@@ -30,8 +30,10 @@
     -apple-system, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', system-ui,
     sans-serif;
 
-  /* 860px 以下は1カラム */
+  /* 860px 以下はスマホの形（下のメニュー）、861px から左のメニュー */
   --breakpoint-wide: 861px;
+  /* 左のメニューの横で、内容を2列に並べられる幅 */
+  --breakpoint-two: 1100px;
 }
 
 @media (prefers-color-scheme: dark) {

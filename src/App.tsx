@@ -1,11 +1,11 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
-import { DoneList } from './components/DoneList'
-import { Header } from './components/Header'
-import { HowItWorks } from './components/HowItWorks'
-import { ScheduleCalendar } from './components/ScheduleCalendar'
-import { TaskForm } from './components/TaskForm'
-import { TaskList } from './components/TaskList'
-import { TodayPlan } from './components/TodayPlan'
+import { AnimatePresence, motion } from 'framer-motion'
+import { useCallback, useMemo, useState } from 'react'
+import { HomeScreen } from './components/HomeScreen'
+import { BottomNav, DesktopNav, type Screen } from './components/Nav'
+import { ScheduleScreen } from './components/ScheduleScreen'
+import { SettingsScreen } from './components/SettingsScreen'
+import { TaskSheet } from './components/TaskSheet'
+import { TasksScreen } from './components/TasksScreen'
 import { UndoToast } from './components/UndoToast'
 import { buildPlan } from './logic/plan'
 import { analyse, firstShortage } from './logic/priority'
@@ -16,14 +16,18 @@ import {
   isPracticeToday,
   todayHours,
 } from './logic/schedule'
+import { baseTransition } from './motion'
 import { useStore } from './store/context'
 import { sampleTasks } from './store/sample'
 import type { Task } from './types'
 
+/** 追加・編集パネルの状態。editingId が null なら新規追加 */
+type Sheet = { open: false } | { open: true; editingId: string | null }
+
 export default function App() {
   const { state, dispatch, now } = useStore()
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const formRef = useRef<HTMLDivElement>(null)
+  const [screen, setScreen] = useState<Screen>('home')
+  const [sheet, setSheet] = useState<Sheet>({ open: false })
 
   const { settings, schedule } = state
   const analysed = useMemo(
@@ -35,95 +39,115 @@ export default function App() {
   const practiceNote = !hasUpcoming(schedule, now)
     ? null
     : practice !== autoPracticeToday(schedule, now)
-      ? '今日だけ手動で切り替え中'
+      ? '今日だけ手で切り替えてるよ'
       : schedule[dayKey(now)] === 'off'
-        ? '今日は休み（スケジュール）'
+        ? '今日は休みの日（スケジュールより）'
         : practice
-          ? '今日は実習日（スケジュール）'
-          : '今日は通常日（スケジュール）'
+          ? '今日は実習の日（スケジュールより）'
+          : '今日はふだんの日（スケジュールより）'
   const plan = useMemo(() => buildPlan(analysed, hours), [analysed, hours])
   const redCount = analysed.filter((a) => a.triage === 'red').length
   const remainTotal = analysed.reduce((s, a) => s + a.remain, 0)
   const shortage = firstShortage(analysed)
-  // 編集中の課題が完了・削除されたら、自動で新規追加フォームに戻る
-  const editing = state.tasks.find((t) => t.id === editingId)
+  const editing =
+    sheet.open && sheet.editingId ? state.tasks.find((t) => t.id === sheet.editingId) : undefined
 
-  const startEdit = (id: string) => {
-    setEditingId(id)
-    // 1カラム表示ではフォームが下にあるので、そこまでスクロールする
-    requestAnimationFrame(() => {
-      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      formRef.current?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' })
-      formRef.current?.querySelector('input')?.focus({ preventScroll: true })
-    })
+  const navigate = (s: Screen) => {
+    setScreen(s)
+    window.scrollTo({ top: 0 })
   }
+  const openAdd = () => setSheet({ open: true, editingId: null })
+  const openEdit = (id: string) => setSheet({ open: true, editingId: id })
+  const closeSheet = useCallback(() => setSheet({ open: false }), [])
 
   const submit = (task: Task) => {
     dispatch(editing ? { type: 'update', task } : { type: 'add', task })
-    setEditingId(null)
+    closeSheet()
   }
 
+  const togglePractice = () => dispatch({ type: 'togglePracticeToday', now: Date.now() })
+  const advance = (id: string) => dispatch({ type: 'advance', id, now: Date.now() })
+  const complete = (id: string) => dispatch({ type: 'complete', id, now: Date.now() })
   const dismissUndo = useCallback(() => dispatch({ type: 'dismissUndo' }), [dispatch])
 
   return (
-    <div className="min-h-dvh pb-24">
-      <Header
-        practice={practice}
-        practiceNote={practiceNote}
-        redCount={redCount}
-        remainTotal={remainTotal}
-        todayHours={hours}
-        modeHours={practice ? settings.hoursPractice : settings.hoursNormal}
-        shortage={shortage}
-        onTogglePractice={() => dispatch({ type: 'togglePracticeToday', now: Date.now() })}
-        onChangeHours={(h) =>
-          dispatch({
-            type: 'setSettings',
-            patch: practice ? { hoursPractice: h } : { hoursNormal: h },
-          })
-        }
-      />
+    <div className="min-h-dvh wide:pl-60">
+      <DesktopNav current={screen} onNavigate={navigate} onAdd={openAdd} />
 
-      <main className="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-4 py-6 wide:grid-cols-[minmax(0,1fr)_22rem]">
-        <TaskList
-          analysed={analysed}
-          editingId={editing?.id ?? null}
-          onAdvance={(id) => dispatch({ type: 'advance', id, now: Date.now() })}
-          onComplete={(id) => dispatch({ type: 'complete', id, now: Date.now() })}
-          onEdit={startEdit}
-          onRemove={(id) => dispatch({ type: 'remove', id, now: Date.now() })}
-        />
-
-        <aside className="flex min-w-0 flex-col gap-6">
-          <TodayPlan plan={plan} />
-          <div ref={formRef} className="scroll-mt-4">
-            <TaskForm
-              key={editing?.id ?? 'new'}
-              editing={editing}
-              now={now}
-              onSubmit={submit}
-              onCancel={() => setEditingId(null)}
-            />
-          </div>
-          <ScheduleCalendar
-            schedule={schedule}
-            settings={settings}
-            now={now}
-            onSetDays={(dates, kind) => dispatch({ type: 'setDays', dates, kind })}
-          />
-          <HowItWorks
-            onResetSample={() => {
-              const t = Date.now()
-              dispatch({ type: 'resetSample', now: t, tasks: sampleTasks(t) })
-            }}
-            onClearAll={() => dispatch({ type: 'clearAll', now: Date.now() })}
-          />
-        </aside>
-
-        <div className="wide:col-span-2">
-          <DoneList done={state.done} onRestore={(id) => dispatch({ type: 'restore', id })} />
-        </div>
+      <main className="mx-auto max-w-md px-4 pt-5 pb-28 wide:max-w-5xl wide:px-8 wide:pt-8 wide:pb-12">
+        {/* 画面の切り替えは位置を動かさず、透明度だけのフェード（夢のタネと同じ） */}
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={screen}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ ...baseTransition, duration: 0.15 }}
+          >
+            {screen === 'home' && (
+              <HomeScreen
+                analysed={analysed}
+                plan={plan}
+                practice={practice}
+                practiceNote={practiceNote}
+                shortage={shortage}
+                redCount={redCount}
+                remainTotal={remainTotal}
+                onTogglePractice={togglePractice}
+                onAdvance={advance}
+                onComplete={complete}
+                onAdd={openAdd}
+                onOpenTasks={() => navigate('tasks')}
+              />
+            )}
+            {screen === 'tasks' && (
+              <TasksScreen
+                analysed={analysed}
+                done={state.done}
+                shortage={shortage}
+                onAdd={openAdd}
+                onAdvance={advance}
+                onComplete={complete}
+                onEdit={openEdit}
+                onRemove={(id) => dispatch({ type: 'remove', id, now: Date.now() })}
+                onRestore={(id) => dispatch({ type: 'restore', id })}
+              />
+            )}
+            {screen === 'schedule' && (
+              <ScheduleScreen
+                schedule={schedule}
+                settings={settings}
+                now={now}
+                onSetDays={(dates, kind) => dispatch({ type: 'setDays', dates, kind })}
+              />
+            )}
+            {screen === 'settings' && (
+              <SettingsScreen
+                settings={settings}
+                practice={practice}
+                practiceNote={practiceNote}
+                onTogglePractice={togglePractice}
+                onChangeSettings={(patch) => dispatch({ type: 'setSettings', patch })}
+                onResetSample={() => {
+                  const t = Date.now()
+                  dispatch({ type: 'resetSample', now: t, tasks: sampleTasks(t) })
+                }}
+                onClearAll={() => dispatch({ type: 'clearAll', now: Date.now() })}
+              />
+            )}
+          </motion.div>
+        </AnimatePresence>
       </main>
+
+      <BottomNav current={screen} onNavigate={navigate} />
+
+      <TaskSheet
+        open={sheet.open}
+        editing={editing}
+        now={now}
+        onSubmit={submit}
+        onClose={closeSheet}
+      />
 
       <UndoToast
         undo={state.undo}

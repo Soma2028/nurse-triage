@@ -21,13 +21,13 @@ export function UndoToast({ undo, onUndo, onDismiss }: Props) {
   return (
     <div
       aria-live="polite"
-      className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-[calc(max(0.75rem,env(safe-area-inset-bottom))+4.25rem)] wide:pb-6 wide:pl-64"
     >
       {undo && (
         <div
           key={undo.at}
           role="status"
-          className="pointer-events-auto flex max-w-md min-w-0 items-center gap-3 rounded-full bg-ink py-1.5 pr-1.5 pl-5 text-sm text-paper shadow-lg"
+          className="pointer-events-auto flex max-w-md min-w-0 items-center gap-3 rounded-2xl bg-ink py-1.5 pr-1.5 pl-5 text-sm text-paper shadow-lg"
         >
           <span className="min-w-0 break-words">{undo.message}</span>
           <button
