@@ -1,9 +1,10 @@
 import { useMemo, useRef, useState } from 'react'
+import { Header } from './components/Header'
 import { TaskForm } from './components/TaskForm'
 import { TodayPlan } from './components/TodayPlan'
 import { TaskList } from './components/TaskList'
 import { buildPlan } from './logic/plan'
-import { analyse, dailyHours } from './logic/priority'
+import { analyse, dailyHours, firstShortage } from './logic/priority'
 import { useStore } from './store/context'
 import type { Task } from './types'
 
@@ -18,6 +19,9 @@ export default function App() {
   )
   const hours = dailyHours(state.settings)
   const plan = useMemo(() => buildPlan(analysed, hours), [analysed, hours])
+  const redCount = analysed.filter((a) => a.triage === 'red').length
+  const remainTotal = analysed.reduce((s, a) => s + a.remain, 0)
+  const shortage = firstShortage(analysed)
   // 編集中の課題が完了・削除されたら、自動で新規追加フォームに戻る
   const editing = state.tasks.find((t) => t.id === editingId)
 
@@ -37,6 +41,20 @@ export default function App() {
 
   return (
     <div className="min-h-dvh">
+      <Header
+        settings={state.settings}
+        redCount={redCount}
+        remainTotal={remainTotal}
+        hours={hours}
+        shortage={shortage}
+        onTogglePractice={(on) => dispatch({ type: 'setSettings', patch: { practiceMode: on } })}
+        onChangeHours={(h) =>
+          dispatch({
+            type: 'setSettings',
+            patch: state.settings.practiceMode ? { hoursPractice: h } : { hoursNormal: h },
+          })
+        }
+      />
       <main className="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-4 py-6 wide:grid-cols-[minmax(0,1fr)_22rem]">
         <TaskList
           analysed={analysed}
