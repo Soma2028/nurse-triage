@@ -27,7 +27,13 @@ const data: Persisted = {
       doneAt: 5,
     },
   ],
-  settings: { practiceMode: true, hoursPractice: 3, hoursNormal: 5 },
+  settings: {
+    practiceMode: true,
+    hoursPractice: 3,
+    hoursNormal: 5,
+    practiceOverride: { date: '2026-11-23', on: false },
+  },
+  schedule: { '2026-11-24': 'practice', '2026-11-25': 'off' },
 }
 
 describe('storage', () => {
@@ -41,7 +47,12 @@ describe('storage', () => {
   it('undo などの余計なフィールドは保存しない', () => {
     const s = memoryStorage()
     save({ ...data, undo: { x: 1 } } as Persisted, s)
-    expect(Object.keys(JSON.parse(s.map.get(STORAGE_KEY)!))).toEqual(['tasks', 'done', 'settings'])
+    expect(Object.keys(JSON.parse(s.map.get(STORAGE_KEY)!))).toEqual([
+      'tasks',
+      'done',
+      'settings',
+      'schedule',
+    ])
   })
 
   it('データがなければ null', () => {
@@ -61,6 +72,30 @@ describe('storage', () => {
     expect(r.tasks).toEqual(data.tasks)
     expect(r.done).toEqual([])
     expect(r.settings).toEqual(DEFAULT_SETTINGS)
+    expect(r.schedule).toEqual({})
+  })
+
+  it('schedule のない旧データも読める', () => {
+    const { tasks, done, settings } = data
+    const r = load(memoryStorage({ [STORAGE_KEY]: JSON.stringify({ tasks, done, settings }) }))!
+    expect(r.tasks).toEqual(tasks)
+    expect(r.schedule).toEqual({})
+  })
+
+  it('schedule の不正なキー・値と、不正な practiceOverride は捨てる', () => {
+    const raw = JSON.stringify({
+      ...data,
+      settings: { ...data.settings, practiceOverride: { date: '11/23', on: true } },
+      schedule: {
+        '2026-11-24': 'practice',
+        '2026-02-30': 'off',
+        '2026-11-25': 'holiday',
+        foo: 'off',
+      },
+    })
+    const r = load(memoryStorage({ [STORAGE_KEY]: raw }))!
+    expect(r.schedule).toEqual({ '2026-11-24': 'practice' })
+    expect(r.settings.practiceOverride).toBeUndefined()
   })
 
   it('getItem / setItem が例外を投げてもアプリは止まらない', () => {

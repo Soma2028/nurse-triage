@@ -20,6 +20,7 @@ const base = (): State => ({
   tasks: [t('a', 50), t('b', 80)],
   done: [],
   settings: { ...DEFAULT_SETTINGS },
+  schedule: {},
   undo: null,
 })
 
@@ -99,11 +100,17 @@ describe('initState / sample', () => {
   it('保存データがなければサンプル課題・初期設定で始める', () => {
     const s = initState(NOW, null)
     expect(s.tasks).toHaveLength(7)
+    expect(s.schedule).toEqual({})
     expect(s.settings).toEqual({ practiceMode: false, hoursPractice: 2.5, hoursNormal: 4 })
   })
 
   it('保存データがあればそれを使う', () => {
-    const p = { tasks: [t('z')], done: [], settings: { ...DEFAULT_SETTINGS, practiceMode: true } }
+    const p = {
+      tasks: [t('z')],
+      done: [],
+      settings: { ...DEFAULT_SETTINGS, practiceMode: true },
+      schedule: {},
+    }
     expect(initState(NOW, p)).toEqual({ ...p, undo: null })
   })
 
@@ -119,5 +126,62 @@ describe('initState / sample', () => {
     expect([due.getHours(), due.getMinutes()]).toEqual([8, 30])
     expect(tasks[4].due).toBe(daysFromToday(NOW, 9, 23, 59))
     expect(new Set(tasks.map((x) => x.id)).size).toBe(7)
+  })
+})
+
+describe('reducer: 実習スケジュール', () => {
+  // NOW = 2026-11-23(月) 21:00
+  it('setDays で印を付け外しする（期間でも1日でも）', () => {
+    let s = reducer(base(), {
+      type: 'setDays',
+      dates: ['2026-11-24', '2026-11-25'],
+      kind: 'practice',
+    })
+    expect(s.schedule).toEqual({ '2026-11-24': 'practice', '2026-11-25': 'practice' })
+    s = reducer(s, { type: 'setDays', dates: ['2026-11-25'], kind: 'off' })
+    s = reducer(s, { type: 'setDays', dates: ['2026-11-24'], kind: null })
+    expect(s.schedule).toEqual({ '2026-11-25': 'off' })
+  })
+
+  it('印がなければトグルは practiceMode を切り替える（今までどおり）', () => {
+    const s = reducer(base(), { type: 'togglePracticeToday', now: NOW })
+    expect(s.settings.practiceMode).toBe(true)
+    expect(s.settings.practiceOverride).toBeUndefined()
+  })
+
+  it('印があればトグルは「今日だけ」の上書き。自動と同じ値に戻すと上書きを消す', () => {
+    let s: State = { ...base(), schedule: { '2026-11-23': 'practice' } }
+    s = reducer(s, { type: 'togglePracticeToday', now: NOW })
+    expect(s.settings.practiceOverride).toEqual({ date: '2026-11-23', on: false })
+    expect(s.settings.practiceMode).toBe(false)
+    s = reducer(s, { type: 'togglePracticeToday', now: NOW })
+    expect(s.settings.practiceOverride).toBeUndefined()
+  })
+
+  it('完了を元に戻しても、その後に変えた設定・スケジュールは戻らない', () => {
+    let s = reducer(base(), { type: 'complete', id: 'a', now: NOW })
+    s = reducer(s, { type: 'setDays', dates: ['2026-11-24'], kind: 'off' })
+    s = reducer(s, { type: 'setSettings', patch: { hoursNormal: 6 } })
+    s = reducer(s, { type: 'undo' })
+    expect(s.tasks.map((x) => x.id)).toEqual(['a', 'b'])
+    expect(s.schedule).toEqual({ '2026-11-24': 'off' })
+    expect(s.settings.hoursNormal).toBe(6)
+  })
+
+  it('すべて消す・サンプルに戻すはスケジュールを消さない', () => {
+    let s: State = { ...base(), schedule: { '2026-11-24': 'off' } }
+    s = reducer(s, { type: 'clearAll', now: NOW })
+    s = reducer(s, { type: 'resetSample', now: NOW, tasks: [] })
+    expect(s.schedule).toEqual({ '2026-11-24': 'off' })
+  })
+
+  it('起動時に60日より前の印を消す', () => {
+    const p = {
+      tasks: [],
+      done: [],
+      settings: { ...DEFAULT_SETTINGS },
+      schedule: { '2026-09-01': 'practice' as const, '2026-11-24': 'off' as const },
+    }
+    expect(initState(NOW, p).schedule).toEqual({ '2026-11-24': 'off' })
   })
 })

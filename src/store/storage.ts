@@ -1,13 +1,15 @@
 import { DEFAULT_SETTINGS, TASK_TYPES } from '../constants'
-import type { Settings, Task } from '../types'
+import { isDayKey } from '../logic/schedule'
+import type { Schedule, Settings, Task } from '../types'
 
 export const STORAGE_KEY = 'nurse-triage-v1'
 
-/** localStorage に保存する形 */
+/** localStorage に保存する形（schedule は後から追加。古いデータには無いので {} で補う） */
 export interface Persisted {
   tasks: Task[]
   done: Task[]
   settings: Settings
+  schedule: Schedule
 }
 
 type StorageLike = Pick<Storage, 'getItem' | 'setItem'>
@@ -50,12 +52,30 @@ function toTasks(v: unknown): Task[] {
 function toSettings(v: unknown): Settings {
   const s = (v && typeof v === 'object' ? v : {}) as Record<string, unknown>
   const hours = (x: unknown, fallback: number) => (isNum(x) && x >= 0 && x <= 24 ? x : fallback)
-  return {
+  const settings: Settings = {
     practiceMode:
       typeof s.practiceMode === 'boolean' ? s.practiceMode : DEFAULT_SETTINGS.practiceMode,
     hoursPractice: hours(s.hoursPractice, DEFAULT_SETTINGS.hoursPractice),
     hoursNormal: hours(s.hoursNormal, DEFAULT_SETTINGS.hoursNormal),
   }
+  const o = s.practiceOverride as Record<string, unknown> | undefined
+  if (
+    o &&
+    typeof o === 'object' &&
+    typeof o.date === 'string' &&
+    isDayKey(o.date) &&
+    typeof o.on === 'boolean'
+  ) {
+    settings.practiceOverride = { date: o.date, on: o.on }
+  }
+  return settings
+}
+
+function toSchedule(v: unknown): Schedule {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return {}
+  return Object.fromEntries(
+    Object.entries(v).filter(([k, kind]) => isDayKey(k) && (kind === 'practice' || kind === 'off')),
+  ) as Schedule
 }
 
 /** 保存データを読む。ない・壊れている・読めないときは null */
@@ -66,7 +86,12 @@ export function load(storage: StorageLike | undefined = defaultStorage()): Persi
     const data: unknown = JSON.parse(raw)
     if (!data || typeof data !== 'object') return null
     const d = data as Record<string, unknown>
-    return { tasks: toTasks(d.tasks), done: toTasks(d.done), settings: toSettings(d.settings) }
+    return {
+      tasks: toTasks(d.tasks),
+      done: toTasks(d.done),
+      settings: toSettings(d.settings),
+      schedule: toSchedule(d.schedule),
+    }
   } catch {
     return null
   }
@@ -79,8 +104,8 @@ export function save(
 ): boolean {
   try {
     if (!storage) return false
-    const { tasks, done, settings } = data
-    storage.setItem(STORAGE_KEY, JSON.stringify({ tasks, done, settings }))
+    const { tasks, done, settings, schedule } = data
+    storage.setItem(STORAGE_KEY, JSON.stringify({ tasks, done, settings, schedule }))
     return true
   } catch {
     return false

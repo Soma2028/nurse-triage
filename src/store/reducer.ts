@@ -1,14 +1,24 @@
 import { DEFAULT_SETTINGS } from '../constants'
-import type { Settings, Task } from '../types'
+import {
+  autoPracticeToday,
+  dayKey,
+  hasUpcoming,
+  isPracticeToday,
+  pruneSchedule,
+} from '../logic/schedule'
+import type { DayKind, Settings, Task } from '../types'
 import { sampleTasks } from './sample'
 import { load, type Persisted } from './storage'
 
 export type UndoKind = 'complete' | 'remove' | 'clear' | 'reset'
 
+/** 元に戻す対象（設定やスケジュールは戻さない） */
+type TaskLists = Pick<Persisted, 'tasks' | 'done'>
+
 export interface UndoEntry {
   kind: UndoKind
   message: string // トーストに出す文言
-  prev: Persisted // 直前の状態（1つだけ保持）
+  prev: TaskLists // 直前の課題・完了一覧（1つだけ保持）
   at: number // 操作した時刻（トーストの表示管理用）
 }
 
@@ -26,21 +36,25 @@ export type Action =
   | { type: 'clearAll'; now: number }
   | { type: 'resetSample'; now: number; tasks: Task[] }
   | { type: 'setSettings'; patch: Partial<Settings> }
+  | { type: 'setDays'; dates: string[]; kind: DayKind | null }
+  | { type: 'togglePracticeToday'; now: number }
   | { type: 'undo' }
   | { type: 'dismissUndo' }
 
 export const PROGRESS_STEP = 25
 
-const snapshot = ({ tasks, done, settings }: State): Persisted => ({ tasks, done, settings })
-
 function withUndo(
   state: State,
-  next: Persisted,
+  next: TaskLists,
   kind: UndoKind,
   message: string,
   now: number,
 ): State {
-  return { ...next, undo: { kind, message, prev: snapshot(state), at: now } }
+  return {
+    ...state,
+    ...next,
+    undo: { kind, message, prev: { tasks: state.tasks, done: state.done }, at: now },
+  }
 }
 
 function completeTask(state: State, task: Task, now: number): State {
@@ -50,7 +64,6 @@ function completeTask(state: State, task: Task, now: number): State {
       tasks: state.tasks.filter((t) => t.id !== task.id),
       // 進捗はそのまま残す（「戻す」で元の進捗に戻れるように）
       done: [{ ...task, doneAt: now }, ...state.done],
-      settings: state.settings,
     },
     'complete',
     `「${task.title}」を完了にしました`,
@@ -79,7 +92,6 @@ export function reducer(state: State, action: Action): State {
         {
           tasks: state.tasks.filter((t) => t.id !== action.id),
           done: state.done.filter((t) => t.id !== action.id),
-          settings: state.settings,
         },
         'remove',
         `「${target.title}」を削除しました`,
@@ -122,7 +134,7 @@ export function reducer(state: State, action: Action): State {
       if (state.tasks.length === 0 && state.done.length === 0) return state
       return withUndo(
         state,
-        { tasks: [], done: [], settings: state.settings },
+        { tasks: [], done: [] },
         'clear',
         'すべての課題を消しました',
         action.now,
@@ -131,7 +143,7 @@ export function reducer(state: State, action: Action): State {
     case 'resetSample':
       return withUndo(
         state,
-        { tasks: action.tasks, done: [], settings: state.settings },
+        { tasks: action.tasks, done: [] },
         'reset',
         'サンプルに戻しました',
         action.now,
@@ -140,16 +152,48 @@ export function reducer(state: State, action: Action): State {
     case 'setSettings':
       return { ...state, settings: { ...state.settings, ...action.patch } }
 
+    case 'setDays': {
+      const schedule = { ...state.schedule }
+      for (const d of action.dates) {
+        if (action.kind) schedule[d] = action.kind
+        else delete schedule[d]
+      }
+      return { ...state, schedule }
+    }
+
+    case 'togglePracticeToday': {
+      const { settings, schedule } = state
+      // 今日以降に印がなければ、今までどおりトグルそのものを切り替える
+      if (!hasUpcoming(schedule, action.now)) {
+        const nextSettings: Settings = { ...settings, practiceMode: !settings.practiceMode }
+        delete nextSettings.practiceOverride
+        return { ...state, settings: nextSettings }
+      }
+      // 印があるときは「今日だけ」の上書き。自動判定と同じ値に戻したら上書きを消す
+      const next = !isPracticeToday(settings, schedule, action.now)
+      const nextSettings: Settings = { ...settings }
+      if (next === autoPracticeToday(schedule, action.now)) delete nextSettings.practiceOverride
+      else nextSettings.practiceOverride = { date: dayKey(action.now), on: next }
+      return { ...state, settings: nextSettings }
+    }
+
     case 'undo':
-      return state.undo ? { ...state.undo.prev, undo: null } : state
+      return state.undo ? { ...state, ...state.undo.prev, undo: null } : state
 
     case 'dismissUndo':
       return state.undo ? { ...state, undo: null } : state
   }
 }
 
-/** 起動時の状態：保存データがあればそれ、なければサンプル課題 */
+/** 起動時の状態：保存データがあればそれ（古い印は掃除）、なければサンプル課題 */
 export function initState(now: number, persisted: Persisted | null = load()): State {
-  if (persisted) return { ...persisted, undo: null }
-  return { tasks: sampleTasks(now), done: [], settings: { ...DEFAULT_SETTINGS }, undo: null }
+  if (persisted)
+    return { ...persisted, schedule: pruneSchedule(persisted.schedule, now), undo: null }
+  return {
+    tasks: sampleTasks(now),
+    done: [],
+    settings: { ...DEFAULT_SETTINGS },
+    schedule: {},
+    undo: null,
+  }
 }
