@@ -50,7 +50,7 @@ export function Header({
     'inline-flex size-11 items-center justify-center rounded-lg bg-white/15 text-xl font-bold hover:bg-white/25 disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-white'
 
   return (
-    <header className="bg-navy text-white dark:bg-navy-deep">
+    <header className="bg-primary text-white">
       <div className="mx-auto max-w-6xl px-4 pt-5 pb-5">
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
           <div className="min-w-0">
@@ -77,7 +77,7 @@ export function Header({
                   }`}
                 >
                   <span
-                    className={`absolute top-1 left-1 size-5 rounded-full bg-white shadow transition-transform motion-reduce:transition-none ${
+                    className={`absolute top-1 left-1 size-5 rounded-full bg-surface shadow transition-transform motion-reduce:transition-none ${
                       practice ? 'translate-x-5' : ''
                     }`}
                   />

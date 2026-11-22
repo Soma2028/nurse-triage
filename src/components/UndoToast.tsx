@@ -27,13 +27,13 @@ export function UndoToast({ undo, onUndo, onDismiss }: Props) {
         <div
           key={undo.at}
           role="status"
-          className="pointer-events-auto flex max-w-md min-w-0 items-center gap-3 rounded-xl bg-slate-900 py-1.5 pr-1.5 pl-4 text-sm text-white shadow-lg dark:bg-slate-100 dark:text-slate-900"
+          className="pointer-events-auto flex max-w-md min-w-0 items-center gap-3 rounded-full bg-ink py-1.5 pr-1.5 pl-5 text-sm text-paper shadow-lg"
         >
           <span className="min-w-0 break-words">{undo.message}</span>
           <button
             type="button"
             onClick={onUndo}
-            className="min-h-11 shrink-0 rounded-lg px-3 font-bold text-sky-300 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-sky-400 dark:text-sky-700 dark:hover:bg-slate-900/10"
+            className="min-h-11 shrink-0 rounded-full px-4 font-bold text-paper underline underline-offset-4 hover:bg-paper/10 focus-visible:outline-2 focus-visible:outline-primary-ink"
           >
             元に戻す
           </button>

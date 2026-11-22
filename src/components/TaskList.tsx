@@ -17,7 +17,7 @@ export function TaskList({ analysed, editingId, onAdvance, onComplete, onEdit, o
         優先順位
       </h2>
       {analysed.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-600 dark:text-slate-400">
+        <p className="rounded-xl border border-dashed border-line p-6 text-center text-sm text-ink-muted">
           未完了の課題はありません。課題フォームから追加してください。
         </p>
       ) : (

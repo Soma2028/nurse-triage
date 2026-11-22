@@ -17,9 +17,9 @@ interface Props {
 const IMPORTANCES: Importance[] = [1, 2, 3]
 
 const inputClass =
-  'mt-1 block min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base text-slate-900 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30 focus:outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:[color-scheme:dark]'
+  'mt-1 block min-h-11 w-full rounded-lg border border-line bg-surface px-3 py-2 text-base text-ink focus:border-primary-ink focus:ring-2 focus:ring-primary/25 focus:outline-none'
 
-const labelClass = 'block text-sm font-medium text-slate-700 dark:text-slate-200'
+const labelClass = 'block text-sm font-medium text-ink'
 
 /** 0.5刻みに丸める（最小0.5） */
 const toHalf = (n: number) => Math.max(0.5, Math.round(n * 2) / 2)
@@ -73,7 +73,7 @@ export function TaskForm({ editing, now, onSubmit, onCancel }: Props) {
   return (
     <section
       aria-labelledby={`${id}-heading`}
-      className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900"
+      className="rounded-xl border border-line bg-surface p-4"
     >
       <h2 id={`${id}-heading`} className="text-lg font-bold">
         {editing ? '課題を編集' : '課題を追加'}
@@ -156,7 +156,7 @@ export function TaskForm({ editing, now, onSubmit, onCancel }: Props) {
             min={0}
             max={100}
             step={10}
-            className="mt-1 h-11 w-full accent-navy dark:accent-sky-500"
+            className="mt-1 h-11 w-full accent-primary"
             value={progress}
             onChange={(e) => setProgress(Number(e.target.value))}
           />
@@ -165,7 +165,7 @@ export function TaskForm({ editing, now, onSubmit, onCancel }: Props) {
         <fieldset>
           <legend className={labelClass}>重要度（成績・単位への影響）</legend>
           <div
-            className="mt-1 grid grid-cols-3 overflow-hidden rounded-lg border border-slate-300 dark:border-slate-600"
+            className="mt-1 grid grid-cols-3 overflow-hidden rounded-lg border border-line"
             role="radiogroup"
           >
             {IMPORTANCES.map((v) => (
@@ -175,10 +175,8 @@ export function TaskForm({ editing, now, onSubmit, onCancel }: Props) {
                 role="radio"
                 aria-checked={importance === v}
                 onClick={() => setImportance(v)}
-                className={`min-h-11 border-slate-300 text-sm font-medium not-first:border-l dark:border-slate-600 ${
-                  importance === v
-                    ? 'bg-navy text-white dark:bg-sky-600'
-                    : 'bg-white text-slate-700 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700'
+                className={`min-h-11 border-line text-sm font-medium not-first:border-l ${
+                  importance === v ? 'bg-primary text-white' : 'bg-surface text-ink hover:bg-paper'
                 }`}
               >
                 {IMPORTANCE_LABEL[v]}
@@ -188,7 +186,7 @@ export function TaskForm({ editing, now, onSubmit, onCancel }: Props) {
         </fieldset>
 
         {error && (
-          <p role="alert" className="text-sm font-medium text-tag-red dark:text-red-400">
+          <p role="alert" className="text-sm font-medium text-danger">
             {error}
           </p>
         )}

@@ -8,12 +8,12 @@ interface Props {
 
 export function HowItWorks({ onResetSample, onClearAll }: Props) {
   return (
-    <details className="group rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+    <details className="group rounded-xl border border-line bg-surface">
       <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 px-4 py-2 font-heading text-lg font-bold select-none [&::-webkit-details-marker]:hidden">
         <Chevron />
         優先度の決め方
       </summary>
-      <div className="space-y-3 px-4 pb-4 text-sm leading-relaxed text-slate-700 dark:text-slate-300">
+      <div className="space-y-3 px-4 pb-4 text-sm leading-relaxed text-ink">
         <p>
           各課題の<strong>残り作業時間</strong>（見込み時間×未完了の割合）と、締切までに
           <strong>使える時間</strong>（残り日数×1日に使える時間）を比べて、逼迫度を出します。
@@ -26,7 +26,7 @@ export function HowItWorks({ onResetSample, onClearAll }: Props) {
             期限切れ、締切まで24時間未満、使える時間の7割以上が必要、または他の課題と合わせると間に合わない
           </li>
           <li>
-            <span className="mr-1 inline-block rounded bg-tag-yellow px-1.5 font-bold text-slate-900">
+            <span className="mr-1 inline-block rounded bg-tag-yellow px-1.5 font-bold text-ink">
               黄
             </span>
             締切まで3日以内、または使える時間の3割以上が必要
@@ -50,7 +50,7 @@ export function HowItWorks({ onResetSample, onClearAll }: Props) {
           <strong>実習スケジュール</strong>
           ：カレンダーで実習日・休みの印を付けると、使える時間を日ごとに（実習日は実習中の時間、休みは0時間、印のない日は通常期の時間で）合計します。今日が実習日なら「実習期間中」も自動で切り替わります（手動で今日だけ変えることもできます）。
         </p>
-        <div className="flex flex-wrap gap-2 border-t border-slate-200 pt-3 dark:border-slate-700">
+        <div className="flex flex-wrap gap-2 border-t border-line pt-3">
           <Button onClick={onResetSample}>サンプルに戻す</Button>
           <Button variant="danger" onClick={onClearAll}>
             すべて消す

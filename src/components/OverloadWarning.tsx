@@ -7,7 +7,7 @@ export function OverloadWarning({ a }: { a: Analysed | undefined }) {
   return (
     <div
       role="status"
-      className="mt-4 flex items-start gap-3 rounded-lg border-l-4 border-tag-red bg-white px-3 py-2.5 text-sm text-slate-800 dark:bg-slate-900 dark:text-slate-100"
+      className="mt-4 flex items-start gap-3 rounded-lg border-l-4 border-tag-red bg-surface px-3 py-2.5 text-sm text-ink"
     >
       <span
         aria-hidden

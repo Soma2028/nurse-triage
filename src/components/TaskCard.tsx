@@ -21,8 +21,7 @@ function Reason({ a }: { a: Analysed }) {
   if (ms < 0) {
     return (
       <>
-        {head} ／{' '}
-        <span className="font-medium text-tag-red dark:text-red-400">締切を過ぎています</span>
+        {head} ／ <span className="font-medium text-danger">締切を過ぎています</span>
       </>
     )
   }
@@ -37,7 +36,7 @@ function Reason({ a }: { a: Analysed }) {
       {head} ／ 締切までに使える時間 約{formatHours(avail)}
       {showShortage && (
         <>
-          ・<span className="font-medium text-tag-red dark:text-red-400">{shortText}</span>
+          ・<span className="font-medium text-danger">{shortText}</span>
         </>
       )}
     </>
@@ -49,8 +48,8 @@ export function TaskCard({ a, rank, editing, onAdvance, onComplete, onEdit, onRe
   const style = TRIAGE_STYLE[triage]
   return (
     <li
-      className={`flex overflow-hidden rounded-xl border bg-white shadow-sm dark:bg-slate-900 ${
-        editing ? 'border-sky-500 ring-2 ring-sky-500/40' : 'border-slate-200 dark:border-slate-700'
+      className={`flex overflow-hidden rounded-xl border bg-surface shadow-sm ${
+        editing ? 'border-primary-ink ring-2 ring-primary/30' : 'border-line'
       }`}
     >
       {/* トリアージタッグ */}
@@ -60,7 +59,7 @@ export function TaskCard({ a, rank, editing, onAdvance, onComplete, onEdit, onRe
       >
         <span
           aria-hidden
-          className="absolute top-2 left-1/2 size-3 -translate-x-1/2 rounded-full bg-white ring-2 ring-black/15 dark:bg-slate-900"
+          className="absolute top-2 left-1/2 size-3 -translate-x-1/2 rounded-full bg-surface ring-2 ring-black/15"
         />
         <span aria-hidden className="font-heading text-3xl leading-none font-black">
           {rank}
@@ -75,11 +74,11 @@ export function TaskCard({ a, rank, editing, onAdvance, onComplete, onEdit, onRe
 
       <div className="min-w-0 flex-1 p-3 sm:p-4">
         <h3 className="text-base leading-snug font-bold break-words">{task.title}</h3>
-        <p className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-sm text-slate-600 dark:text-slate-300">
+        <p className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-sm text-ink-muted">
           <span>{TASK_TYPES[task.type].label}</span>
           <span>
             締切 {formatDue(task.due)}
-            <span className={`ml-1 font-medium ${ms < 0 ? 'text-tag-red dark:text-red-400' : ''}`}>
+            <span className={`ml-1 font-medium ${ms < 0 ? 'text-danger' : ''}`}>
               （{formatRemaining(ms)}）
             </span>
           </span>
@@ -87,7 +86,7 @@ export function TaskCard({ a, rank, editing, onAdvance, onComplete, onEdit, onRe
         </p>
 
         <div
-          className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700"
+          className="mt-2 h-2 overflow-hidden rounded-full bg-line"
           role="progressbar"
           aria-label="進捗"
           aria-valuemin={0}
@@ -97,7 +96,7 @@ export function TaskCard({ a, rank, editing, onAdvance, onComplete, onEdit, onRe
           <div className={`h-full ${style.bar}`} style={{ width: `${task.progress}%` }} />
         </div>
 
-        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+        <p className="mt-2 text-sm text-ink-muted">
           <Reason a={a} />
         </p>
 

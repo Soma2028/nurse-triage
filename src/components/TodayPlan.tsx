@@ -10,26 +10,21 @@ export function TodayPlan({ plan }: { plan: Plan }) {
   return (
     <section
       aria-labelledby="plan-heading"
-      className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900"
+      className="rounded-xl border border-line bg-surface p-4"
     >
       <h2 id="plan-heading" className="text-lg font-bold">
         今日のプラン
-        <span className="ml-2 text-sm font-medium text-slate-500 dark:text-slate-400">
-          {formatHours(hours)}
-        </span>
+        <span className="ml-2 text-sm font-medium text-ink-muted">{formatHours(hours)}</span>
       </h2>
 
       {hours === 0 && (
-        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+        <p className="mt-2 text-sm text-ink-muted">
           今日は休みの日です。課題の割り振りはありません。
         </p>
       )}
 
       {/* 積み上げバー（読み上げはリストに任せる） */}
-      <div
-        aria-hidden
-        className="mt-3 flex h-6 gap-0.5 overflow-hidden rounded-md bg-slate-100 dark:bg-slate-800"
-      >
+      <div aria-hidden className="mt-3 flex h-6 gap-0.5 overflow-hidden rounded-md bg-line">
         {items.map((i) => (
           <div
             key={i.task.id}
@@ -57,17 +52,15 @@ export function TodayPlan({ plan }: { plan: Plan }) {
             <span className="min-w-0 break-words">
               {i.task.title}
               <span className="sr-only">（{TRIAGE_STYLE[i.triage].name}）</span>
-              <span className="block text-xs text-slate-500 dark:text-slate-400">
-                {TASK_TYPES[i.task.type].label}
-              </span>
+              <span className="block text-xs text-ink-muted">{TASK_TYPES[i.task.type].label}</span>
             </span>
           </li>
         ))}
         {showFree && (
-          <li className="flex items-start gap-2 text-slate-500 dark:text-slate-400">
+          <li className="flex items-start gap-2 text-ink-muted">
             <span
               aria-hidden
-              className="mt-1.5 size-2.5 shrink-0 rounded-full border border-slate-400"
+              className="mt-1.5 size-2.5 shrink-0 rounded-full border border-line"
             />
             <span className="w-10 shrink-0 font-bold tabular-nums">{formatHours(free)}</span>
             <span>空き：休む・復習にあてる</span>

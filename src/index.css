@@ -1,35 +1,131 @@
 @import 'tailwindcss';
 
+/*
+ * 色は役割ごとのトークンにまとめ、ダークモードは下の :root の上書きで CSS 変数ごと切り替える
+ * （各所に dark: を書かない）。夢のタネの生成り・炭色に合わせ、差し色は紺。
+ * タッグの赤・黄・緑は判定の意味を持つので、それ以外の場所では使わない。
+ */
 @theme {
-  --font-sans: 'Noto Sans JP', ui-sans-serif, system-ui, sans-serif;
-  --font-heading: 'Zen Kaku Gothic New', 'Noto Sans JP', ui-sans-serif, system-ui, sans-serif;
+  --color-paper: #fbf8f3; /* 背景（生成り） */
+  --color-surface: #ffffff; /* カード */
+  --color-ink: #2b2620; /* 文字（炭色） */
+  --color-ink-muted: #6b6358; /* 補足の文字 */
+  --color-line: #e4dfd5; /* 枠線・区切り */
+  --color-line-strong: #cfc8bb; /* 入力欄の枠 */
 
-  --color-navy: #1d3f6e;
-  --color-navy-deep: #152f53;
+  --color-primary: #1d3f6e; /* 紺：ボタン・選択中 */
+  --color-primary-strong: #152f53; /* 押したとき・hover */
+  --color-primary-ink: #1d3f6e; /* 紺の文字・アイコン */
+  --color-primary-soft: #eaf0f7; /* 選択中の薄い背景 */
+  --color-on-primary: #ffffff;
+
+  --color-danger: #b42318; /* 不足・期限切れの文字 */
+  --color-danger-soft: #fdecea;
+
   --color-tag-red: #d92d20;
   --color-tag-yellow: #e3a600;
   --color-tag-green: #178a4a;
+
+  --font-sans:
+    -apple-system, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', system-ui,
+    sans-serif;
 
   /* 860px 以下は1カラム */
   --breakpoint-wide: 861px;
 }
 
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-paper: #1c1915;
+    --color-surface: #26221d;
+    --color-ink: #f1ece4;
+    --color-ink-muted: #b3aa9c;
+    --color-line: #3a342c;
+    --color-line-strong: #4d463c;
+
+    --color-primary: #3a679f;
+    --color-primary-strong: #4a7bb8;
+    --color-primary-ink: #a9c3e6;
+    --color-primary-soft: #263244;
+    --color-on-primary: #ffffff;
+
+    --color-danger: #f97066;
+    --color-danger-soft: #3b211d;
+  }
+}
+
+/* 画面の部品の見た目をそろえる共通クラス（夢のタネと同じ考え方）。
+   角の丸み：大きなカード 3xl / 行・入力欄 2xl / カレンダーのマス xl / ボタン・タグ full */
+@layer components {
+  .ui-page-title {
+    @apply text-2xl font-bold tracking-tight;
+  }
+  .ui-card {
+    @apply rounded-3xl border border-line bg-surface;
+    box-shadow: 0 4px 16px rgb(29 63 110 / 0.06);
+  }
+  .ui-card-raised {
+    box-shadow: 0 8px 28px rgb(29 63 110 / 0.12);
+  }
+  .ui-card-title {
+    @apply font-bold;
+  }
+  .ui-section-label {
+    @apply text-xs font-bold tracking-wide text-ink-muted;
+  }
+  .ui-tag {
+    @apply rounded-full bg-primary-soft px-2.5 py-1 text-xs font-medium text-primary-ink;
+  }
+  .ui-input {
+    @apply mt-1 block min-h-11 w-full min-w-0 rounded-2xl border border-line-strong bg-surface px-3 py-2 text-base text-ink focus:border-primary-ink focus:ring-2 focus:ring-primary/25 focus:outline-none;
+  }
+  .ui-label {
+    @apply block text-sm font-medium text-ink;
+  }
+}
+
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
+    color-scheme: light dark;
+  }
+  /* iPhone で1画面に収まったページを引っぱっても全体が弾まないように */
+  html,
+  body {
+    overscroll-behavior: none;
   }
   body {
-    @apply bg-white font-sans text-slate-800 antialiased dark:bg-slate-950 dark:text-slate-100;
-  }
-  h1,
-  h2,
-  h3 {
-    @apply font-heading;
+    @apply font-sans text-ink antialiased;
+    background-color: var(--color-paper);
+    background-image: repeating-radial-gradient(
+      circle at center,
+      rgb(29 63 110 / 0.035) 0px,
+      rgb(29 63 110 / 0.035) 2px,
+      transparent 2px,
+      transparent 100%
+    );
+    background-size: 24px 24px;
   }
   /* iOS でズームさせないため、入力欄は 16px */
   input,
   select,
   textarea {
     font-size: 16px;
+  }
+  /* 押したときの反応を全部のボタン・リンクでそろえる（夢のタネと同じ 0.15 秒・97%）。
+     画面全体を覆う幕など、縮んではいけないものには data-no-tap を付ける */
+  button,
+  a[href] {
+    transition: scale 0.15s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  button:not(:disabled):not([data-no-tap]):active,
+  a[href]:not([data-no-tap]):active {
+    scale: 0.97;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    button:not(:disabled):active,
+    a[href]:active {
+      scale: 1;
+    }
   }
 }

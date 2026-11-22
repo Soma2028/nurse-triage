@@ -3,14 +3,13 @@ import type { ButtonHTMLAttributes } from 'react'
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger'
 
 const VARIANT: Record<Variant, string> = {
-  primary: 'bg-navy text-white hover:bg-navy-deep dark:bg-sky-600 dark:hover:bg-sky-500',
-  secondary:
-    'border border-slate-300 bg-white text-slate-800 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700',
-  ghost: 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800',
-  danger: 'text-tag-red hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/50',
+  primary: 'bg-primary font-bold text-on-primary hover:bg-primary-strong',
+  secondary: 'border border-line bg-surface text-ink hover:bg-paper',
+  ghost: 'text-ink-muted hover:bg-paper',
+  danger: 'text-danger hover:bg-danger-soft',
 }
 
-/** タップ領域 44px 以上のボタン */
+/** タップ領域 44px 以上のボタン。押したときに縮む動きを消さないよう transition（scale を含む）を使う */
 export function Button({
   variant = 'secondary',
   className = '',
@@ -20,7 +19,7 @@ export function Button({
   return (
     <button
       type={type}
-      className={`inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg px-2.5 text-sm sm:px-3 font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500 disabled:cursor-not-allowed disabled:opacity-50 ${VARIANT[variant]} ${className}`}
+      className={`inline-flex min-h-11 min-w-11 items-center justify-center rounded-full px-3.5 text-sm font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-ink disabled:cursor-not-allowed disabled:opacity-50 ${VARIANT[variant]} ${className}`}
       {...props}
     />
   )

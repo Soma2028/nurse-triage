@@ -1,3 +1,4 @@
+import { MotionConfig } from 'framer-motion'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
@@ -6,8 +7,11 @@ import { StoreProvider } from './store/StoreProvider.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <StoreProvider>
-      <App />
-    </StoreProvider>
+    {/* 「視差効果を減らす」の人には、動きを控えめにする */}
+    <MotionConfig reducedMotion="user">
+      <StoreProvider>
+        <App />
+      </StoreProvider>
+    </MotionConfig>
   </StrictMode>,
 )
