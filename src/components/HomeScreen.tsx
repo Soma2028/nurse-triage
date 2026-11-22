@@ -2,11 +2,13 @@ import { motion } from 'framer-motion'
 import { ChevronRight, Plus } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { TRIAGE_STYLE } from '../constants'
+import type { Speech } from '../logic/speech'
 import { enter } from '../motion'
 import type { Analysed, Plan } from '../types'
 import { formatHours, formatRemaining } from '../utils/format'
-import { OverloadWarning } from './OverloadWarning'
+import { SHORT_SCREEN, useMedia } from '../utils/useMedia'
 import { PracticeSwitch } from './PracticeSwitch'
+import { CharaSpeech } from './Speech'
 import { TaskCard } from './TaskCard'
 import { TodayPlan } from './TodayPlan'
 
@@ -15,11 +17,10 @@ interface Props {
   plan: Plan
   practice: boolean
   practiceNote: string | null
-  shortage: Analysed | undefined
   redCount: number
   remainTotal: number
-  /** キャラクターと吹き出し（段階3で入る） */
-  greeting?: ReactNode
+  /** キャラクターのひとこと（時間不足の警告もここで伝える） */
+  speech: Speech
   onTogglePractice: () => void
   onAdvance: (id: string) => void
   onComplete: (id: string) => void
@@ -41,10 +42,9 @@ export function HomeScreen({
   plan,
   practice,
   practiceNote,
-  shortage,
   redCount,
   remainTotal,
-  greeting,
+  speech,
   onTogglePractice,
   onAdvance,
   onComplete,
@@ -53,17 +53,19 @@ export function HomeScreen({
 }: Props) {
   const top = analysed[0]
   const rest = analysed.slice(1, 6)
+  // 背の低いスマホでは、1画面に収めるため項目を減らす（夢のタネと同じ考え方）
+  const short = useMedia(SHORT_SCREEN)
 
   return (
     <div className="grid grid-cols-1 gap-3 two:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] two:gap-6">
-      <div className="flex min-w-0 flex-col gap-3">
+      <div className="flex min-w-0 flex-col gap-3 short:gap-2">
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm font-bold text-ink-muted wide:hidden">看護課題トリアージ</p>
           <h1 className="ui-page-title hidden wide:block">ホーム</h1>
           <PracticeSwitch on={practice} note={practiceNote} onToggle={onTogglePractice} />
         </div>
 
-        {greeting ?? <OverloadWarning a={shortage} />}
+        <CharaSpeech speech={speech} size={short ? 56 : 72} firstLineOnly={short} />
 
         <motion.section aria-labelledby="now-heading" {...enter(0)}>
           <h2 id="now-heading" className="ui-section-label mb-1.5">
@@ -86,10 +88,10 @@ export function HomeScreen({
         </motion.section>
 
         <motion.div {...enter(0.08)}>
-          <TodayPlan plan={plan} limit={3} />
+          <TodayPlan plan={plan} limit={short ? 1 : 3} />
         </motion.div>
 
-        <div className="flex flex-wrap gap-2" aria-label="まとめ">
+        <div className="flex flex-wrap gap-2 short:hidden" aria-label="まとめ">
           <Pill>
             <span aria-hidden className={`size-2 rounded-full ${TRIAGE_STYLE.red.dot}`} />赤
             <b className="text-ink tabular-nums">{redCount}</b>件

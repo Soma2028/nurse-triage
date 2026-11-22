@@ -10,7 +10,10 @@ function Bubble({ lines }: { lines: string[] }) {
         className="absolute top-5 -left-1.5 size-3 rotate-45 border-b border-l border-line bg-surface"
       />
       {lines.map((line, i) => (
-        <p key={i} className={`leading-relaxed ${i === 0 ? 'font-bold' : 'text-ink-muted'}`}>
+        <p
+          key={i}
+          className={`leading-relaxed short:text-[15px] ${i === 0 ? 'font-bold' : 'text-ink-muted'}`}
+        >
           {line}
         </p>
       ))}
@@ -19,11 +22,20 @@ function Bubble({ lines }: { lines: string[] }) {
 }
 
 /** キャラクター＋吹き出し */
-export function CharaSpeech({ speech, size = 72 }: { speech: SpeechData; size?: number }) {
+export function CharaSpeech({
+  speech,
+  size = 72,
+  firstLineOnly = false,
+}: {
+  speech: SpeechData
+  size?: number
+  /** 背の低い画面では1行目だけにする */
+  firstLineOnly?: boolean
+}) {
   return (
     <div className="flex items-start gap-3" aria-live="polite">
       <Chara mood={speech.mood} size={size} />
-      <Bubble lines={speech.lines} />
+      <Bubble lines={firstLineOnly ? speech.lines.slice(0, 1) : speech.lines} />
     </div>
   )
 }

@@ -1,7 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useCallback, useMemo, useState } from 'react'
 import { HomeScreen } from './components/HomeScreen'
-import { CharaSpeech } from './components/Speech'
 import { BottomNav, DesktopNav, type Screen } from './components/Nav'
 import { ScheduleScreen } from './components/ScheduleScreen'
 import { SettingsScreen } from './components/SettingsScreen'
@@ -77,7 +76,7 @@ export default function App() {
     <div className="min-h-dvh wide:pl-60">
       <DesktopNav current={screen} onNavigate={navigate} onAdd={openAdd} />
 
-      <main className="mx-auto max-w-md px-4 pt-5 pb-28 wide:max-w-5xl wide:px-8 wide:pt-8 wide:pb-12">
+      <main className="mx-auto max-w-md px-4 pt-5 pb-[calc(5.5rem+env(safe-area-inset-bottom))] short:pt-3 short:pb-[calc(4.5rem+env(safe-area-inset-bottom))] wide:max-w-5xl wide:px-8 wide:pt-8 wide:pb-12">
         {/* 画面の切り替えは位置を動かさず、透明度だけのフェード（夢のタネと同じ） */}
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
@@ -93,10 +92,9 @@ export default function App() {
                 plan={plan}
                 practice={practice}
                 practiceNote={practiceNote}
-                shortage={shortage}
                 redCount={redCount}
                 remainTotal={remainTotal}
-                greeting={<CharaSpeech speech={speech} />}
+                speech={speech}
                 onTogglePractice={togglePractice}
                 onAdvance={advance}
                 onComplete={complete}
