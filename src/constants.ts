@@ -1,4 +1,4 @@
-import type { Importance, Settings, TaskType } from './types'
+import type { Importance, Settings, TaskType, Triage } from './types'
 
 export interface TaskTypePreset {
   label: string
@@ -35,3 +35,16 @@ export const DEFAULT_SETTINGS: Settings = {
 
 export const HOUR_MS = 60 * 60 * 1000
 export const DAY_MS = 24 * HOUR_MS
+
+/** タッグ色ごとの Tailwind クラス（黄は文字を濃色に） */
+export const TRIAGE_STYLE: Record<Triage, { tag: string; bar: string; dot: string; name: string }> =
+  {
+    red: { tag: 'bg-tag-red text-white', bar: 'bg-tag-red', dot: 'bg-tag-red', name: '赤' },
+    yellow: {
+      tag: 'bg-tag-yellow text-slate-900',
+      bar: 'bg-tag-yellow',
+      dot: 'bg-tag-yellow',
+      name: '黄',
+    },
+    green: { tag: 'bg-tag-green text-white', bar: 'bg-tag-green', dot: 'bg-tag-green', name: '緑' },
+  }
