@@ -1,7 +1,9 @@
 import { useMemo, useRef, useState } from 'react'
 import { TaskForm } from './components/TaskForm'
+import { TodayPlan } from './components/TodayPlan'
 import { TaskList } from './components/TaskList'
-import { analyse } from './logic/priority'
+import { buildPlan } from './logic/plan'
+import { analyse, dailyHours } from './logic/priority'
 import { useStore } from './store/context'
 import type { Task } from './types'
 
@@ -14,6 +16,8 @@ export default function App() {
     () => analyse(state.tasks, state.settings, now),
     [state.tasks, state.settings, now],
   )
+  const hours = dailyHours(state.settings)
+  const plan = useMemo(() => buildPlan(analysed, hours), [analysed, hours])
   // 編集中の課題が完了・削除されたら、自動で新規追加フォームに戻る
   const editing = state.tasks.find((t) => t.id === editingId)
 
@@ -43,6 +47,7 @@ export default function App() {
           onRemove={(id) => dispatch({ type: 'remove', id, now: Date.now() })}
         />
         <aside className="flex flex-col gap-6">
+          <TodayPlan plan={plan} />
           <div ref={formRef} className="scroll-mt-4">
             <TaskForm
               key={editing?.id ?? 'new'}
