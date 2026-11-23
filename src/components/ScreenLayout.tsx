@@ -26,9 +26,10 @@ export function ScreenLayout({ title, note, aside, sub, onAdd, children }: Props
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      {/* 見出しは模様のない不透明な生成り色。半透明・ぼかし・影は使わない */}
+      {/* 見出しは模様のない不透明な生成り色。半透明・ぼかし・影は使わない。
+          sticky で上端に固定しておくと、iOS 26 が時計の帯をこの色で塗り、ぼかしを使わない（見た目は動かない） */}
       <header
-        className={`shrink-0 border-b bg-paper pt-[max(16px,env(safe-area-inset-top))] pb-2 transition-colors wide:pt-8 ${GUTTER} wide:px-8 ${
+        className={`sticky top-0 z-20 shrink-0 border-b bg-paper pt-[max(16px,env(safe-area-inset-top))] pb-2 transition-colors wide:pt-8 ${GUTTER} wide:px-8 ${
           scrolled ? 'border-line' : 'border-transparent'
         }`}
       >
