@@ -2,6 +2,7 @@ import { Minus, Plus } from 'lucide-react'
 import type { Settings } from '../types'
 import { formatHours } from '../utils/format'
 import { HowItWorks } from './HowItWorks'
+import { NotifyPanel } from './NotifyPanel'
 import { PageTitle } from './PageTitle'
 import { PracticeSwitch } from './PracticeSwitch'
 
@@ -121,6 +122,7 @@ export function SettingsScreen({
         </div>
 
         <div className="flex flex-col gap-4">
+          <NotifyPanel />
           <HowItWorks />
 
           <section className="ui-card p-4" aria-labelledby="data-heading">
@@ -128,7 +130,7 @@ export function SettingsScreen({
               データ
             </h2>
             <p className="mt-1 text-sm text-ink-muted">
-              課題はこの端末の中だけに保存されるよ。消しても5秒間は元に戻せるよ。
+              課題はこの端末の中に保存されるよ。通知をオンにしたときだけ、締切と種類をサーバーに送るよ。消しても5秒間は元に戻せるよ。
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               <button

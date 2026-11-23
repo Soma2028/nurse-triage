@@ -19,6 +19,7 @@ import {
 import { homeSpeech } from './logic/speech'
 import { baseTransition } from './motion'
 import { useStore } from './store/context'
+import { useNotifySync } from './sync/useNotifySync'
 import type { Task } from './types'
 
 /** 追加・編集パネルの状態。editingId が null なら新規追加 */
@@ -30,6 +31,8 @@ export default function App() {
   const [sheet, setSheet] = useState<Sheet>({ open: false })
 
   const { settings, schedule } = state
+  // 通知をオンにしている端末だけ、課題の締切などを裏でサーバーに送る
+  useNotifySync(state.tasks)
   const analysed = useMemo(
     () => analyse(state.tasks, settings, now, schedule),
     [state.tasks, settings, now, schedule],
