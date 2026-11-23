@@ -1,9 +1,10 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { CalendarRange, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { addDays, dayKey, keyStart, rangeKeys, weekday } from '../logic/schedule'
 import type { DayKind, Schedule, Settings } from '../types'
 import { formatHours } from '../utils/format'
-import { ScreenLayout } from './ScreenLayout'
+import { HelpButton, ScreenLayout } from './ScreenLayout'
+import { Sheet } from './Sheet'
 import { Segmented } from './Segmented'
 
 interface Props {
@@ -37,7 +38,7 @@ const shortDate = (key: string) => {
 }
 
 const navBtn =
-  'inline-flex size-11 items-center justify-center rounded-full text-ink-muted transition hover:bg-paper hover:text-ink'
+  'inline-flex size-11 items-center justify-center rounded-full text-ink-muted transition hover:bg-surface hover:text-ink'
 
 /** 実習スケジュール。日ごとに「実習」「休み」の印を付ける */
 export function ScheduleScreen({ schedule, settings, now, onSetDays }: Props) {
@@ -52,6 +53,8 @@ export function ScheduleScreen({ schedule, settings, now, onSetDays }: Props) {
   const [skipWeekends, setSkipWeekends] = useState(true)
   const [rangeError, setRangeError] = useState<string | null>(null)
   const [rangeDone, setRangeDone] = useState<string | null>(null)
+  const [rangeOpen, setRangeOpen] = useState(false)
+  const [help, setHelp] = useState(false)
 
   const [y, m] = month.split('-').map(Number)
   const first = `${month}-01`
@@ -89,173 +92,166 @@ export function ScheduleScreen({ schedule, settings, now, onSetDays }: Props) {
       `${shortDate(start)}〜${shortDate(end)}${skipWeekends ? 'の平日' : ''} ${keys.length}日を${what}`,
     )
     setMonth(start.slice(0, 7))
+    setRangeOpen(false)
   }
 
   return (
-    <ScreenLayout title="カレンダー">
-      <div className="flex flex-col gap-4">
-        <p className="text-sm leading-relaxed text-ink-muted">
-          実習の日と休みの日に印を付けておくと、締切までに使える時間をその日の予定で計算するよ。
-          実習の日は{formatHours(settings.hoursPractice)}、印のない日は
-          {formatHours(settings.hoursNormal)}、休みは0hで数えるね。
-        </p>
-
-        <div className="grid grid-cols-1 items-start gap-4 ">
-          {/* カレンダー（360px 幅でも1マス44px以上になるよう、左右の余白を詰める） */}
-          <section aria-label="カレンダー" className="ui-card px-2 py-4 sm:px-4">
-            <div className="px-2 sm:px-0">
-              <p className="ui-section-label">タップで付ける印</p>
-              <Segmented
-                className="mt-1.5"
-                label="タップで付ける印"
-                value={paint}
-                onChange={setPaint}
-                options={PAINT_OPTIONS}
-              />
-            </div>
-
-            <div className="mt-3 flex items-center justify-between px-1 sm:px-0">
-              <button
-                type="button"
-                className={navBtn}
-                onClick={() => moveMonth(-1)}
-                aria-label="前の月"
-              >
-                <ChevronLeft aria-hidden className="size-5" />
-              </button>
-              <h2 className="font-bold" aria-live="polite">
-                {y}年{m}月
-              </h2>
-              <button
-                type="button"
-                className={navBtn}
-                onClick={() => moveMonth(1)}
-                aria-label="次の月"
-              >
-                <ChevronRight aria-hidden className="size-5" />
-              </button>
-            </div>
-
-            <div className="-mx-1 mt-1">
-              <div aria-hidden className="grid grid-cols-7 text-center text-xs text-ink-muted">
-                {WEEK_HEAD.map((w, i) => (
-                  <span
-                    key={w}
-                    className={`py-1 ${i === 5 ? 'text-primary-ink' : ''} ${i === 6 ? 'text-danger' : ''}`}
-                  >
-                    {w}
-                  </span>
-                ))}
-              </div>
-              <div className="grid grid-cols-7 gap-px">
-                {cells.map((key, i) =>
-                  key === null ? (
-                    <span key={`blank-${i}`} aria-hidden />
-                  ) : (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => tap(key)}
-                      aria-label={`${shortDate(key)} ${schedule[key] ? KIND_NAME[schedule[key]] : 'ふだんの日'}${key === today ? '（今日）' : ''}`}
-                      className={`flex min-h-11 min-w-0 flex-col items-center justify-center rounded-xl text-sm leading-none tabular-nums focus-visible:outline-2 focus-visible:outline-primary-ink ${
-                        schedule[key] ? KIND_CELL[schedule[key]] : 'text-ink hover:bg-paper'
-                      } ${key === today ? 'ring-2 ring-tag-yellow ring-inset' : ''} ${key < today ? 'opacity-45' : ''}`}
-                    >
-                      <span className={key === today ? 'font-bold' : ''}>
-                        {Number(key.slice(8))}
-                      </span>
-                      <span aria-hidden className="mt-0.5 h-3 text-[10px] font-bold">
-                        {schedule[key] ? KIND_MARK[schedule[key]] : ''}
-                      </span>
-                    </button>
-                  ),
-                )}
-              </div>
-            </div>
-
-            <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 px-2 text-xs text-ink-muted sm:px-0">
-              <span className="inline-flex items-center gap-1">
-                <span aria-hidden className={`inline-block size-3 rounded ${KIND_CELL.practice}`} />
-                実習 {count('practice')}日
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <span aria-hidden className={`inline-block size-3 rounded ${KIND_CELL.off}`} />
-                休み {count('off')}日
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <span
-                  aria-hidden
-                  className="inline-block size-3 rounded ring-2 ring-tag-yellow ring-inset"
-                />
-                今日
-              </span>
-            </p>
-          </section>
-
-          {/* 期間で塗る */}
-          <form
-            onSubmit={applyRange}
-            noValidate
-            className="ui-card flex flex-col gap-3 p-4"
-            aria-labelledby="range-heading"
+    <ScreenLayout
+      title="カレンダー"
+      aside={<HelpButton label="カレンダーの使い方" onClick={() => setHelp(true)} />}
+      sub={
+        <div className="-ml-2 flex items-center gap-1">
+          <button
+            type="button"
+            className={navBtn}
+            onClick={() => moveMonth(-1)}
+            aria-label="前の月"
           >
-            <h2 id="range-heading" className="ui-card-title">
-              期間でまとめて塗る
-            </h2>
-            <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
-              <label className="ui-label min-w-0">
-                開始日
-                <input
-                  type="date"
-                  className="ui-input px-2"
-                  value={start}
-                  onChange={(e) => setStart(e.target.value)}
-                />
-              </label>
-              <label className="ui-label min-w-0">
-                終了日
-                <input
-                  type="date"
-                  className="ui-input px-2"
-                  value={end}
-                  onChange={(e) => setEnd(e.target.value)}
-                />
-              </label>
-            </div>
-            <Segmented
-              label="期間に付ける印"
-              value={rangePaint}
-              onChange={setRangePaint}
-              options={PAINT_OPTIONS}
-            />
-            <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm text-ink">
-              <input
-                type="checkbox"
-                checked={skipWeekends}
-                onChange={(e) => setSkipWeekends(e.target.checked)}
-                className="size-5 accent-primary"
-              />
-              土日を除く
-            </label>
-            {rangeError && (
-              <p role="alert" className="text-sm font-bold text-danger">
-                {rangeError}
-              </p>
+            <ChevronLeft aria-hidden className="size-5" />
+          </button>
+          <h2 className="w-28 text-center text-base font-bold tabular-nums" aria-live="polite">
+            {y}年{m}月
+          </h2>
+          <button type="button" className={navBtn} onClick={() => moveMonth(1)} aria-label="次の月">
+            <ChevronRight aria-hidden className="size-5" />
+          </button>
+          <p className="ml-auto text-sm whitespace-nowrap text-ink-muted">
+            実習 <b className="text-ink tabular-nums">{count('practice')}</b> ・ 休み{' '}
+            <b className="text-ink tabular-nums">{count('off')}</b>
+          </p>
+        </div>
+      }
+    >
+      <div className="flex flex-col gap-4">
+        <Segmented
+          label="タップで付ける印"
+          value={paint}
+          onChange={setPaint}
+          options={PAINT_OPTIONS}
+        />
+
+        {/* 1マス44px以上。360px 幅でも入るよう、カードに入れずに並べる */}
+        <section aria-label={`${y}年${m}月のカレンダー`}>
+          <div
+            aria-hidden
+            className="grid grid-cols-7 gap-1 pb-1 text-center text-xs text-ink-muted"
+          >
+            {WEEK_HEAD.map((w) => (
+              <span key={w}>{w}</span>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-1">
+            {cells.map((key, i) =>
+              key === null ? (
+                <span key={`blank-${i}`} aria-hidden />
+              ) : (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => tap(key)}
+                  aria-label={`${shortDate(key)} ${schedule[key] ? KIND_NAME[schedule[key]] : 'ふだんの日'}${key === today ? '（今日）' : ''}`}
+                  className={`flex min-h-11 min-w-0 flex-col items-center justify-center rounded-xl text-sm leading-4 tabular-nums focus-visible:outline-2 focus-visible:outline-primary-ink ${
+                    schedule[key] ? KIND_CELL[schedule[key]] : 'bg-surface text-ink hover:bg-paper'
+                  } ${key === today ? 'font-bold ring-2 ring-ink ring-inset' : ''} ${key < today ? 'opacity-40' : ''}`}
+                >
+                  <span>{Number(key.slice(8))}</span>
+                  <span aria-hidden className="h-4 text-xs font-bold">
+                    {schedule[key] ? KIND_MARK[schedule[key]] : ''}
+                  </span>
+                </button>
+              ),
             )}
-            {rangeDone && (
-              <p role="status" className="text-sm text-ink-muted">
-                {rangeDone}
-              </p>
-            )}
-            <button
-              type="submit"
-              className="min-h-12 rounded-full bg-primary font-bold text-on-primary transition hover:bg-primary-strong"
-            >
-              まとめて塗る
-            </button>
-          </form>
+          </div>
+        </section>
+
+        <div className="flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setRangeError(null)
+              setRangeOpen(true)
+            }}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-line bg-surface px-4 text-sm font-bold text-ink transition hover:bg-paper"
+          >
+            <CalendarRange aria-hidden className="size-4" />
+            期間でまとめて塗る
+          </button>
+          {rangeDone && (
+            <p role="status" className="text-center text-sm text-ink-muted">
+              {rangeDone}
+            </p>
+          )}
         </div>
       </div>
+
+      <Sheet open={rangeOpen} title="期間でまとめて塗る" onClose={() => setRangeOpen(false)}>
+        <form onSubmit={applyRange} noValidate className="flex flex-col gap-4">
+          <div className="grid grid-cols-2 gap-2">
+            <label className="ui-label min-w-0">
+              開始日
+              <input
+                type="date"
+                className="ui-input px-2"
+                value={start}
+                onChange={(e) => setStart(e.target.value)}
+              />
+            </label>
+            <label className="ui-label min-w-0">
+              終了日
+              <input
+                type="date"
+                className="ui-input px-2"
+                value={end}
+                onChange={(e) => setEnd(e.target.value)}
+              />
+            </label>
+          </div>
+          <Segmented
+            label="期間に付ける印"
+            value={rangePaint}
+            onChange={setRangePaint}
+            options={PAINT_OPTIONS}
+          />
+          <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm text-ink">
+            <input
+              type="checkbox"
+              checked={skipWeekends}
+              onChange={(e) => setSkipWeekends(e.target.checked)}
+              className="size-5 accent-primary"
+            />
+            土日を除く
+          </label>
+          {rangeError && (
+            <p role="alert" className="text-sm font-bold text-danger">
+              {rangeError}
+            </p>
+          )}
+          <button
+            type="submit"
+            className="min-h-12 rounded-full bg-primary text-base font-bold text-on-primary transition hover:bg-primary-strong"
+          >
+            まとめて塗る
+          </button>
+        </form>
+      </Sheet>
+
+      <Sheet open={help} title="カレンダーの使い方" onClose={() => setHelp(false)}>
+        <div className="flex flex-col gap-2 text-sm text-ink-muted">
+          <p>
+            実習の日と休みの日に印を付けておくと、締切までに使える時間をその日の予定で計算するよ。
+          </p>
+          <p>
+            実習の日は<b className="text-ink">{formatHours(settings.hoursPractice)}</b>
+            、印のない日は
+            <b className="text-ink">{formatHours(settings.hoursNormal)}</b>
+            、休みは<b className="text-ink">0h</b>で数えるね（時間はせっていで変えられるよ）。
+          </p>
+          <p>今日が実習の日なら、「実習中」も自動でオンになるよ。</p>
+          <p>
+            上の「実習・休み・消す」を選んでから日付をタップしてね。同じ印をもう一度タップすると外れるよ。
+          </p>
+        </div>
+      </Sheet>
     </ScreenLayout>
   )
 }
