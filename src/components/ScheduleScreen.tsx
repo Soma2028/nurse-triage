@@ -2,7 +2,7 @@ import { CalendarRange, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { addDays, dayKey, keyStart, rangeKeys, weekday } from '../logic/schedule'
 import type { DayKind, Schedule, Settings } from '../types'
-import { formatHours } from '../utils/format'
+import { CalendarHelp } from './Help'
 import { HelpButton, ScreenLayout } from './ScreenLayout'
 import { Sheet } from './Sheet'
 import { Segmented } from './Segmented'
@@ -236,21 +236,7 @@ export function ScheduleScreen({ schedule, settings, now, onSetDays }: Props) {
       </Sheet>
 
       <Sheet open={help} title="カレンダーの使い方" onClose={() => setHelp(false)}>
-        <div className="flex flex-col gap-2 text-sm text-ink-muted">
-          <p>
-            実習の日と休みの日に印を付けておくと、締切までに使える時間をその日の予定で計算するよ。
-          </p>
-          <p>
-            実習の日は<b className="text-ink">{formatHours(settings.hoursPractice)}</b>
-            、印のない日は
-            <b className="text-ink">{formatHours(settings.hoursNormal)}</b>
-            、休みは<b className="text-ink">0h</b>で数えるね（時間はせっていで変えられるよ）。
-          </p>
-          <p>今日が実習の日なら、「実習中」も自動でオンになるよ。</p>
-          <p>
-            上の「実習・休み・消す」を選んでから日付をタップしてね。同じ印をもう一度タップすると外れるよ。
-          </p>
-        </div>
+        <CalendarHelp hoursPractice={settings.hoursPractice} hoursNormal={settings.hoursNormal} />
       </Sheet>
     </ScreenLayout>
   )
