@@ -1,4 +1,4 @@
-// VAPID の公開鍵を返す（公開してよい値）。ビルド時に VITE_VAPID_PUBLIC_KEY が入らなかったときの予備
+// VAPID の公開鍵を返す（公開してよい値）。アプリはここから取るので、フロント用の環境変数はいらない
 export function GET() {
   const publicKey = process.env.VAPID_PUBLIC_KEY
   if (!publicKey) return Response.json({ error: 'server not configured' }, { status: 500 })

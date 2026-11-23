@@ -6,11 +6,8 @@ import { subscribeRemote, testRemote, unsubscribeRemote } from './api'
 import { getPushState, newCredentials, setPushState } from './pushState'
 import { vapidKeyToBytes } from './support'
 
-/** ビルド時に入れた公開鍵。入っていなければ、サーバーに聞く（/api/vapid-key） */
-const BUILT_VAPID_KEY: string | undefined = import.meta.env.VITE_VAPID_PUBLIC_KEY || undefined
-
+/** VAPID の公開鍵はサーバーから取る（/api/vapid-key。サーバーの VAPID_PUBLIC_KEY と必ずそろう） */
 async function vapidPublicKey(): Promise<string> {
-  if (BUILT_VAPID_KEY) return BUILT_VAPID_KEY
   const res = await fetch('/api/vapid-key')
   const data = (await res.json()) as { publicKey?: unknown }
   if (!res.ok || typeof data.publicKey !== 'string') throw new Error('公開鍵を取れない')

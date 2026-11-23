@@ -20,6 +20,7 @@ Vercel Functions（/api）
   ├─ /api/subscribe   通知の宛先を登録・解除
   ├─ /api/sync        通知に必要な課題データを丸ごと置き換え
   ├─ /api/test        テスト通知を1件送る
+  ├─ /api/vapid-key   VAPID の公開鍵を返す（アプリはここから取る）
   └─ /api/cron/notify 15分ごとに呼ばれ、送るべき通知を送る
 Neon（Postgres）
 cron-job.org → 15分ごとに /api/cron/notify を叩く（Vercel Hobby の cron は1日1回までなので使わない）
@@ -36,7 +37,6 @@ cron-job.org → 15分ごとに /api/cron/notify を叩く（Vercel Hobby の cr
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | `npx web-push generate-vapid-keys` で作る                               |
 | `VAPID_SUBJECT`                          | `mailto:自分のアドレス`                                                 |
 | `CRON_SECRET`                            | ランダムな長い文字列。cron-job.org からのリクエストのヘッダーで照合する |
-| `VITE_VAPID_PUBLIC_KEY`                  | フロント用（公開鍵と同じ値）                                            |
 
 `.env.example` に名前だけ書き、`.env*` は `.gitignore` に入れる。
 
@@ -94,12 +94,13 @@ create table sent (
 
 ## 6. API
 
-全エンドポイント共通：deviceId と secret を受け取り、secret_hash と照合する。合わなければ 401。入力は zod で検証する。
+subscribe・sync・test 共通：deviceId と secret を受け取り、secret_hash と照合する。合わなければ 401。入力は zod で検証する。
 
 - `POST /api/subscribe { deviceId, secret, subscription, settings }`：初回は devices を作成。subscription を upsert
 - `DELETE /api/subscribe { deviceId, secret, endpoint }`
 - `POST /api/sync { deviceId, secret, tasks: [{ id, type, due, done, title? }], settings }`：その端末の reminders を丸ごと置き換える（トランザクション）。上限は200件
 - `POST /api/test { deviceId, secret }`：その端末の全 subscription にテスト通知を送る
+- `GET /api/vapid-key`：`VAPID_PUBLIC_KEY` を `{ publicKey }` で返す（公開してよい値なので照合なし）。アプリは公開鍵をビルドに埋め込まず、常にここから取る
 - `GET /api/cron/notify`：`Authorization: Bearer ${CRON_SECRET}` が合わなければ 401。送った件数・失敗件数を JSON で返す
 
 ## 7. フロント
