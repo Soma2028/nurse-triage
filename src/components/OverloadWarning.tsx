@@ -13,7 +13,7 @@ export function OverloadWarning({ a }: { a: Analysed | undefined }) {
       role="status"
       className="flex items-start gap-2 rounded-2xl border border-line bg-surface px-4 py-2 text-sm text-ink"
     >
-      <CircleAlert aria-hidden className="mt-0.5 size-4 shrink-0" strokeWidth={2.5} />
+      <CircleAlert aria-hidden className="size-5 shrink-0" strokeWidth={2.25} />
       <span className="min-w-0">
         締切順に積み上げると『{a.task.title}』まで
         <b className="font-bold">約{formatHours(a.shortage)}足りない</b>

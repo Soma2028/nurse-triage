@@ -88,7 +88,12 @@ export function TaskCard({
 
   const lines = (
     <>
-      <span className="block truncate text-base leading-6 font-bold">{task.title}</span>
+      {/* 一覧では1行で切る。ホームの「つぎにやる」（開いたまま）は折り返して全部出す */}
+      <span
+        className={`block text-base leading-6 font-bold ${onToggle ? 'truncate' : 'break-words'}`}
+      >
+        {task.title}
+      </span>
       <span className="mt-1 block truncate text-sm text-ink-muted">
         {formatDue(task.due)} ・ <b className="text-ink">{formatRemaining(ms)}</b>
       </span>

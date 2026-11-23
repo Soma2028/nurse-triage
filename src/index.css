@@ -40,9 +40,6 @@
   --breakpoint-wide: 861px;
 }
 
-/* 背の低いスマホ（iPhone SE など）。utils/useMedia.ts の SHORT_SCREEN と同じ条件 */
-@custom-variant short (@media (max-width: 860px) and (max-height: 740px));
-
 /* 画面の部品の見た目をそろえる共通クラス（夢のタネと同じ考え方）。
    角の丸み：大きなカード 3xl / 行・入力欄 2xl / カレンダーのマス xl / ボタン・タグ full */
 @layer components {
@@ -55,15 +52,6 @@
   }
   .ui-card-raised {
     box-shadow: 0 8px 28px rgb(29 63 110 / 0.12);
-  }
-  .ui-card-title {
-    @apply font-bold;
-  }
-  .ui-section-label {
-    @apply text-xs font-bold tracking-wide text-ink-muted;
-  }
-  .ui-tag {
-    @apply rounded-full bg-primary-soft px-2.5 py-1 text-xs font-medium text-primary-ink;
   }
   .ui-input {
     @apply mt-1 block min-h-11 w-full min-w-0 rounded-2xl border border-line-strong bg-surface px-3 py-2 text-base text-ink focus:border-primary-ink focus:ring-2 focus:ring-primary/25 focus:outline-none;

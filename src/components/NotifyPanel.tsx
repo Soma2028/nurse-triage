@@ -45,22 +45,22 @@ function Check({
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="mt-0.5 size-5 shrink-0 accent-primary"
+        className="mt-0 size-5 shrink-0 accent-primary"
       />
       <span className="min-w-0">
         <span className="block">{children}</span>
-        {hint && <span className="mt-0.5 block text-sm text-ink-muted">{hint}</span>}
+        {hint && <span className="mt-1 block text-sm text-ink-muted">{hint}</span>}
       </span>
     </label>
   )
 }
 
 const primaryBtn =
-  'inline-flex min-h-12 items-center justify-center gap-1.5 rounded-full bg-primary px-5 font-bold text-on-primary shadow-sm transition hover:bg-primary-strong disabled:opacity-60'
+  'inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-primary px-5 font-bold text-on-primary shadow-sm transition hover:bg-primary-strong disabled:opacity-60'
 const softBtn =
-  'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-full bg-primary-soft px-4 text-sm font-bold text-primary-ink transition hover:bg-primary hover:text-on-primary disabled:opacity-60'
+  'inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-primary-soft px-4 text-sm font-bold text-primary-ink transition hover:bg-primary hover:text-on-primary disabled:opacity-60'
 
-/** せっていの「通知」パネル。端末の状態に合わせて表示を変える */
+/** せっていの「通知」シートの中身。端末の状態に合わせて表示を変える */
 export function NotifyPanel() {
   const push = usePushState()
   const [permission, refreshPermission] = usePermission()
@@ -242,10 +242,7 @@ export function NotifyPanel() {
   }
 
   return (
-    <section className="ui-card p-4" aria-labelledby="notify-heading" data-state={stateName}>
-      <h2 id="notify-heading" className="ui-section-label">
-        通知
-      </h2>
+    <section aria-label="通知" data-state={stateName} className="flex flex-col">
       {body}
       <p
         aria-live="polite"

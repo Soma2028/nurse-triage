@@ -3,10 +3,9 @@ interface Props {
   /** スケジュールから自動判定しているときなどの補足 */
   note: string | null
   onToggle: () => void
-  /** chip: ホームの右上に置く小さい形 / row: せっていの行 */
-  variant?: 'chip' | 'row'
 }
 
+/** スイッチの見た目。つまみの位置は 2px 内側（h-6 の中に size-5） */
 function Track({ on }: { on: boolean }) {
   return (
     <span
@@ -24,29 +23,9 @@ function Track({ on }: { on: boolean }) {
   )
 }
 
-/** 実習期間中のスイッチ */
-export function PracticeSwitch({ on, note, onToggle, variant = 'chip' }: Props) {
+/** 実習期間中のスイッチ（せっていの行） */
+export function PracticeSwitch({ on, note, onToggle }: Props) {
   const noteId = 'practice-note'
-  if (variant === 'chip') {
-    return (
-      <button
-        type="button"
-        role="switch"
-        aria-checked={on}
-        aria-describedby={note ? noteId : undefined}
-        onClick={onToggle}
-        className="flex min-h-11 items-center gap-2 rounded-full border border-line bg-surface py-1 pr-3 pl-1.5 text-sm font-bold text-ink shadow-sm"
-      >
-        <Track on={on} />
-        実習中
-        {note && (
-          <span id={noteId} className="sr-only">
-            {note}
-          </span>
-        )}
-      </button>
-    )
-  }
   return (
     <button
       type="button"
@@ -54,12 +33,12 @@ export function PracticeSwitch({ on, note, onToggle, variant = 'chip' }: Props) 
       aria-checked={on}
       aria-describedby={note ? noteId : undefined}
       onClick={onToggle}
-      className="flex min-h-11 w-full items-center justify-between gap-3 text-left"
+      className="flex min-h-11 w-full items-center justify-between gap-4 text-left"
     >
       <span>
-        <span className="block font-bold">実習期間中</span>
+        <span className="block text-base">実習期間中</span>
         {note && (
-          <span id={noteId} className="block text-sm text-ink-muted">
+          <span id={noteId} className="block text-xs text-ink-muted">
             {note}
           </span>
         )}
