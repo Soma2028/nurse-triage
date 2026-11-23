@@ -9,6 +9,12 @@ export function formatDue(ms: number): string {
   return `${d.getMonth() + 1}/${d.getDate()}(${WEEKDAYS[d.getDay()]}) ${d.getHours()}:${pad2(d.getMinutes())}`
 }
 
+/** 「11/24(火)」（ホームの見出し） */
+export function formatDay(ms: number): string {
+  const d = new Date(ms)
+  return `${d.getMonth() + 1}/${d.getDate()}(${WEEKDAYS[d.getDay()]})`
+}
+
 /** 締切までの残り：「あと45分」「あと14時間」「あと3日」、過ぎていれば「2時間超過」 */
 export function formatRemaining(msLeft: number): string {
   const abs = Math.abs(msLeft)

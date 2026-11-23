@@ -1,6 +1,8 @@
 import { motion } from 'framer-motion'
-import type { Mood } from '../logic/speech'
 import { float } from '../motion'
+
+/** キャラクターの表情 */
+export type Mood = 'normal' | 'worry' | 'happy'
 
 /**
  * src/assets/chara/{normal,worry,happy}.png を置くと、ビルド時にここで拾われる。

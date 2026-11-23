@@ -1,7 +1,7 @@
 import { Minus, Plus } from 'lucide-react'
 import type { Settings } from '../types'
 import { formatHours } from '../utils/format'
-import { HowItWorks } from './HowItWorks'
+import { PriorityHelp } from './Help'
 import { NotifyPanel } from './NotifyPanel'
 import { ScreenLayout } from './ScreenLayout'
 import { PracticeSwitch } from './PracticeSwitch'
@@ -122,7 +122,9 @@ export function SettingsScreen({
 
           <div className="flex flex-col gap-4">
             <NotifyPanel />
-            <HowItWorks />
+            <section className="ui-card p-4">
+              <PriorityHelp />
+            </section>
 
             <section className="ui-card p-4" aria-labelledby="data-heading">
               <h2 id="data-heading" className="ui-section-label">

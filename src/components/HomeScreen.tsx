@@ -1,170 +1,175 @@
 import { motion } from 'framer-motion'
-import { ChevronRight, Plus } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { useState } from 'react'
 import { TRIAGE_STYLE } from '../constants'
-import type { Speech } from '../logic/speech'
+import type { HomeView } from '../logic/home'
 import { enter } from '../motion'
 import type { Analysed, Plan } from '../types'
-import { formatHours, formatRemaining } from '../utils/format'
-import { SHORT_SCREEN, useMedia } from '../utils/useMedia'
-import { PracticeSwitch } from './PracticeSwitch'
-import { ScreenLayout } from './ScreenLayout'
-import { CharaSpeech } from './Speech'
+import { formatHours } from '../utils/format'
+import { Chara } from './Chara'
+import { HomeHelp } from './Help'
+import { OverloadWarning } from './OverloadWarning'
+import { HelpButton, ScreenLayout } from './ScreenLayout'
+import { Sheet } from './Sheet'
 import { TaskCard } from './TaskCard'
 import { TodayPlan } from './TodayPlan'
 
 interface Props {
+  /** 見出しの日付（「11/24(火)」） */
+  date: string
+  /** 今日使える時間の理由（「今日は実習日」「今日は休み」） */
+  dayNote: string | null
   analysed: Analysed[]
+  view: HomeView
   plan: Plan
-  practice: boolean
-  practiceNote: string | null
   redCount: number
   /** 締切過ぎ（黒）の件数。赤には含めない */
   blackCount: number
-  remainTotal: number
-  /** キャラクターのひとこと（時間不足の警告もここで伝える） */
-  speech: Speech
-  onTogglePractice: () => void
+  shortage: Analysed | undefined
   onAdvance: (id: string) => void
   onComplete: (id: string) => void
   onAdd: () => void
-  onOpenTasks: () => void
 }
 
-function Pill({ children }: { children: ReactNode }) {
+/** 見出しの下の1行：締切過ぎ・赤の件数（0件は出さない）と、今日使える時間 */
+function Summary({
+  blackCount,
+  redCount,
+  hours,
+}: {
+  blackCount: number
+  redCount: number
+  hours: number
+}) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-sm text-ink-muted">
-      {children}
-    </span>
+    <p
+      className="flex items-center gap-4 overflow-hidden text-sm whitespace-nowrap text-ink-muted"
+      aria-label="まとめ"
+    >
+      {blackCount > 0 && (
+        <span className="inline-flex items-center gap-1">
+          <span aria-hidden className={`size-2 rounded-full ${TRIAGE_STYLE.black.dot}`} />
+          締切過ぎ <b className="text-ink tabular-nums">{blackCount}</b>
+        </span>
+      )}
+      {redCount > 0 && (
+        <span className="inline-flex items-center gap-1">
+          <span aria-hidden className={`size-2 rounded-full ${TRIAGE_STYLE.red.dot}`} />赤{' '}
+          <b className="text-ink tabular-nums">{redCount}</b>
+        </span>
+      )}
+      <span>
+        今日 <b className="text-ink tabular-nums">{formatHours(hours)}</b>
+      </span>
+    </p>
   )
 }
 
-/** ホーム。スマホでは1画面に収める（いまやる1件・今日のプラン・追加ボタン） */
+/** 空いたところに出すキャラクターとひとこと */
+function Empty({ mood, lines }: { mood: 'happy' | 'normal'; lines: [string, string] }) {
+  return (
+    <div className="flex items-center gap-4 rounded-3xl px-2 py-4">
+      <Chara mood={mood} size={64} />
+      <p className="text-sm text-ink-muted">
+        <b className="block text-base text-ink">{lines[0]}</b>
+        {lines[1]}
+      </p>
+    </div>
+  )
+}
+
+const label = 'text-xs font-bold tracking-wide text-ink-muted'
+
+/**
+ * ホーム。今日やることだけ（つぎにやる1件・今日のプラン・ほかの急ぎ）。
+ * 開いて3秒で「次に何をやるか」がわかるように、上から順に読めば済む形にする。
+ */
 export function HomeScreen({
+  date,
+  dayNote,
   analysed,
+  view,
   plan,
-  practice,
-  practiceNote,
   redCount,
   blackCount,
-  remainTotal,
-  speech,
-  onTogglePractice,
+  shortage,
   onAdvance,
   onComplete,
   onAdd,
-  onOpenTasks,
 }: Props) {
-  const top = analysed[0]
-  const rest = analysed.slice(1, 6)
-  // 背の低いスマホでは、1画面に収めるため項目を減らす（夢のタネと同じ考え方）
-  const short = useMedia(SHORT_SCREEN)
+  const [help, setHelp] = useState(false)
+  // ほかの急ぎで開いているカード（同時に開くのは1枚）
+  const [openId, setOpenId] = useState<string | null>(null)
+  const { next, urgent } = view
 
   return (
-    <ScreenLayout title="ホーム" onAdd={onAdd}>
-      <div className="grid grid-cols-1 gap-3  two:gap-6">
-        <div className="flex min-w-0 flex-col gap-3 short:gap-2">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-bold text-ink-muted wide:hidden">看護課題トリアージ</p>
-            <h1 className="ui-page-title hidden wide:block">ホーム</h1>
-            <PracticeSwitch on={practice} note={practiceNote} onToggle={onTogglePractice} />
-          </div>
+    <ScreenLayout
+      title={date}
+      note={dayNote}
+      aside={<HelpButton label="ホームの見方" onClick={() => setHelp(true)} />}
+      sub={<Summary blackCount={blackCount} redCount={redCount} hours={plan.hours} />}
+      onAdd={onAdd}
+    >
+      <div className="flex flex-col gap-4">
+        <OverloadWarning a={shortage} />
 
-          <CharaSpeech speech={speech} size={short ? 56 : 72} firstLineOnly={short} />
-
-          <motion.section aria-labelledby="now-heading" {...enter(0)}>
-            <h2 id="now-heading" className="ui-section-label mb-1.5">
-              いまやること
-            </h2>
-            {top ? (
-              <TaskCard
-                a={top}
-                rank={1}
-                compact
-                className="ui-card-raised"
-                onAdvance={() => onAdvance(top.task.id)}
-                onComplete={() => onComplete(top.task.id)}
-              />
-            ) : (
-              <div className="ui-card p-5 text-sm text-ink-muted">
-                まだ課題がないよ。下のボタンから追加してね。
-              </div>
-            )}
-          </motion.section>
-
-          <motion.div {...enter(0.08)}>
-            <TodayPlan plan={plan} limit={short ? 1 : 3} />
-          </motion.div>
-
-          <div className="flex flex-wrap gap-2 short:hidden" aria-label="まとめ">
-            {blackCount > 0 && (
-              <Pill>
-                <span aria-hidden className={`size-2 rounded-full ${TRIAGE_STYLE.black.dot}`} />
-                締切過ぎ
-                <b className="text-ink tabular-nums">{blackCount}</b>件
-              </Pill>
-            )}
-            <Pill>
-              <span aria-hidden className={`size-2 rounded-full ${TRIAGE_STYLE.red.dot}`} />赤
-              <b className="text-ink tabular-nums">{redCount}</b>件
-            </Pill>
-            <Pill>
-              残り<b className="text-ink tabular-nums">{formatHours(remainTotal)}</b>
-            </Pill>
-            <Pill>
-              今日<b className="text-ink tabular-nums">{formatHours(plan.hours)}</b>
-            </Pill>
-          </div>
-
-          <button
-            type="button"
-            onClick={onAdd}
-            className="flex min-h-13 items-center justify-center gap-1.5 rounded-full bg-primary text-base font-bold text-on-primary shadow-sm transition hover:bg-primary-strong wide:hidden"
+        {analysed.length === 0 ? (
+          <Empty
+            mood="happy"
+            lines={['課題はぜんぶ片づいたよ。', '新しい課題は右下の＋から追加してね。']}
+          />
+        ) : next ? (
+          <motion.section
+            aria-labelledby="next-heading"
+            className="flex flex-col gap-2"
+            {...enter(0)}
           >
-            <Plus aria-hidden className="size-5" strokeWidth={2.5} />
-            課題を追加する
-          </button>
-        </div>
-
-        {/* PC だけ：右に優先順位の上位 */}
-        <section aria-labelledby="next-heading" className="hidden min-w-0 two:block">
-          <div className="mb-1.5 flex items-center justify-between">
-            <h2 id="next-heading" className="ui-section-label">
-              そのあとは
+            <h2 id="next-heading" className={label}>
+              つぎにやる
             </h2>
-            <button
-              type="button"
-              onClick={onOpenTasks}
-              className="inline-flex min-h-11 items-center gap-0.5 rounded-full px-3 text-sm font-bold text-primary-ink hover:bg-primary-soft"
-            >
-              ぜんぶ見る
-              <ChevronRight aria-hidden className="size-4" />
-            </button>
-          </div>
-          {rest.length === 0 ? (
-            <p className="ui-card p-5 text-sm text-ink-muted">ほかの課題はないよ。</p>
-          ) : (
-            <ol className="ui-card divide-y divide-line overflow-hidden">
-              {rest.map((a, i) => (
-                <li key={a.task.id} className="flex items-center gap-3 px-4 py-3">
-                  <span
-                    aria-hidden
-                    className={`inline-flex size-7 shrink-0 items-center justify-center rounded-full text-sm font-black ${TRIAGE_STYLE[a.triage].tag}`}
-                  >
-                    {i + 2}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-bold">{a.task.title}</span>
-                    <span className="text-xs text-ink-muted">
-                      {a.label}・{formatRemaining(a.ms)}
-                    </span>
-                  </span>
+            <TaskCard
+              a={next}
+              rank={analysed.indexOf(next) + 1}
+              open
+              onAdvance={() => onAdvance(next.task.id)}
+              onComplete={() => onComplete(next.task.id)}
+            />
+          </motion.section>
+        ) : (
+          <Empty mood="normal" lines={['急ぎの課題はないよ。', '今日のプランを進めよう。']} />
+        )}
+
+        {analysed.length > 0 && (
+          <motion.div {...enter(0.08)}>
+            <TodayPlan plan={plan} />
+          </motion.div>
+        )}
+
+        {urgent.length > 0 && (
+          <section aria-labelledby="urgent-heading" className="flex flex-col gap-2">
+            <h2 id="urgent-heading" className={label}>
+              ほかの急ぎ
+            </h2>
+            <ol className="flex flex-col gap-2">
+              {urgent.map((a) => (
+                <li key={a.task.id}>
+                  <TaskCard
+                    a={a}
+                    rank={analysed.indexOf(a) + 1}
+                    open={openId === a.task.id}
+                    onToggle={() => setOpenId(openId === a.task.id ? null : a.task.id)}
+                    onAdvance={() => onAdvance(a.task.id)}
+                    onComplete={() => onComplete(a.task.id)}
+                  />
                 </li>
               ))}
             </ol>
-          )}
-        </section>
+          </section>
+        )}
       </div>
+
+      <Sheet open={help} title="ホームの見方" onClose={() => setHelp(false)}>
+        <HomeHelp />
+      </Sheet>
     </ScreenLayout>
   )
 }

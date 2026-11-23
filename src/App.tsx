@@ -16,11 +16,12 @@ import {
   isPracticeToday,
   todayHours,
 } from './logic/schedule'
-import { homeSpeech } from './logic/speech'
+import { dayNote, homeView } from './logic/home'
 import { baseTransition } from './motion'
 import { useStore } from './store/context'
 import { useNotifySync } from './sync/useNotifySync'
 import type { Task } from './types'
+import { formatDay } from './utils/format'
 
 /** 追加・編集パネルの状態。editingId が null なら新規追加 */
 type Sheet = { open: false } | { open: true; editingId: string | null }
@@ -50,9 +51,8 @@ export default function App() {
           : '今日はふだんの日（スケジュールより）'
   const plan = useMemo(() => buildPlan(analysed, hours), [analysed, hours])
   const counts = countByTriage(analysed)
-  const remainTotal = analysed.reduce((s, a) => s + a.remain, 0)
   const shortage = firstShortage(analysed)
-  const speech = useMemo(() => homeSpeech(analysed, plan), [analysed, plan])
+  const view = useMemo(() => homeView(analysed, plan), [analysed, plan])
   const editing =
     sheet.open && sheet.editingId ? state.tasks.find((t) => t.id === sheet.editingId) : undefined
 
@@ -89,19 +89,17 @@ export default function App() {
           >
             {screen === 'home' && (
               <HomeScreen
+                date={formatDay(now)}
+                dayNote={dayNote(settings, schedule, now)}
                 analysed={analysed}
+                view={view}
                 plan={plan}
-                practice={practice}
-                practiceNote={practiceNote}
                 redCount={counts.red}
                 blackCount={counts.black}
-                remainTotal={remainTotal}
-                speech={speech}
-                onTogglePractice={togglePractice}
+                shortage={shortage}
                 onAdvance={advance}
                 onComplete={complete}
                 onAdd={openAdd}
-                onOpenTasks={() => navigate('tasks')}
               />
             )}
             {screen === 'tasks' && (
