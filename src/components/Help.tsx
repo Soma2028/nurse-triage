@@ -104,10 +104,14 @@ export function CalendarHelp({
   ]
   return (
     <div className="flex flex-col gap-8">
-      <Group label="印の付け方">
-        <p className="text-sm leading-6 text-ink">
-          上で「実習」か「休み」を選んでから、日付をタップしてね。同じ印をもう一度タップすると外れるよ。
-        </p>
+      <Group label="予定の入れ方">
+        <Item title="実習や休みの期間">右下の＋から、始まりと終わりの日を選んで入れてね。</Item>
+        <Item title="1日だけ変えたいとき">
+          日付をタップして、「実習」「休み」「なし」から選んでね。
+        </Item>
+        <Item title="課題の締切">
+          課題の締切の日には、色の点と課題名が出るよ。日付をタップすると、その日の課題を直したり、追加したりできるよ。
+        </Item>
       </Group>
 
       <Group label="1日に使える時間">

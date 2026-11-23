@@ -11,6 +11,8 @@ interface Props {
   editing?: Task
   /** 新規追加時の締切の初期値を決める基準時刻 */
   now: number
+  /** 新規追加時の締切の初期値（カレンダーの日付から追加したとき）。なければ明日の 17:00 */
+  defaultDue?: number
   onSubmit: (task: Task) => void
 }
 
@@ -23,12 +25,12 @@ const stepBtn =
   'inline-flex size-11 shrink-0 items-center justify-center rounded-full border border-line bg-surface text-ink transition hover:bg-paper disabled:opacity-40'
 
 /** 課題の追加・編集フォーム（TaskSheet の中に置く） */
-export function TaskForm({ editing, now, onSubmit }: Props) {
+export function TaskForm({ editing, now, defaultDue, onSubmit }: Props) {
   const id = useId()
   const [title, setTitle] = useState(editing?.title ?? '')
   const [type, setType] = useState<TaskType>(editing?.type ?? 'rec')
   const [due, setDue] = useState(() =>
-    toDatetimeLocal(editing?.due ?? daysFromToday(now, 1, 17, 0)),
+    toDatetimeLocal(editing?.due ?? defaultDue ?? daysFromToday(now, 1, 17, 0)),
   )
   const [estHours, setEstHours] = useState(editing?.estHours ?? TASK_TYPES.rec.defaultHours)
   // 見込み時間を手で変えたら、種類を変えても上書きしない（編集時は最初から手入力扱い）

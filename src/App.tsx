@@ -24,7 +24,7 @@ import type { Task } from './types'
 import { formatDay } from './utils/format'
 
 /** 追加・編集パネルの状態。editingId が null なら新規追加 */
-type Sheet = { open: false } | { open: true; editingId: string | null }
+type Sheet = { open: false } | { open: true; editingId: string | null; defaultDue?: number }
 
 export default function App() {
   const { state, dispatch, now } = useStore()
@@ -57,7 +57,8 @@ export default function App() {
     sheet.open && sheet.editingId ? state.tasks.find((t) => t.id === sheet.editingId) : undefined
 
   const navigate = (s: Screen) => setScreen(s)
-  const openAdd = () => setSheet({ open: true, editingId: null })
+  /** 課題を追加する。カレンダーの日付から開いたときは、その日を締切の初期値にする */
+  const openAdd = (defaultDue?: number) => setSheet({ open: true, editingId: null, defaultDue })
   const openEdit = (id: string) => setSheet({ open: true, editingId: id })
   const closeSheet = useCallback(() => setSheet({ open: false }), [])
 
@@ -74,7 +75,7 @@ export default function App() {
   return (
     // 画面の高さで固定。見出しとタブは動かず、各画面の真ん中だけがスクロールする
     <div className="flex h-full flex-col wide:pl-60">
-      <DesktopNav current={screen} onNavigate={navigate} onAdd={openAdd} />
+      <DesktopNav current={screen} onNavigate={navigate} onAdd={() => openAdd()} />
 
       <main className="relative min-h-0 flex-1">
         {/* 画面の切り替えは位置を動かさず、透明度だけのフェード（夢のタネと同じ） */}
@@ -99,7 +100,7 @@ export default function App() {
                 shortage={shortage}
                 onAdvance={advance}
                 onComplete={complete}
-                onAdd={openAdd}
+                onAdd={() => openAdd()}
               />
             )}
             {screen === 'tasks' && (
@@ -107,7 +108,7 @@ export default function App() {
                 analysed={analysed}
                 done={state.done}
                 shortage={shortage}
-                onAdd={openAdd}
+                onAdd={() => openAdd()}
                 onAdvance={advance}
                 onComplete={complete}
                 onEdit={openEdit}
@@ -120,7 +121,10 @@ export default function App() {
                 schedule={schedule}
                 settings={settings}
                 now={now}
+                analysed={analysed}
                 onSetDays={(dates, kind) => dispatch({ type: 'setDays', dates, kind })}
+                onAddTask={openAdd}
+                onEditTask={openEdit}
               />
             )}
             {screen === 'settings' && (
@@ -143,6 +147,7 @@ export default function App() {
         open={sheet.open}
         editing={editing}
         now={now}
+        defaultDue={sheet.open ? sheet.defaultDue : undefined}
         onSubmit={submit}
         onClose={closeSheet}
       />

@@ -11,6 +11,10 @@ interface Props {
   sub?: ReactNode
   /** 渡すと右下に＋ボタンを出す（スマホだけ。PC は左のメニューに追加ボタンがある） */
   onAdd?: () => void
+  /** ＋ボタンの名前（読み上げ用） */
+  addLabel?: string
+  /** 中身を真ん中の高さいっぱいに広げる（カレンダーのように、スクロールさせずに収める画面） */
+  fill?: boolean
   children: ReactNode
 }
 
@@ -20,7 +24,16 @@ const GUTTER = 'pr-[max(16px,env(safe-area-inset-right))] pl-[max(16px,env(safe-
 /**
  * 画面の骨組み。見出しは固定し、真ん中だけがスクロールする（ページ全体は動かない）。
  */
-export function ScreenLayout({ title, note, aside, sub, onAdd, children }: Props) {
+export function ScreenLayout({
+  title,
+  note,
+  aside,
+  sub,
+  onAdd,
+  addLabel = '課題を追加する',
+  fill = false,
+  children,
+}: Props) {
   // 中身が見出しの下にスクロールして隠れているときだけ、見出しの下に区切りの線を出す
   const [scrolled, setScrolled] = useState(false)
 
@@ -49,15 +62,17 @@ export function ScreenLayout({ title, note, aside, sub, onAdd, children }: Props
         <div
           data-scroll
           onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 0)}
-          className={`h-full overflow-y-auto overscroll-contain pt-2 ${onAdd ? 'pb-24' : 'pb-6'} ${GUTTER} wide:px-8 wide:pb-8`}
+          className={`h-full overflow-y-auto overscroll-contain pt-2 ${onAdd ? 'pb-24' : 'pb-6'} ${GUTTER} wide:px-8 wide:pb-8 ${fill ? 'flex flex-col' : ''}`}
         >
-          <div className="mx-auto max-w-xl">{children}</div>
+          <div className={`mx-auto w-full max-w-xl ${fill ? 'flex min-h-0 flex-1 flex-col' : ''}`}>
+            {children}
+          </div>
         </div>
         {onAdd && (
           <button
             type="button"
             onClick={onAdd}
-            aria-label="課題を追加する"
+            aria-label={addLabel}
             className="absolute right-[max(16px,env(safe-area-inset-right))] bottom-4 inline-flex size-14 items-center justify-center rounded-full bg-primary text-on-primary shadow-[0_8px_24px_rgb(29_63_110/0.3)] transition hover:bg-primary-strong wide:hidden"
           >
             <Plus aria-hidden className="size-6" strokeWidth={2.5} />

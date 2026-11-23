@@ -1,104 +1,157 @@
-import { CalendarRange, ChevronLeft, ChevronRight } from 'lucide-react'
-import { useState, type FormEvent } from 'react'
-import { addDays, dayKey, keyStart, rangeKeys, weekday } from '../logic/schedule'
-import type { DayKind, Schedule, Settings } from '../types'
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { TRIAGE_STYLE } from '../constants'
+import { markRun, monthCells, tasksByDay } from '../logic/calendar'
+import { addDays, dayKey, keyStart, rangeKeys } from '../logic/schedule'
+import type { Analysed, DayKind, Schedule, Settings } from '../types'
 import { CalendarHelp } from './Help'
 import { HelpButton, ScreenLayout } from './ScreenLayout'
-import { Sheet } from './Sheet'
 import { Segmented } from './Segmented'
+import { Sheet } from './Sheet'
 
 interface Props {
   schedule: Schedule
   settings: Settings
   now: number
+  /** 未完了の課題（締切の日に出す） */
+  analysed: Analysed[]
   onSetDays: (dates: string[], kind: DayKind | null) => void
+  /** 課題を追加する（日付から開いたときは、その日を締切の初期値に） */
+  onAddTask: (defaultDue?: number) => void
+  onEditTask: (id: string) => void
 }
 
-/** 期間で塗る種類。null は印を消す */
-type Paint = DayKind | null
-
-/** タップで付ける印。外すときは同じ印をもう一度タップするので「消す」はいらない */
-const TAP_OPTIONS: { value: DayKind; label: string }[] = [
-  { value: 'practice', label: '実習' },
-  { value: 'off', label: '休み' },
-]
-/** 期間でまとめて塗るときは、まとめて外せるように「印を消す」も選べる */
-const RANGE_OPTIONS: { value: Paint; label: string }[] = [
-  ...TAP_OPTIONS,
-  { value: null, label: '印を消す' },
-]
 const WEEK_HEAD = ['月', '火', '水', '木', '金', '土', '日']
 const WEEKDAY_NAME = ['日', '月', '火', '水', '木', '金', '土']
 
+/** マスの塗り（実習は薄い紺、休みは灰色。続く日は塗りがつながって見える） */
 const KIND_CELL: Record<DayKind, string> = {
-  practice: 'bg-primary text-on-primary',
-  off: 'bg-line text-ink-muted',
+  practice: 'bg-primary-soft',
+  off: 'bg-line',
 }
-const KIND_MARK: Record<DayKind, string> = { practice: '実', off: '休' }
-const KIND_NAME: Record<DayKind, string> = { practice: '実習日', off: '休み' }
+const KIND_MARK: Record<DayKind, { char: string; className: string }> = {
+  practice: { char: '実', className: 'text-primary-ink' },
+  off: { char: '休', className: 'text-ink-muted' },
+}
+const KIND_NAME: Record<DayKind, string> = { practice: '実習', off: '休み' }
+
+/** マスの中の大きさ（px）：上下の余白 4+4、日付の行 16、課題1件ごとに 4+16 */
+const CELL_PAD = 8
+const DATE_ROW = 16
+const CHIP_ROW = 20
 
 const shortDate = (key: string) => {
   const d = new Date(keyStart(key))
   return `${d.getMonth() + 1}/${d.getDate()}(${WEEKDAY_NAME[d.getDay()]})`
 }
+/** 「11/24」（曜日なし。ボタンの中など狭いところ用） */
+const monthDay = (key: string) => `${Number(key.slice(5, 7))}/${Number(key.slice(8))}`
+const timeOf = (ms: number) => {
+  const d = new Date(ms)
+  return `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`
+}
+/** その日の 17:00（日付から課題を追加するときの締切の初期値） */
+const fivePm = (key: string) => keyStart(key) + 17 * 60 * 60 * 1000
 
 const navBtn =
   'inline-flex size-11 items-center justify-center rounded-full text-ink-muted transition hover:bg-surface hover:text-ink'
+const softBtn =
+  'inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-primary-soft px-4 text-sm font-bold text-primary-ink transition hover:bg-primary hover:text-on-primary'
+const label = 'text-xs font-bold tracking-wide text-ink-muted'
 
-/** 実習スケジュール。日ごとに「実習」「休み」の印を付ける */
-export function ScheduleScreen({ schedule, settings, now, onSetDays }: Props) {
+/** マスの高さから、課題を何件まで並べられるか */
+function useChipCapacity() {
+  const ref = useRef<HTMLDivElement>(null)
+  const [cap, setCap] = useState(1)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const measure = () => {
+      const cell = el.querySelector<HTMLElement>('[data-cell]')
+      if (!cell) return
+      const h = cell.getBoundingClientRect().height
+      setCap(Math.max(1, Math.floor((h - CELL_PAD - DATE_ROW) / CHIP_ROW)))
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+  return [ref, cap] as const
+}
+
+type AddKind = DayKind | 'task'
+
+/**
+ * カレンダー。TimeTree のように、実習・休みの予定と課題の締切を1つの月の表に出す。
+ * 日付をタップするとその日のシート、右下の＋で予定（実習・休み・課題）を追加する。
+ */
+export function ScheduleScreen({
+  schedule,
+  settings,
+  now,
+  analysed,
+  onSetDays,
+  onAddTask,
+  onEditTask,
+}: Props) {
   const today = dayKey(now)
   const [month, setMonth] = useState(() => today.slice(0, 7)) // YYYY-MM
-  const [paint, setPaint] = useState<DayKind>('practice')
+  const [selected, setSelected] = useState<string | null>(null) // 開いている日のシート
+  const [help, setHelp] = useState(false)
+  const [gridRef, capacity] = useChipCapacity()
 
-  // 期間で塗る
+  // 予定を追加するシート
+  const [addOpen, setAddOpen] = useState(false)
+  const [addKind, setAddKind] = useState<AddKind>('practice')
   const [start, setStart] = useState(today)
   const [end, setEnd] = useState(() => addDays(today, 13))
-  const [rangePaint, setRangePaint] = useState<Paint>('practice')
   const [skipWeekends, setSkipWeekends] = useState(true)
-  const [rangeError, setRangeError] = useState<string | null>(null)
-  const [rangeDone, setRangeDone] = useState<string | null>(null)
-  const [rangeOpen, setRangeOpen] = useState(false)
-  const [help, setHelp] = useState(false)
+  const [addError, setAddError] = useState<string | null>(null)
 
   const [y, m] = month.split('-').map(Number)
-  const first = `${month}-01`
-  const daysInMonth = new Date(y, m, 0).getDate()
-  const offset = (weekday(first) + 6) % 7 // 月曜始まり
-  const cells: (string | null)[] = [
-    ...Array<null>(offset).fill(null),
-    ...Array.from({ length: daysInMonth }, (_, i) => addDays(first, i)),
-  ]
+  const cells = useMemo(() => monthCells(month), [month])
   const monthKeys = cells.filter((c): c is string => c !== null)
   const count = (k: DayKind) => monthKeys.filter((c) => schedule[c] === k).length
+  const byDay = useMemo(() => tasksByDay(analysed), [analysed])
+  const rank = useMemo(() => new Map(analysed.map((a, i) => [a.task.id, i + 1])), [analysed])
 
   const moveMonth = (n: number) => {
     const d = new Date(y, m - 1 + n, 1)
     setMonth(dayKey(d.getTime()).slice(0, 7))
   }
 
-  const tap = (key: string) => {
-    // 同じ種類が付いている日をもう一度タップしたら外す
-    const next = schedule[key] === paint ? null : paint
-    onSetDays([key], next)
+  const openAdd = () => {
+    setAddError(null)
+    setAddOpen(true)
   }
 
-  const applyRange = (e: FormEvent) => {
-    e.preventDefault()
-    setRangeDone(null)
-    if (!start || !end) return setRangeError('開始日と終了日を入れてね')
-    if (end < start) return setRangeError('終了日は開始日よりあとにしてね')
-    const keys = rangeKeys(start, end, skipWeekends)
-    if (keys.length === 0) return setRangeError('土日だけの期間なので、塗る日がないよ')
-    setRangeError(null)
-    onSetDays(keys, rangePaint)
-    const what = rangePaint ? `${KIND_NAME[rangePaint]}にしたよ` : 'の印を消したよ'
-    setRangeDone(
-      `${shortDate(start)}〜${shortDate(end)}${skipWeekends ? 'の平日' : ''} ${keys.length}日を${what}`,
-    )
-    setMonth(start.slice(0, 7))
-    setRangeOpen(false)
+  const chooseAddKind = (k: AddKind) => {
+    if (k === 'task') {
+      // 課題はいつものフォームで追加する
+      setAddOpen(false)
+      onAddTask()
+      return
+    }
+    setAddKind(k)
   }
+
+  const submitAdd = (e: FormEvent) => {
+    e.preventDefault()
+    if (addKind === 'task') return
+    if (!start || !end) return setAddError('開始日と終了日を入れてね。')
+    if (end < start) return setAddError('終了日は、開始日と同じかそれよりあとにしてね。')
+    const keys = rangeKeys(start, end, skipWeekends)
+    if (keys.length === 0) return setAddError('土日だけの期間なので、入れる日がないよ。')
+    onSetDays(keys, addKind)
+    setMonth(start.slice(0, 7))
+    setAddOpen(false)
+  }
+
+  // 日のシート
+  const dayKind = selected ? schedule[selected] : undefined
+  const run = selected ? markRun(schedule, selected) : []
+  const dayTasks = selected ? (byDay.get(selected) ?? []) : []
 
   return (
     <ScreenLayout
@@ -126,71 +179,170 @@ export function ScheduleScreen({ schedule, settings, now, onSetDays }: Props) {
           </p>
         </div>
       }
+      onAdd={openAdd}
+      addLabel="予定を追加する"
+      fill
     >
-      <div className="flex flex-col gap-4">
-        <Segmented
-          label="タップで付ける印"
-          value={paint}
-          onChange={setPaint}
-          options={TAP_OPTIONS}
-        />
-
-        {/* 1マス44px以上。360px 幅でも入るよう、カードに入れずに並べる */}
-        <section aria-label={`${y}年${m}月のカレンダー`}>
-          <div
-            aria-hidden
-            className="grid grid-cols-7 gap-1 pb-1 text-center text-xs text-ink-muted"
-          >
-            {WEEK_HEAD.map((w) => (
-              <span key={w}>{w}</span>
-            ))}
-          </div>
-          <div className="grid grid-cols-7 gap-1">
-            {cells.map((key, i) =>
-              key === null ? (
-                <span key={`blank-${i}`} aria-hidden />
-              ) : (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => tap(key)}
-                  aria-label={`${shortDate(key)} ${schedule[key] ? KIND_NAME[schedule[key]] : 'ふだんの日'}${key === today ? '（今日）' : ''}`}
-                  className={`flex min-h-11 min-w-0 flex-col items-center justify-center rounded-xl text-sm leading-4 tabular-nums focus-visible:outline-2 focus-visible:outline-primary-ink ${
-                    schedule[key] ? KIND_CELL[schedule[key]] : 'bg-surface text-ink hover:bg-paper'
-                  } ${key === today ? 'font-bold ring-2 ring-ink ring-inset' : ''} ${key < today ? 'opacity-40' : ''}`}
-                >
-                  <span>{Number(key.slice(8))}</span>
-                  <span aria-hidden className="h-4 text-xs font-bold">
-                    {schedule[key] ? KIND_MARK[schedule[key]] : ''}
-                  </span>
-                </button>
-              ),
-            )}
-          </div>
-        </section>
-
-        <div className="flex flex-col gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              setRangeError(null)
-              setRangeOpen(true)
-            }}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-line bg-surface px-4 text-sm font-bold text-ink transition hover:bg-paper"
-          >
-            <CalendarRange aria-hidden className="size-4" />
-            期間でまとめて塗る
-          </button>
-          {rangeDone && (
-            <p role="status" className="text-center text-sm text-ink-muted">
-              {rangeDone}
-            </p>
-          )}
-        </div>
+      <div aria-hidden className="grid grid-cols-7 gap-1 pb-1 text-center text-xs text-ink-muted">
+        {WEEK_HEAD.map((w) => (
+          <span key={w}>{w}</span>
+        ))}
       </div>
 
-      <Sheet open={rangeOpen} title="期間でまとめて塗る" onClose={() => setRangeOpen(false)}>
-        <form onSubmit={applyRange} noValidate className="flex flex-col gap-4">
+      <div
+        ref={gridRef}
+        role="grid"
+        aria-label={`${y}年${m}月のカレンダー`}
+        className="grid min-h-0 flex-1 grid-cols-7 gap-1"
+        style={{ gridTemplateRows: `repeat(${cells.length / 7}, minmax(44px, 1fr))` }}
+      >
+        {cells.map((key, i) => {
+          if (key === null) return <span key={`blank-${i}`} aria-hidden />
+          const kind = schedule[key]
+          const tasks = byDay.get(key) ?? []
+          const shown = tasks.length > capacity ? tasks.slice(0, capacity - 1) : tasks
+          const more = tasks.length - shown.length
+          const isToday = key === today
+          const past = key < today
+          return (
+            <button
+              key={key}
+              type="button"
+              data-cell
+              onClick={() => setSelected(key)}
+              aria-label={`${shortDate(key)}${kind ? ` ${KIND_NAME[kind]}` : ''}${tasks.length ? ` 締切${tasks.length}件` : ''}${isToday ? '（今日）' : ''}`}
+              className={`flex min-h-0 min-w-0 flex-col gap-1 overflow-hidden rounded-xl p-1 text-left focus-visible:outline-2 focus-visible:outline-primary-ink ${
+                kind ? KIND_CELL[kind] : 'bg-surface'
+              } ${isToday ? 'ring-2 ring-ink ring-inset' : ''}`}
+            >
+              <span className="flex h-4 shrink-0 items-center justify-between gap-1 px-1 text-xs leading-4">
+                <span
+                  className={`tabular-nums ${isToday ? 'font-bold text-ink' : past ? 'text-ink-muted' : 'text-ink'}`}
+                >
+                  {Number(key.slice(8))}
+                </span>
+                {kind && (
+                  <span aria-hidden className={`font-bold ${KIND_MARK[kind].className}`}>
+                    {KIND_MARK[kind].char}
+                  </span>
+                )}
+              </span>
+              {shown.map((a) => (
+                <span
+                  key={a.task.id}
+                  className="flex h-4 min-w-0 shrink-0 items-center gap-1 text-xs leading-4"
+                >
+                  <span
+                    aria-hidden
+                    className={`size-2 shrink-0 rounded-full ${TRIAGE_STYLE[a.triage].dot}`}
+                  />
+                  <span className="truncate text-ink">{a.task.title}</span>
+                </span>
+              ))}
+              {more > 0 && (
+                <span className="h-4 shrink-0 px-1 text-xs leading-4 text-ink-muted">+{more}</span>
+              )}
+            </button>
+          )
+        })}
+      </div>
+
+      {/* 日のシート：その日の予定と、締切の課題 */}
+      <Sheet
+        open={selected !== null}
+        title={selected ? shortDate(selected) : ''}
+        onClose={() => setSelected(null)}
+      >
+        {selected && (
+          <div className="flex flex-col gap-6">
+            <section className="flex flex-col gap-2">
+              <h3 className={label}>予定</h3>
+              <Segmented
+                label="この日の予定"
+                value={dayKind ?? 'none'}
+                onChange={(v) => onSetDays([selected], v === 'none' ? null : v)}
+                options={[
+                  { value: 'practice', label: '実習' },
+                  { value: 'off', label: '休み' },
+                  { value: 'none', label: 'なし' },
+                ]}
+              />
+              {dayKind && run.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => onSetDays(run, null)}
+                  className="min-h-11 rounded-full border border-line bg-surface px-4 text-sm font-bold text-ink transition hover:bg-paper"
+                >
+                  {monthDay(run[0])}〜{monthDay(run[run.length - 1])} の{KIND_NAME[dayKind]}
+                  をまとめて外す
+                </button>
+              )}
+            </section>
+
+            <section className="flex flex-col gap-2">
+              <h3 className={label}>この日が締切の課題</h3>
+              {dayTasks.length === 0 ? (
+                <p className="text-sm leading-6 text-ink">この日が締切の課題はないよ。</p>
+              ) : (
+                <ul className="ui-card divide-y divide-line overflow-hidden rounded-2xl">
+                  {dayTasks.map((a) => (
+                    <li key={a.task.id}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelected(null)
+                          onEditTask(a.task.id)
+                        }}
+                        className="flex min-h-12 w-full items-center gap-2 px-4 py-2 text-left transition hover:bg-paper"
+                        aria-label={`${rank.get(a.task.id)}番目・${TRIAGE_STYLE[a.triage].name}「${a.label}」 ${a.task.title}を編集`}
+                      >
+                        <span
+                          aria-hidden
+                          className={`w-10 shrink-0 rounded-full text-center text-xs leading-6 font-bold ${TRIAGE_STYLE[a.triage].tag}`}
+                        >
+                          {TRIAGE_STYLE[a.triage].name}
+                        </span>
+                        <span className="min-w-0 flex-1 truncate text-sm text-ink">
+                          {a.task.title}
+                        </span>
+                        <span className="shrink-0 text-sm text-ink-muted tabular-nums">
+                          {timeOf(a.task.due)}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <button
+                type="button"
+                className={softBtn}
+                onClick={() => {
+                  const due = fivePm(selected)
+                  setSelected(null)
+                  onAddTask(due)
+                }}
+              >
+                <Plus aria-hidden className="size-4" strokeWidth={2.5} />
+                この日が締切の課題を追加
+              </button>
+            </section>
+          </div>
+        )}
+      </Sheet>
+
+      {/* ＋：予定を追加（実習・休みは期間で、課題はいつものフォームで） */}
+      <Sheet open={addOpen} title="予定を追加" onClose={() => setAddOpen(false)}>
+        <form onSubmit={submitAdd} noValidate className="flex flex-col gap-4">
+          <Segmented
+            label="追加するもの"
+            value={addKind}
+            onChange={chooseAddKind}
+            options={[
+              { value: 'practice', label: '実習' },
+              { value: 'off', label: '休み' },
+              { value: 'task', label: '課題' },
+            ]}
+          />
           <div className="grid grid-cols-2 gap-2">
             <label className="ui-label min-w-0">
               開始日
@@ -211,12 +363,6 @@ export function ScheduleScreen({ schedule, settings, now, onSetDays }: Props) {
               />
             </label>
           </div>
-          <Segmented
-            label="期間に付ける印"
-            value={rangePaint}
-            onChange={setRangePaint}
-            options={RANGE_OPTIONS}
-          />
           <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm text-ink">
             <input
               type="checkbox"
@@ -226,16 +372,16 @@ export function ScheduleScreen({ schedule, settings, now, onSetDays }: Props) {
             />
             土日を除く
           </label>
-          {rangeError && (
+          {addError && (
             <p role="alert" className="text-sm font-bold text-danger">
-              {rangeError}
+              {addError}
             </p>
           )}
           <button
             type="submit"
             className="min-h-12 rounded-full bg-primary text-base font-bold text-on-primary transition hover:bg-primary-strong"
           >
-            まとめて塗る
+            {KIND_NAME[addKind as DayKind]}を追加する
           </button>
         </form>
       </Sheet>
