@@ -1,0 +1,61 @@
+/**
+ * Vercel Functions の入口で使う共通処理：JSON の読み取り・依存の用意・エラー時の 500。
+ */
+import { neonDb } from './db.js'
+import { MissingEnvError, readEnv } from './env.js'
+import type { Deps, Result } from './handlers.js'
+import { webPushSender } from './push.js'
+
+/** 受け取る JSON の大きさの上限（課題200件でも余裕がある大きさ） */
+const MAX_BODY_BYTES = 200_000
+
+let deps: Deps | undefined
+
+/** 同じインスタンスで続けて呼ばれたときは使い回す */
+export function getDeps(): Deps {
+  if (!deps) {
+    const env = readEnv()
+    deps = {
+      db: neonDb(env.DATABASE_URL),
+      sendPush: webPushSender({
+        subject: env.VAPID_SUBJECT,
+        publicKey: env.VAPID_PUBLIC_KEY,
+        privateKey: env.VAPID_PRIVATE_KEY,
+      }),
+    }
+  }
+  return deps
+}
+
+export function json(status: number, body: Record<string, unknown>): Response {
+  return Response.json(body, { status, headers: { 'cache-control': 'no-store' } })
+}
+
+/** POST・DELETE の本文（JSON）を読んで処理に渡す */
+export async function handle(
+  request: Request,
+  run: (input: unknown, deps: Deps) => Promise<Result>,
+): Promise<Response> {
+  const text = await request.text()
+  if (new TextEncoder().encode(text).length > MAX_BODY_BYTES) {
+    return json(413, { error: 'too large' })
+  }
+  let input: unknown
+  try {
+    input = JSON.parse(text)
+  } catch {
+    return json(400, { error: 'invalid json' })
+  }
+
+  try {
+    const result = await run(input, getDeps())
+    return json(result.status, result.body)
+  } catch (e) {
+    if (e instanceof MissingEnvError) {
+      console.error(e.message)
+      return json(500, { error: 'server not configured' })
+    }
+    console.error('handler failed', e)
+    return json(500, { error: 'server error' })
+  }
+}
