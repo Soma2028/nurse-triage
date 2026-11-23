@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import { StoreProvider } from './store/StoreProvider.tsx'
+import { registerServiceWorker } from './sync/registerSW.ts'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -15,3 +16,5 @@ createRoot(document.getElementById('root')!).render(
     </MotionConfig>
   </StrictMode>,
 )
+
+registerServiceWorker()
