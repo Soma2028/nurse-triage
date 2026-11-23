@@ -14,13 +14,18 @@ interface Props {
   onSetDays: (dates: string[], kind: DayKind | null) => void
 }
 
-/** 塗る種類。null は「消す」 */
+/** 期間で塗る種類。null は印を消す */
 type Paint = DayKind | null
 
-const PAINT_OPTIONS: { value: Paint; label: string }[] = [
+/** タップで付ける印。外すときは同じ印をもう一度タップするので「消す」はいらない */
+const TAP_OPTIONS: { value: DayKind; label: string }[] = [
   { value: 'practice', label: '実習' },
   { value: 'off', label: '休み' },
-  { value: null, label: '消す' },
+]
+/** 期間でまとめて塗るときは、まとめて外せるように「印を消す」も選べる */
+const RANGE_OPTIONS: { value: Paint; label: string }[] = [
+  ...TAP_OPTIONS,
+  { value: null, label: '印を消す' },
 ]
 const WEEK_HEAD = ['月', '火', '水', '木', '金', '土', '日']
 const WEEKDAY_NAME = ['日', '月', '火', '水', '木', '金', '土']
@@ -44,7 +49,7 @@ const navBtn =
 export function ScheduleScreen({ schedule, settings, now, onSetDays }: Props) {
   const today = dayKey(now)
   const [month, setMonth] = useState(() => today.slice(0, 7)) // YYYY-MM
-  const [paint, setPaint] = useState<Paint>('practice')
+  const [paint, setPaint] = useState<DayKind>('practice')
 
   // 期間で塗る
   const [start, setStart] = useState(today)
@@ -127,7 +132,7 @@ export function ScheduleScreen({ schedule, settings, now, onSetDays }: Props) {
           label="タップで付ける印"
           value={paint}
           onChange={setPaint}
-          options={PAINT_OPTIONS}
+          options={TAP_OPTIONS}
         />
 
         {/* 1マス44px以上。360px 幅でも入るよう、カードに入れずに並べる */}
@@ -210,7 +215,7 @@ export function ScheduleScreen({ schedule, settings, now, onSetDays }: Props) {
             label="期間に付ける印"
             value={rangePaint}
             onChange={setRangePaint}
-            options={PAINT_OPTIONS}
+            options={RANGE_OPTIONS}
           />
           <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm text-ink">
             <input
