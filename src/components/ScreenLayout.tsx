@@ -23,8 +23,10 @@ const GUTTER = 'pr-[max(16px,env(safe-area-inset-right))] pl-[max(16px,env(safe-
 export function ScreenLayout({ title, note, aside, sub, onAdd, children }: Props) {
   return (
     <div className="flex h-full min-h-0 flex-col">
+      {/* 見出しの帯は模様のない生成り色で塗る。iOS 26 は画面の上端（時計の帯の下）をぼかすので、
+          ドット柄のままだとそこだけ白いもやに見える */}
       <header
-        className={`shrink-0 pt-[max(16px,env(safe-area-inset-top))] pb-2 wide:pt-8 ${GUTTER} wide:px-8`}
+        className={`shrink-0 bg-paper pt-[max(16px,env(safe-area-inset-top))] pb-2 wide:pt-8 ${GUTTER} wide:px-8`}
       >
         <div className="mx-auto max-w-xl">
           <div className="flex min-h-11 items-center justify-between gap-2">

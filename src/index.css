@@ -65,6 +65,8 @@
   html {
     -webkit-text-size-adjust: 100%;
     color-scheme: light;
+    /* iPhone の上下のバーの色を決めるときの土台も生成り色に（白が見えないように） */
+    background-color: var(--color-paper);
   }
   /* 長押しで文字が選択されたり、iPhone のメニュー（コピー・調べる・リンクのプレビュー）が出たりしないように。
      アプリのように触れるよう、画面全体で切る */
