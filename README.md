@@ -3,7 +3,7 @@
 看護学生向けの、課題の優先順位を出す Web アプリです。
 課題を「締切・残りの作業量・使える時間」から評価し、トリアージタッグのように **赤・黄・緑** で並べます。
 
-**公開版：<https://nurse-triage-amber.vercel.app>**（データはブラウザ内だけに保存されます）
+**公開版：<https://nurse-triage-amber.vercel.app>**（課題はブラウザ内に保存。通知をオンにしたときだけ、締切と種類をサーバーに送ります）
 
 ## 目的
 
@@ -27,9 +27,10 @@
 - **ホーム**（スマホでは1画面に収まる）：キャラクターのひとこと、いまやる1件、今日のプラン、赤の件数・残り・今日の時間
 - **課題**：優先順位の一覧（未完了／完了のタブ）。追加・編集は画面下からせり上がるパネル、進捗+25%（100%で自動で完了）、完了・削除・完了から「戻す」
 - **スケジュール**：カレンダーで日ごとに「実習」「休み」の印を付ける（タップ、または期間・土日除外でまとめて）。締切までに使える時間を日ごとの予定で計算し、今日が実習日なら「実習中」も自動でオン
-- **せってい**：実習期間中、1日に使える時間（実習中・ふだん）、優先度の決め方、すべて消す
+- **せってい**：実習期間中、1日に使える時間（実習中・ふだん）、通知、優先度の決め方、すべて消す
+- **通知**：締切の前日 20:00・3時間前・朝 7:00 のまとめを、Web プッシュで知らせる（iPhone はホーム画面に追加して使う）。課題名は初期設定では送らない（[通知](#通知)）
 - 完了・削除・全消去のあと5秒間「元に戻す」
-- データはブラウザの localStorage に保存（ログイン不要・サーバーに送らない）
+- 課題はブラウザの localStorage に保存（ログイン不要）。サーバーに送るのは、通知をオンにしたときの締切・種類・完了かどうかだけ
 - スマホ対応（360px 幅〜、iPhone SE でもホームが1画面）。ライトのみ（ダークモードには対応しない）
 
 ## キャラクターの絵
@@ -105,6 +106,95 @@ score = (0.6 × min(ratio, 2)/2 + 0.4 × 1/(1 + max(days, 0))) × 種類の重�
 
 1日に使える時間を、並び順の上の課題から `min(残り作業時間, 残りの時間)` ずつ、0.5h 単位で割り振ります（`src/logic/plan.ts`）。余った時間は「空き：休む・復習にあてる」です。
 
+## 通知
+
+締切が近い課題を、iPhone・Android・PC に Web プッシュ通知で知らせます（指示書は [SPEC-push.md](SPEC-push.md)）。
+iPhone では、Safari の共有メニューから**ホーム画面に追加**して、そのアイコンから開いたときだけ受け取れます（iOS 16.4 以降）。
+
+### しくみ
+
+```mermaid
+flowchart TB
+  subgraph phone["iPhone など"]
+    direction LR
+    app["アプリ<br/>課題は localStorage"]
+    sw["service worker<br/>public/sw.js"]
+  end
+  subgraph vercel["Vercel Functions（api/）"]
+    direction LR
+    sub["/api/subscribe<br/>/api/sync"]
+    cron["/api/cron/notify"]
+  end
+  cj["cron-job.org<br/>15分ごと"]
+  db[("Neon（Postgres）")]
+  ps["push サービス<br/>Apple・Google など"]
+
+  app -- "① 通知をオンにしたとき・課題が変わったら" --> sub
+  sub -- "端末・締切・種類" --> db
+  cj -- "② Bearer CRON_SECRET" --> cron
+  db -- "送るべき通知" --> cron
+  cron -- "③ web-push（VAPID）" --> ps
+  ps -- "④ 通知" --> sw
+```
+
+- **ローカル優先**：画面は今まで通り localStorage から表示します。サーバーへの同期は裏で行い、失敗しても画面と操作は止まりません（次の変更のときか、開き直したときに送り直します）
+- **ログインなし**：端末ごとにランダムな `deviceId` と `secret` を作り、localStorage に置きます。サーバーには secret の SHA-256 だけを保存します
+- 通知をオンにしていない端末は、サーバーに何も送りません
+- そのほかの API：`/api/test`（テスト通知）、`/api/vapid-key`（VAPID の公開鍵。アプリは鍵をビルドに埋め込まず、ここから取る）
+- Vercel Hobby の cron は1日1回までなので、定期実行には cron-job.org を使います
+
+### サーバーに送るもの
+
+| 送る                                     | 送らない                                     |
+| ---------------------------------------- | -------------------------------------------- |
+| 課題の ID・種類・締切・完了かどうか      | 課題名（初期設定）・見込み時間・進捗・重要度 |
+| 通知の設定（タイミング・課題名を出すか） | 実習スケジュール・1日に使える時間            |
+
+実習記録や関連図の課題名には、患者さんの情報（「A氏・心不全」など）が入りやすいためです。
+「通知に課題名を出す」をオンにしたときだけ課題名を送り、オフのときはサーバー側でも保存しません（通知は「実習記録」のように種類名で出ます）。
+「通知をやめる」を押すと、端末の登録と、サーバーにあるその端末のデータ（課題・送信記録）をまとめて消します。
+
+### 通知のタイミング
+
+時刻はすべて日本時間で計算します（`api/_lib/schedule.ts`。サーバーは UTC で動くので、固定の +9 時間で直す）。
+
+| 通知       | いつ                                         | 例                                     |
+| ---------- | -------------------------------------------- | -------------------------------------- |
+| 前日 20:00 | 締切の前の日の 20:00                         | 明日 8:30 締切：実習記録               |
+| 3時間前    | 締切の3時間前                                | あと3時間：看護過程                    |
+| 朝 7:00    | 毎朝、赤の課題があるとき（端末ごとに1日1回） | 今日の赤タッグ 2件 ／ まず実習記録から |
+
+- cron は15分おきなので、「予定時刻 ≤ いま < 予定時刻 + 60分」のものを送ります（1回くらい cron が失敗しても取りこぼさない）
+- 送る前に送信記録（`sent`）を付け、同じ通知は二度送りません。どこにも届かなかったときだけ記録を取り消し、次の回に送り直します
+- 締切を変えた課題は、新しい締切で送り直します。完了した課題・締切を過ぎた課題には送りません
+- **朝のまとめの「赤」はサーバーでの簡易判定**です：締切まで24時間以内、または未完了の実習記録・看護過程。サーバーには見込み時間や進捗を送っていないため、アプリの赤・黄・緑とずれることがあります
+- push サービスから 404・410（宛先がもうない）が返った宛先は消します
+
+### 自分でデプロイするときの設定
+
+1. **Neon**：Vercel のプロジェクト → Storage → Neon（Free）でデータベースを作ると、`DATABASE_URL` が環境変数に入ります。地域は Vercel Functions と同じにします（公開版はどちらも iad1）
+2. **テーブル**：Neon の SQL Editor に [migrations/001_init.sql](migrations/001_init.sql) を貼って1回実行します
+3. **VAPID の鍵**：`npx web-push generate-vapid-keys` で公開鍵と秘密鍵を作ります
+4. **環境変数**：Vercel の Settings → Environment Variables に、Production と Preview の両方で入れます（名前の一覧は [.env.example](.env.example)。値はリポジトリに入れない）
+
+   | 名前                | 内容                                          |
+   | ------------------- | --------------------------------------------- |
+   | `DATABASE_URL`      | Neon の接続文字列（Storage から作れば自動）   |
+   | `VAPID_PUBLIC_KEY`  | 3 の公開鍵                                    |
+   | `VAPID_PRIVATE_KEY` | 3 の秘密鍵                                    |
+   | `VAPID_SUBJECT`     | `mailto:自分のアドレス`                       |
+   | `CRON_SECRET`       | `openssl rand -hex 32` などで作った長い文字列 |
+
+5. **デプロイ**し直して、環境変数を反映します
+6. **cron-job.org**：アカウントを作り「CREATE CRONJOB」
+   - URL：`https://<公開URL>/api/cron/notify`、Execution schedule：Every 15 minutes
+   - Advanced：Request method は `GET`、Headers に `Authorization` ＝ `Bearer <CRON_SECRET の値>`、Timeout 30秒
+   - 「TEST RUN」で 200 と `{"ok":true,"devices":…,"sent":…}` が返れば設定完了（401 ならヘッダーを見直す）
+   - Notifications で「execution fails」をオンにしておくと、止まったときにメールで気づけます
+7. **確かめる**：iPhone でホーム画面から開き、せってい → 通知 →「通知を受け取る」→「テスト通知を送る」
+
+`npm run dev` では `/api` が動かないので、通知の登録はできません（画面の確認はできます）。API までローカルで動かすときは `npx vercel env pull` のあと `npx vercel dev` を使います。
+
 ## 起動方法
 
 Node.js 22.12 以上が必要です。
@@ -133,14 +223,17 @@ Vercel にデプロイしています（Vite プリセット、ビルドは `npm
 npx vercel --prod
 ```
 
+通知を使うには、Neon・環境変数・cron-job.org の設定が必要です（[自分でデプロイするときの設定](#自分でデプロイするときの設定)）。
+
 ## 技術構成
 
 - React + Vite + TypeScript
 - Tailwind CSS v4（色は役割ごとのトークン、部品は `ui-*` の共通クラス）
 - framer-motion（動きの決まりは `src/motion.ts`）、lucide-react（アイコン）
 - 状態管理：`useReducer` + Context（外部ライブラリなし）
-- 保存：localStorage（キー `nurse-triage-v1`）
-- テスト：Vitest（優先度ロジック・プラン・実習スケジュール・ひとこと・reducer・保存・表示の整形）。日付の境界を確かめるため、`Asia/Tokyo` 固定で実行
+- 保存：localStorage（課題はキー `nurse-triage-v1`、通知の設定と端末の名札は `nurse-triage-push-v1`）
+- 通知：Vercel Functions（`api/`、Node.js）＋ Neon（Postgres、`@neondatabase/serverless`）、web-push（VAPID）、入力の検証は zod、定期実行は cron-job.org
+- テスト：Vitest（優先度ロジック・プラン・実習スケジュール・ひとこと・reducer・保存・表示の整形・通知のルール・API・cron・同期）。日付の境界を確かめるため `Asia/Tokyo` 固定で実行し、通知の時刻計算は UTC などでも同じ結果になることを確かめている
 
 ```
 src/
@@ -150,11 +243,17 @@ src/
   components/               4つの画面（Home/Tasks/Schedule/Settings）・メニュー・パネル・部品
   assets/chara/             キャラクターの画像
   utils/format.ts           日付・時間の表示
+  sync/                     通知の登録・解除、課題の同期、対応端末の判定
+api/
+  subscribe.ts / sync.ts / test.ts / vapid-key.ts   アプリから呼ぶ API
+  cron/notify.ts            cron-job.org から15分ごとに呼ばれる
+  _lib/                     通知のルール（schedule.ts）・DB・push・入力の検証とテスト
+migrations/001_init.sql     通知のテーブル
+public/sw.js                通知を受け取る service worker（キャッシュはしない）
 ```
 
 ## 今後やりたいこと
 
 - ログインとクラウド同期（スマホと PC でデータを共有）
-- 締切や今日のプランの通知
 - 時間割の取り込み（授業のある時間を使える時間から自動で引く）
 - カレンダーファイル（.ics）からの実習スケジュールの読み込み
