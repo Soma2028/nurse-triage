@@ -6,7 +6,16 @@ import { subscribeRemote, testRemote, unsubscribeRemote } from './api'
 import { getPushState, newCredentials, setPushState } from './pushState'
 import { vapidKeyToBytes } from './support'
 
-export const VAPID_PUBLIC_KEY: string | undefined = import.meta.env.VITE_VAPID_PUBLIC_KEY
+/** ビルド時に入れた公開鍵。入っていなければ、サーバーに聞く（/api/vapid-key） */
+const BUILT_VAPID_KEY: string | undefined = import.meta.env.VITE_VAPID_PUBLIC_KEY || undefined
+
+async function vapidPublicKey(): Promise<string> {
+  if (BUILT_VAPID_KEY) return BUILT_VAPID_KEY
+  const res = await fetch('/api/vapid-key')
+  const data = (await res.json()) as { publicKey?: unknown }
+  if (!res.ok || typeof data.publicKey !== 'string') throw new Error('公開鍵を取れない')
+  return data.publicKey
+}
 
 const READY_TIMEOUT_MS = 10_000
 
@@ -41,8 +50,8 @@ export async function enableNotifications(): Promise<EnableResult> {
   if (permission !== 'granted') return 'not-granted'
 
   try {
-    const reg = await readyRegistration()
-    const key = vapidKeyToBytes(VAPID_PUBLIC_KEY ?? '')
+    const [reg, publicKey] = await Promise.all([readyRegistration(), vapidPublicKey()])
+    const key = vapidKeyToBytes(publicKey)
     let sub = await reg.pushManager.getSubscription()
     if (sub && !sameKey(sub, key)) {
       await sub.unsubscribe()

@@ -1,11 +1,6 @@
 import { Bell, BellRing, Send, Share, SquarePlus } from 'lucide-react'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import {
-  VAPID_PUBLIC_KEY,
-  disableNotifications,
-  enableNotifications,
-  sendTestNotification,
-} from '../sync/notify'
+import { disableNotifications, enableNotifications, sendTestNotification } from '../sync/notify'
 import { setPushState, usePushState, type NotifyPrefs } from '../sync/pushState'
 import { currentEnv, detectSupport, isIOS } from '../sync/support'
 
@@ -71,7 +66,7 @@ export function NotifyPanel() {
   const [permission, refreshPermission] = usePermission()
   const [busy, setBusy] = useState<Busy>(null)
   const [message, setMessage] = useState<Message>(null)
-  const env = useMemo(() => currentEnv(VAPID_PUBLIC_KEY), [])
+  const env = useMemo(() => currentEnv(), [])
   const support = detectSupport(env)
   const ios = isIOS(env)
 

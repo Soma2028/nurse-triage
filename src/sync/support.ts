@@ -18,7 +18,6 @@ export interface SupportEnv {
   hasServiceWorker: boolean
   hasPushManager: boolean
   hasNotification: boolean
-  hasVapidKey: boolean
 }
 
 /** iPhone・iPad か。iPadOS の Safari は Mac のふりをするので、タッチ対応で見分ける */
@@ -29,14 +28,12 @@ export function isIOS(env: Pick<SupportEnv, 'userAgent' | 'maxTouchPoints'>): bo
 
 export function detectSupport(env: SupportEnv): PushSupport {
   if (isIOS(env) && !env.standalone && !env.displayStandalone) return 'ios-browser'
-  if (!env.hasServiceWorker || !env.hasPushManager || !env.hasNotification || !env.hasVapidKey) {
-    return 'unsupported'
-  }
+  if (!env.hasServiceWorker || !env.hasPushManager || !env.hasNotification) return 'unsupported'
   return 'ok'
 }
 
 /** いまのブラウザから SupportEnv を集める */
-export function currentEnv(vapidKey: string | undefined): SupportEnv {
+export function currentEnv(): SupportEnv {
   const nav = navigator as Navigator & { standalone?: boolean }
   return {
     userAgent: nav.userAgent,
@@ -46,7 +43,6 @@ export function currentEnv(vapidKey: string | undefined): SupportEnv {
     hasServiceWorker: 'serviceWorker' in nav,
     hasPushManager: 'PushManager' in window,
     hasNotification: 'Notification' in window,
-    hasVapidKey: !!vapidKey,
   }
 }
 

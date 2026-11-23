@@ -26,7 +26,6 @@ const env = (over: Partial<SupportEnv> = {}): SupportEnv => ({
   hasServiceWorker: true,
   hasPushManager: true,
   hasNotification: true,
-  hasVapidKey: true,
   ...over,
 })
 
@@ -59,10 +58,9 @@ describe('detectSupport', () => {
     expect(detectSupport(env())).toBe('ok')
   })
 
-  it('service worker・通知がない、または公開鍵が入っていない → 使えない', () => {
+  it('service worker・通知がない → 使えない', () => {
     expect(detectSupport(env({ hasServiceWorker: false }))).toBe('unsupported')
     expect(detectSupport(env({ hasNotification: false }))).toBe('unsupported')
-    expect(detectSupport(env({ hasVapidKey: false }))).toBe('unsupported')
   })
 })
 
