@@ -74,6 +74,28 @@
     -webkit-text-size-adjust: 100%;
     color-scheme: light;
   }
+  /* 長押しで文字が選択されたり、iPhone のメニュー（コピー・調べる・リンクのプレビュー）が出たりしないように。
+     アプリのように触れるよう、画面全体で切る */
+  html {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  /* 入力欄だけは、長押しで選択・コピー・貼り付けができるように戻す
+     （iOS は入力欄まで user-select: none を受け継ぐと、文字を打てなくなることがある） */
+  input,
+  textarea,
+  [contenteditable]:not([contenteditable='false']) {
+    -webkit-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+  }
+  /* 画像は長押しで保存メニューを出さず、ドラッグもさせない。
+     タップは画像ではなく外側（ボタンなど）が受け取る */
+  img {
+    -webkit-user-drag: none;
+    pointer-events: none;
+  }
   /* iPhone で1画面に収まったページを引っぱっても全体が弾まないように */
   html,
   body {

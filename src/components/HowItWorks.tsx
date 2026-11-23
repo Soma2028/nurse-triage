@@ -4,7 +4,7 @@ import { Chevron } from './Chevron'
 export function HowItWorks() {
   return (
     <details className="group ui-card">
-      <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2 px-4 py-2 font-bold select-none [&::-webkit-details-marker]:hidden">
+      <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2 px-4 py-2 font-bold [&::-webkit-details-marker]:hidden">
         <Chevron />
         優先度の決め方
       </summary>
