@@ -1,5 +1,5 @@
 import { CircleHelp, Plus } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 
 interface Props {
   title: ReactNode
@@ -21,12 +21,16 @@ const GUTTER = 'pr-[max(16px,env(safe-area-inset-right))] pl-[max(16px,env(safe-
  * 画面の骨組み。見出しは固定し、真ん中だけがスクロールする（ページ全体は動かない）。
  */
 export function ScreenLayout({ title, note, aside, sub, onAdd, children }: Props) {
+  // 中身が見出しの下にスクロールして隠れているときだけ、見出しの下に区切りの線を出す
+  const [scrolled, setScrolled] = useState(false)
+
   return (
     <div className="flex h-full min-h-0 flex-col">
-      {/* 見出しの帯は模様のない生成り色で塗る。iOS 26 は画面の上端（時計の帯の下）をぼかすので、
-          ドット柄のままだとそこだけ白いもやに見える */}
+      {/* 見出しは模様のない不透明な生成り色。半透明・ぼかし・影は使わない */}
       <header
-        className={`shrink-0 bg-paper pt-[max(16px,env(safe-area-inset-top))] pb-2 wide:pt-8 ${GUTTER} wide:px-8`}
+        className={`shrink-0 border-b bg-paper pt-[max(16px,env(safe-area-inset-top))] pb-2 transition-colors wide:pt-8 ${GUTTER} wide:px-8 ${
+          scrolled ? 'border-line' : 'border-transparent'
+        }`}
       >
         <div className="mx-auto max-w-xl">
           <div className="flex min-h-11 items-center justify-between gap-2">
@@ -43,6 +47,7 @@ export function ScreenLayout({ title, note, aside, sub, onAdd, children }: Props
       <div className="relative min-h-0 flex-1">
         <div
           data-scroll
+          onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 0)}
           className={`h-full overflow-y-auto overscroll-contain pt-2 ${onAdd ? 'pb-24' : 'pb-6'} ${GUTTER} wide:px-8 wide:pb-8`}
         >
           <div className="mx-auto max-w-xl">{children}</div>

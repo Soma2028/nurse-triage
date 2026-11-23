@@ -101,6 +101,18 @@
     overflow: hidden;
     overscroll-behavior: none;
   }
+  /* 時計の帯（safe-area の上）を、ページと同じ不透明な生成り色で塗る帯。
+     iOS 26 は画面の上端に固定された不透明な要素があるとその色で帯を塗り、なければ下の中身をぼかす
+     （ホーム画面から開くと、上に白いもやが出ていた）。そのため position: fixed で置く */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0 0 auto;
+    height: env(safe-area-inset-top, 0px);
+    background-color: var(--color-paper);
+    z-index: 30;
+    pointer-events: none;
+  }
   body {
     @apply font-sans text-ink antialiased;
     background-color: var(--color-paper);
