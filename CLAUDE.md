@@ -50,7 +50,7 @@
 
 ## 通知機能（作っている途中）
 
-- `SPEC-push.md` の段階どおりに進める。段階1（manifest・service worker・アイコン）まで済み
+- `SPEC-push.md` の段階どおりに進める。段階2（通知のルール `api/_lib/schedule.ts` とテスト）まで済み
 - service worker（`public/sw.js`）は push と notificationclick だけ。キャッシュはしない
 - 課題名はサーバーに送らないのが初期設定（課題名に患者の情報が入りやすいため）
 - 環境変数・Neon・cron-job.org の準備はユーザーがやる。段階3の前に必要なものを示して待つ

@@ -8,7 +8,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   test: {
     environment: 'node',
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'api/**/*.test.ts'],
     // 日付の境界をテストするので、どの環境でも日本時間で実行する
     env: { TZ: 'Asia/Tokyo' },
   },
