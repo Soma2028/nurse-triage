@@ -40,6 +40,11 @@ function fakeDb() {
       devices.get(deviceId)!.settings = settings
       reminders.set(deviceId, rs)
     },
+    // cron 用（ここでは使わない。cron.test.ts で確かめる）
+    listCronTargets: async () => [],
+    claimSent: async () => true,
+    releaseSent: async () => {},
+    pruneSent: async () => {},
   }
   return { db, devices, subs, reminders }
 }

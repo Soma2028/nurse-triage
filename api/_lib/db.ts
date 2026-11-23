@@ -3,7 +3,14 @@
  * API の処理は Db インターフェースだけを使うので、テストではモックに差し替えられる。
  */
 import { neon } from '@neondatabase/serverless'
-import type { NotifyPrefs, Reminder } from './schedule.js'
+import {
+  DEFAULT_PREFS,
+  sentKey,
+  type NoticeKind,
+  type NotifyPrefs,
+  type Reminder,
+} from './schedule.js'
+import { prefsSchema } from './validate.js'
 
 export interface Device {
   id: string
@@ -15,6 +22,23 @@ export interface PushTarget {
   endpoint: string
   p256dh: string
   auth: string
+}
+
+/** cron で1端末ぶんに必要なもの */
+export interface CronTarget {
+  deviceId: string
+  prefs: NotifyPrefs
+  reminders: Reminder[] // 未完了で、締切がまだ来ていないもの
+  subscriptions: PushTarget[]
+  sent: Set<string> // sentKey() の形
+}
+
+/** sent テーブルの1行を指すもの */
+export interface SentRef {
+  deviceId: string
+  taskId: string
+  kind: NoticeKind
+  due: number
 }
 
 export interface Db {
@@ -31,7 +55,25 @@ export interface Db {
   listSubscriptions(deviceId: string): Promise<PushTarget[]>
   /** 端末の設定と課題を、1つのトランザクションで丸ごと置き換える */
   replaceReminders(deviceId: string, settings: NotifyPrefs, reminders: Reminder[]): Promise<void>
+
+  // ---- cron 用 ----
+  /** 宛先のある端末ごとに、通知の判定に必要なものをまとめて読む */
+  listCronTargets(now: number): Promise<CronTarget[]>
+  /** 送る前に sent に記録する。すでにあれば false（ほかの cron が送った・送っている） */
+  claimSent(ref: SentRef): Promise<boolean>
+  /** 1件も届けられなかったとき、記録を取り消して次の cron で送り直せるようにする */
+  releaseSent(ref: SentRef): Promise<void>
+  /** 古い送信記録を消す */
+  pruneSent(before: number): Promise<void>
 }
+
+/** DB の jsonb の設定を読む。壊れていたら初期値 */
+export function toPrefs(v: unknown): NotifyPrefs {
+  const parsed = prefsSchema.safeParse(v)
+  return parsed.success ? parsed.data : DEFAULT_PREFS
+}
+
+const ms = (v: unknown) => new Date(v as string | Date).getTime()
 
 /** 本番の DB。DATABASE_URL は Vercel の環境変数から */
 export function neonDb(databaseUrl: string): Db {
@@ -100,6 +142,73 @@ export function neonDb(databaseUrl: string): Db {
             ${dues}::timestamptz[], ${dones}::boolean[]
           )`,
       ])
+    },
+
+    async listCronTargets(now) {
+      const nowIso = new Date(now).toISOString()
+      // 朝のまとめの送信記録（その朝 7:00）も入るよう、1日前からの記録を読む
+      const since = new Date(now - 24 * 60 * 60 * 1000).toISOString()
+      const [devices, subs, rems, sent] = await sql.transaction(
+        [
+          sql`select id, settings from devices
+              where exists (select 1 from subscriptions s where s.device_id = devices.id)`,
+          sql`select device_id, endpoint, p256dh, auth from subscriptions`,
+          sql`select device_id, task_id, type, title, due from reminders
+              where not done and due > ${nowIso}::timestamptz`,
+          sql`select device_id, task_id, kind, due from sent where due > ${since}::timestamptz`,
+        ],
+        { readOnly: true },
+      )
+      const targets = new Map<string, CronTarget>()
+      for (const d of devices) {
+        targets.set(d.id, {
+          deviceId: d.id,
+          prefs: toPrefs(d.settings),
+          reminders: [],
+          subscriptions: [],
+          sent: new Set(),
+        })
+      }
+      for (const s of subs) {
+        targets.get(s.device_id)?.subscriptions.push({
+          endpoint: s.endpoint,
+          p256dh: s.p256dh,
+          auth: s.auth,
+        })
+      }
+      for (const r of rems) {
+        targets.get(r.device_id)?.reminders.push({
+          taskId: r.task_id,
+          type: r.type,
+          title: r.title,
+          due: ms(r.due),
+          done: false,
+        })
+      }
+      for (const x of sent) {
+        targets.get(x.device_id)?.sent.add(sentKey(x.task_id, x.kind, ms(x.due)))
+      }
+      return [...targets.values()]
+    },
+
+    async claimSent(ref) {
+      const rows = await sql`
+        insert into sent (device_id, task_id, kind, due)
+        values (${ref.deviceId}, ${ref.taskId}, ${ref.kind}, ${new Date(ref.due).toISOString()}::timestamptz)
+        on conflict do nothing
+        returning 1 as claimed`
+      return rows.length > 0
+    },
+
+    async releaseSent(ref) {
+      await sql`
+        delete from sent
+        where device_id = ${ref.deviceId} and task_id = ${ref.taskId} and kind = ${ref.kind}
+          and due = ${new Date(ref.due).toISOString()}::timestamptz`
+    },
+
+    async pruneSent(before) {
+      await sql`delete from sent where sent_at < ${new Date(before).toISOString()}::timestamptz`
     },
   }
 }

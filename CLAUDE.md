@@ -50,7 +50,7 @@
 
 ## 通知機能（作っている途中）
 
-- `SPEC-push.md` の段階どおりに進める。段階4（せっていの「通知」パネルと、課題の同期 `src/sync/`）まで済み。テーブルは Neon（iad1）に作成済み
+- `SPEC-push.md` の段階どおりに進める。段階5（`/api/cron/notify`）のコードまで済み。cron-job.org の設定はこれから。テーブルは Neon（iad1）に作成済み
 - service worker（`public/sw.js`）は push と notificationclick だけ。キャッシュはしない
 - 課題名はサーバーに送らないのが初期設定（課題名に患者の情報が入りやすいため）
 - 環境変数・Neon・cron-job.org の準備はユーザーがやる。段階3の前に必要なものを示して待つ
