@@ -1,0 +1,75 @@
+import { CircleHelp, Plus } from 'lucide-react'
+import type { ReactNode } from 'react'
+
+interface Props {
+  title: ReactNode
+  /** 見出しの横に小さく出す一言（「今日は実習日」など） */
+  note?: ReactNode
+  /** 見出しの右（「？」ボタンなど） */
+  aside?: ReactNode
+  /** 見出しの下の1行（集計・タブ・月の切り替えなど）。ここまでは動かない */
+  sub?: ReactNode
+  /** 渡すと右下に＋ボタンを出す（スマホだけ。PC は左のメニューに追加ボタンがある） */
+  onAdd?: () => void
+  children: ReactNode
+}
+
+/** 端の余白（16px。横向きの iPhone では safe-area の分も） */
+const GUTTER = 'pr-[max(16px,env(safe-area-inset-right))] pl-[max(16px,env(safe-area-inset-left))]'
+
+/**
+ * 画面の骨組み。見出しは固定し、真ん中だけがスクロールする（ページ全体は動かない）。
+ */
+export function ScreenLayout({ title, note, aside, sub, onAdd, children }: Props) {
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <header
+        className={`shrink-0 pt-[max(16px,env(safe-area-inset-top))] pb-2 wide:pt-8 ${GUTTER} wide:px-8`}
+      >
+        <div className="mx-auto max-w-xl">
+          <div className="flex min-h-11 items-center justify-between gap-2">
+            <h1 className="flex min-w-0 items-baseline gap-2">
+              <span className="ui-page-title truncate">{title}</span>
+              {note && <span className="truncate text-xs font-bold text-ink-muted">{note}</span>}
+            </h1>
+            {aside}
+          </div>
+          {sub && <div className="mt-1">{sub}</div>}
+        </div>
+      </header>
+
+      <div className="relative min-h-0 flex-1">
+        <div
+          data-scroll
+          className={`h-full overflow-y-auto overscroll-contain pt-2 ${onAdd ? 'pb-24' : 'pb-6'} ${GUTTER} wide:px-8 wide:pb-8`}
+        >
+          <div className="mx-auto max-w-xl">{children}</div>
+        </div>
+        {onAdd && (
+          <button
+            type="button"
+            onClick={onAdd}
+            aria-label="課題を追加する"
+            className="absolute right-[max(16px,env(safe-area-inset-right))] bottom-4 inline-flex size-14 items-center justify-center rounded-full bg-primary text-on-primary shadow-[0_8px_24px_rgb(29_63_110/0.3)] transition hover:bg-primary-strong wide:hidden"
+          >
+            <Plus aria-hidden className="size-6" strokeWidth={2.5} />
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/** 見出しの右に置く「？」。説明文は画面に置かず、ここから開く */
+export function HelpButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      className="-mr-2 inline-flex size-11 shrink-0 items-center justify-center rounded-full text-ink-muted transition hover:bg-surface hover:text-ink"
+    >
+      <CircleHelp aria-hidden className="size-6" strokeWidth={1.75} />
+    </button>
+  )
+}

@@ -3,7 +3,7 @@ import type { Settings } from '../types'
 import { formatHours } from '../utils/format'
 import { HowItWorks } from './HowItWorks'
 import { NotifyPanel } from './NotifyPanel'
-import { PageTitle } from './PageTitle'
+import { ScreenLayout } from './ScreenLayout'
 import { PracticeSwitch } from './PracticeSwitch'
 
 interface Props {
@@ -84,66 +84,66 @@ export function SettingsScreen({
   onClearAll,
 }: Props) {
   return (
-    <div className="flex flex-col gap-4">
-      <PageTitle>せってい</PageTitle>
-
-      <div className="grid grid-cols-1 items-start gap-4 two:grid-cols-2">
-        <div className="flex flex-col gap-4">
-          <section className="ui-card px-4 py-2">
-            <PracticeSwitch
-              variant="row"
-              on={practice}
-              note={practiceNote}
-              onToggle={onTogglePractice}
-            />
-          </section>
-
-          <section className="ui-card px-4 py-1" aria-labelledby="hours-heading">
-            <h2 id="hours-heading" className="ui-section-label pt-3">
-              1日に使える時間
-            </h2>
-            <div className="divide-y divide-line">
-              <HoursStepper
-                label="実習中"
-                hint="実習の日や実習期間に"
-                value={settings.hoursPractice}
-                active={practice}
-                onChange={(h) => onChangeSettings({ hoursPractice: h })}
+    <ScreenLayout title="せってい">
+      <div className="flex flex-col gap-4">
+        <div className="grid grid-cols-1 items-start gap-4 ">
+          <div className="flex flex-col gap-4">
+            <section className="ui-card px-4 py-2">
+              <PracticeSwitch
+                variant="row"
+                on={practice}
+                note={practiceNote}
+                onToggle={onTogglePractice}
               />
-              <HoursStepper
-                label="ふだん"
-                hint="授業の日や休み明けに"
-                value={settings.hoursNormal}
-                active={!practice}
-                onChange={(h) => onChangeSettings({ hoursNormal: h })}
-              />
-            </div>
-          </section>
-        </div>
+            </section>
 
-        <div className="flex flex-col gap-4">
-          <NotifyPanel />
-          <HowItWorks />
+            <section className="ui-card px-4 py-1" aria-labelledby="hours-heading">
+              <h2 id="hours-heading" className="ui-section-label pt-3">
+                1日に使える時間
+              </h2>
+              <div className="divide-y divide-line">
+                <HoursStepper
+                  label="実習中"
+                  hint="実習の日や実習期間に"
+                  value={settings.hoursPractice}
+                  active={practice}
+                  onChange={(h) => onChangeSettings({ hoursPractice: h })}
+                />
+                <HoursStepper
+                  label="ふだん"
+                  hint="授業の日や休み明けに"
+                  value={settings.hoursNormal}
+                  active={!practice}
+                  onChange={(h) => onChangeSettings({ hoursNormal: h })}
+                />
+              </div>
+            </section>
+          </div>
 
-          <section className="ui-card p-4" aria-labelledby="data-heading">
-            <h2 id="data-heading" className="ui-section-label">
-              データ
-            </h2>
-            <p className="mt-1 text-sm text-ink-muted">
-              課題はこの端末の中に保存されるよ。通知をオンにしたときだけ、締切と種類をサーバーに送るよ。消しても5秒間は元に戻せるよ。
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={onClearAll}
-                className="min-h-11 rounded-full px-4 text-sm font-bold text-danger transition hover:bg-danger-soft"
-              >
-                すべて消す
-              </button>
-            </div>
-          </section>
+          <div className="flex flex-col gap-4">
+            <NotifyPanel />
+            <HowItWorks />
+
+            <section className="ui-card p-4" aria-labelledby="data-heading">
+              <h2 id="data-heading" className="ui-section-label">
+                データ
+              </h2>
+              <p className="mt-1 text-sm text-ink-muted">
+                課題はこの端末の中に保存されるよ。通知をオンにしたときだけ、締切と種類をサーバーに送るよ。消しても5秒間は元に戻せるよ。
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={onClearAll}
+                  className="min-h-11 rounded-full px-4 text-sm font-bold text-danger transition hover:bg-danger-soft"
+                >
+                  すべて消す
+                </button>
+              </div>
+            </section>
+          </div>
         </div>
       </div>
-    </div>
+    </ScreenLayout>
   )
 }

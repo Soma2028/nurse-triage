@@ -56,10 +56,7 @@ export default function App() {
   const editing =
     sheet.open && sheet.editingId ? state.tasks.find((t) => t.id === sheet.editingId) : undefined
 
-  const navigate = (s: Screen) => {
-    setScreen(s)
-    window.scrollTo({ top: 0 })
-  }
+  const navigate = (s: Screen) => setScreen(s)
   const openAdd = () => setSheet({ open: true, editingId: null })
   const openEdit = (id: string) => setSheet({ open: true, editingId: id })
   const closeSheet = useCallback(() => setSheet({ open: false }), [])
@@ -75,14 +72,16 @@ export default function App() {
   const dismissUndo = useCallback(() => dispatch({ type: 'dismissUndo' }), [dispatch])
 
   return (
-    <div className="min-h-dvh wide:pl-60">
+    // 画面の高さで固定。見出しとタブは動かず、各画面の真ん中だけがスクロールする
+    <div className="flex h-full flex-col wide:pl-60">
       <DesktopNav current={screen} onNavigate={navigate} onAdd={openAdd} />
 
-      <main className="mx-auto max-w-md px-4 pt-5 pb-[calc(5.5rem+env(safe-area-inset-bottom))] short:pt-3 short:pb-[calc(4.5rem+env(safe-area-inset-bottom))] wide:max-w-5xl wide:px-8 wide:pt-8 wide:pb-12">
+      <main className="relative min-h-0 flex-1">
         {/* 画面の切り替えは位置を動かさず、透明度だけのフェード（夢のタネと同じ） */}
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={screen}
+            className="h-full"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

@@ -1,8 +1,9 @@
+import { Minus, Plus } from 'lucide-react'
 import { useId, useState, type FormEvent } from 'react'
 import { IMPORTANCE_LABEL, TASK_TYPE_KEYS, TASK_TYPES } from '../constants'
 import { daysFromToday } from '../store/sample'
 import type { Importance, Task, TaskType } from '../types'
-import { fromDatetimeLocal, toDatetimeLocal } from '../utils/format'
+import { formatHours, fromDatetimeLocal, toDatetimeLocal } from '../utils/format'
 import { Segmented } from './Segmented'
 
 interface Props {
@@ -11,23 +12,25 @@ interface Props {
   /** 新規追加時の締切の初期値を決める基準時刻 */
   now: number
   onSubmit: (task: Task) => void
-  onCancel: () => void
 }
 
 const IMPORTANCES: Importance[] = [1, 2, 3]
 
-/** 0.5刻みに丸める（最小0.5） */
-const toHalf = (n: number) => Math.max(0.5, Math.round(n * 2) / 2)
+const MIN_HOURS = 0.5
+const MAX_HOURS = 99
+
+const stepBtn =
+  'inline-flex size-11 shrink-0 items-center justify-center rounded-full border border-line bg-surface text-ink transition hover:bg-paper disabled:opacity-40'
 
 /** 課題の追加・編集フォーム（TaskSheet の中に置く） */
-export function TaskForm({ editing, now, onSubmit, onCancel }: Props) {
+export function TaskForm({ editing, now, onSubmit }: Props) {
   const id = useId()
   const [title, setTitle] = useState(editing?.title ?? '')
   const [type, setType] = useState<TaskType>(editing?.type ?? 'rec')
   const [due, setDue] = useState(() =>
     toDatetimeLocal(editing?.due ?? daysFromToday(now, 1, 17, 0)),
   )
-  const [estHours, setEstHours] = useState(String(editing?.estHours ?? TASK_TYPES.rec.defaultHours))
+  const [estHours, setEstHours] = useState(editing?.estHours ?? TASK_TYPES.rec.defaultHours)
   // 見込み時間を手で変えたら、種類を変えても上書きしない（編集時は最初から手入力扱い）
   const [hoursTouched, setHoursTouched] = useState(Boolean(editing))
   const [progress, setProgress] = useState(editing?.progress ?? 0)
@@ -36,16 +39,19 @@ export function TaskForm({ editing, now, onSubmit, onCancel }: Props) {
 
   const changeType = (t: TaskType) => {
     setType(t)
-    if (!hoursTouched) setEstHours(String(TASK_TYPES[t].defaultHours))
+    if (!hoursTouched) setEstHours(TASK_TYPES[t].defaultHours)
+  }
+
+  const stepHours = (d: number) => {
+    setEstHours((h) => Math.min(MAX_HOURS, Math.max(MIN_HOURS, h + d)))
+    setHoursTouched(true)
   }
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
     const dueMs = fromDatetimeLocal(due)
-    const hours = Number(estHours)
     if (!title.trim()) return setError('課題名を入れてね')
     if (Number.isNaN(dueMs)) return setError('締切を入れてね')
-    if (!Number.isFinite(hours) || hours <= 0) return setError('見込み時間は0.5h以上にしてね')
     setError(null)
     onSubmit({
       ...editing,
@@ -53,7 +59,7 @@ export function TaskForm({ editing, now, onSubmit, onCancel }: Props) {
       title: title.trim(),
       type,
       due: dueMs,
-      estHours: toHalf(hours),
+      estHours,
       progress,
       importance,
     })
@@ -94,55 +100,66 @@ export function TaskForm({ editing, now, onSubmit, onCancel }: Props) {
         </select>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 min-[400px]:grid-cols-[1fr_7rem]">
-        <div className="min-w-0">
-          <label htmlFor={`${id}-due`} className="ui-label">
-            締切
-          </label>
-          <input
-            id={`${id}-due`}
-            type="datetime-local"
-            className="ui-input"
-            value={due}
-            onChange={(e) => setDue(e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <label htmlFor={`${id}-hours`} className="ui-label">
-            見込み時間（h）
-          </label>
-          <input
-            id={`${id}-hours`}
-            type="number"
-            inputMode="decimal"
-            min={0.5}
-            step={0.5}
-            className="ui-input"
-            value={estHours}
-            onChange={(e) => {
-              setEstHours(e.target.value)
-              setHoursTouched(true)
-            }}
-          />
+      <div>
+        <label htmlFor={`${id}-due`} className="ui-label">
+          締切
+        </label>
+        <input
+          id={`${id}-due`}
+          type="datetime-local"
+          className="ui-input"
+          value={due}
+          onChange={(e) => setDue(e.target.value)}
+          required
+        />
+      </div>
+
+      <div className="flex items-center justify-between gap-4">
+        <p className="ui-label" id={`${id}-hours`}>
+          見込み時間
+        </p>
+        <div className="flex items-center gap-1" role="group" aria-labelledby={`${id}-hours`}>
+          <button
+            type="button"
+            className={stepBtn}
+            onClick={() => stepHours(-0.5)}
+            disabled={estHours <= MIN_HOURS}
+            aria-label="見込み時間を30分減らす"
+          >
+            <Minus aria-hidden className="size-4" />
+          </button>
+          <output className="w-12 text-center text-base font-bold tabular-nums" aria-live="polite">
+            {formatHours(estHours)}
+          </output>
+          <button
+            type="button"
+            className={stepBtn}
+            onClick={() => stepHours(0.5)}
+            disabled={estHours >= MAX_HOURS}
+            aria-label="見込み時間を30分増やす"
+          >
+            <Plus aria-hidden className="size-4" />
+          </button>
         </div>
       </div>
 
-      <div>
-        <label htmlFor={`${id}-progress`} className="ui-label">
-          進捗 <span className="tabular-nums">{progress}%</span>
-        </label>
-        <input
-          id={`${id}-progress`}
-          type="range"
-          min={0}
-          max={100}
-          step={10}
-          className="mt-1 h-11 w-full accent-primary"
-          value={progress}
-          onChange={(e) => setProgress(Number(e.target.value))}
-        />
-      </div>
+      {editing && (
+        <div>
+          <label htmlFor={`${id}-progress`} className="ui-label">
+            進捗 <span className="tabular-nums">{progress}%</span>
+          </label>
+          <input
+            id={`${id}-progress`}
+            type="range"
+            min={0}
+            max={100}
+            step={10}
+            className="mt-1 h-11 w-full accent-primary"
+            value={progress}
+            onChange={(e) => setProgress(Number(e.target.value))}
+          />
+        </div>
+      )}
 
       <div>
         <p className="ui-label" id={`${id}-imp`}>
@@ -163,21 +180,12 @@ export function TaskForm({ editing, now, onSubmit, onCancel }: Props) {
         </p>
       )}
 
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="min-h-12 rounded-full border border-line bg-surface px-5 font-bold text-ink-muted transition hover:bg-paper"
-        >
-          やめる
-        </button>
-        <button
-          type="submit"
-          className="min-h-12 flex-1 rounded-full bg-primary font-bold text-on-primary transition hover:bg-primary-strong"
-        >
-          {editing ? '保存する' : '追加する'}
-        </button>
-      </div>
+      <button
+        type="submit"
+        className="min-h-12 rounded-full bg-primary text-base font-bold text-on-primary transition hover:bg-primary-strong"
+      >
+        {editing ? '保存する' : '追加する'}
+      </button>
     </form>
   )
 }
