@@ -25,7 +25,7 @@ function usePermission(): [NotificationPermission, () => void] {
 const TIMINGS: { key: keyof Omit<NotifyPrefs, 'showTitle'>; label: string; hint?: string }[] = [
   { key: 'eve', label: '締切の前の日 20:00' },
   { key: 'h3', label: '締切の3時間前' },
-  { key: 'morning', label: '朝 7:00 のまとめ', hint: '赤の課題がある日だけ' },
+  { key: 'morning', label: '朝 7:00 のまとめ', hint: '赤の課題がある日だけ届くよ。' },
 ]
 
 function Check({
@@ -40,7 +40,7 @@ function Check({
   hint?: ReactNode
 }) {
   return (
-    <label className="flex min-h-11 cursor-pointer items-start gap-3 py-2">
+    <label className="flex min-h-11 cursor-pointer items-start gap-3 py-3">
       <input
         type="checkbox"
         checked={checked}
@@ -60,6 +60,11 @@ const primaryBtn =
 const softBtn =
   'inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-primary-soft px-4 text-sm font-bold text-primary-ink transition hover:bg-primary hover:text-on-primary disabled:opacity-60'
 
+/* 文章の書き方は Help.tsx と同じ：1文に1つのこと、カッコ書きの補足を使わない、本文は濃い文字 */
+const text = 'text-sm leading-6 text-ink'
+const note = 'text-xs leading-5 text-ink-muted'
+const label = 'text-xs font-bold tracking-wide text-ink-muted'
+
 /** せっていの「通知」シートの中身。端末の状態に合わせて表示を変える */
 export function NotifyPanel() {
   const push = usePushState()
@@ -77,14 +82,14 @@ export function NotifyPanel() {
     const result = await enableNotifications()
     refreshPermission()
     setBusy(null)
-    if (result === 'ok') setMessage({ tone: 'info', text: '通知をオンにしたよ' })
+    if (result === 'ok') setMessage({ tone: 'info', text: '通知をオンにしたよ。' })
     else if (result === 'failed')
       setMessage({
         tone: 'error',
-        text: 'うまく登録できなかったよ。電波のいいところで、もう一度試してね',
+        text: 'うまく登録できなかったよ。電波のいいところで、もう一度試してね。',
       })
     else if (readPermission() === 'default')
-      setMessage({ tone: 'error', text: '許可されなかったよ。もう一度押すと聞き直すよ' })
+      setMessage({ tone: 'error', text: '許可されなかったよ。もう一度押すと、また聞くよ。' })
   }
 
   const disable = async () => {
@@ -92,7 +97,7 @@ export function NotifyPanel() {
     setMessage(null)
     await disableNotifications()
     setBusy(null)
-    setMessage({ tone: 'info', text: '通知をやめたよ。サーバーにあったこの端末のデータも消したよ' })
+    setMessage({ tone: 'info', text: '通知をやめたよ。サーバーにあったデータも消したよ。' })
   }
 
   const test = async () => {
@@ -102,13 +107,13 @@ export function NotifyPanel() {
     setBusy(null)
     setMessage(
       result === 'sent'
-        ? { tone: 'info', text: '送ったよ。数秒で届くはず' }
+        ? { tone: 'info', text: '送ったよ。数秒で届くはず。' }
         : result === 'none'
           ? {
               tone: 'error',
-              text: '送り先が見つからなかったよ。「通知をやめる」を押してから、もう一度オンにしてね',
+              text: '送り先が見つからなかったよ。一度「通知をやめる」を押して、もう一度オンにしてね。',
             }
-          : { tone: 'error', text: '送れなかったよ。時間をおいて、もう一度試してね' },
+          : { tone: 'error', text: '送れなかったよ。少し時間をおいて、もう一度試してね。' },
     )
   }
 
@@ -129,63 +134,66 @@ export function NotifyPanel() {
   if (support === 'ios-browser') {
     body = (
       <>
-        <p className="mt-1">ホーム画面に追加すると、締切が近い課題を通知で知らせられるよ。</p>
-        <ol className="mt-3 space-y-2 text-sm">
-          <li className="flex items-start gap-2">
+        <p className={text}>ホーム画面に追加すると、通知を受け取れるよ。</p>
+        <ol className="flex flex-col gap-4">
+          <li className="flex items-start gap-3">
             <Step n={1} />
-            <span>
+            <span className={text}>
               Safari の共有ボタン
               <Share aria-label="共有" className="mx-1 inline size-4 align-[-2px]" />
-              をタップ（見当たらなければ「…」の中）
+              を押す
+              <span className="block text-xs text-ink-muted">
+                見当たらないときは「…」の中にあるよ。
+              </span>
             </span>
           </li>
-          <li className="flex items-start gap-2">
+          <li className="flex items-start gap-3">
             <Step n={2} />
-            <span>
+            <span className={text}>
               <SquarePlus aria-hidden className="mr-1 inline size-4 align-[-2px]" />
               「ホーム画面に追加」を選ぶ
             </span>
           </li>
-          <li className="flex items-start gap-2">
+          <li className="flex items-start gap-3">
             <Step n={3} />
-            <span>ホーム画面のアイコンから開いて、ここで「通知を受け取る」を押す</span>
+            <span className={text}>ホーム画面のアイコンから開き直す</span>
           </li>
         </ol>
       </>
     )
   } else if (support === 'unsupported') {
     body = (
-      <p className="mt-1 text-sm text-ink-muted">
-        この端末・ブラウザでは通知を受け取れないみたい。iPhone は iOS 16.4
-        以降で、ホーム画面に追加して開くと使えるよ。
-      </p>
+      <>
+        <p className={text}>この端末では、通知を受け取れないみたい。</p>
+        <p className={note}>iPhone なら、iOS 16.4 以降でホーム画面に追加すると使えるよ。</p>
+      </>
     )
   } else if (permission === 'denied') {
     body = (
-      <p className="mt-1">
-        通知が許可されていないよ。
-        {ios
-          ? '設定アプリ → 通知 → 看護トリアージ から許可してね。'
-          : 'ブラウザのサイトの設定から、通知を許可してね。'}
-      </p>
+      <>
+        <p className={text}>通知が許可されていないよ。</p>
+        <p className={text}>
+          {ios
+            ? '設定アプリ → 通知 → 看護トリアージ で、通知を許可してね。'
+            : 'ブラウザのサイトの設定で、通知を許可してね。'}
+        </p>
+      </>
     )
   } else if (!push.enabled) {
     body = (
       <>
         {push.lost && (
-          <p className="mt-1 rounded-2xl bg-danger-soft px-3 py-2 text-sm text-danger">
+          <p className="rounded-2xl border border-line bg-surface px-4 py-2 text-sm text-ink">
             通知の登録が切れていたよ。もう一度オンにしてね。
           </p>
         )}
-        <p className="mt-1">締切の前の日の夜や3時間前に、通知で知らせるよ。</p>
-        <p className="mt-1 text-sm text-ink-muted">
-          サーバーに送るのは、締切・種類・完了したかだけ。課題名は送らないよ。
-        </p>
+        <p className={text}>締切の前の日の夜と、3時間前に知らせるよ。</p>
+        <p className={note}>サーバーに送るのは締切と種類だけ。課題名は送らないよ。</p>
         <button
           type="button"
           onClick={enable}
           disabled={busy !== null}
-          className={`${primaryBtn} mt-3 w-full`}
+          className={`${primaryBtn} w-full`}
         >
           <Bell aria-hidden className="size-5" />
           {busy === 'enable' ? '準備しているよ…' : '通知を受け取る'}
@@ -195,13 +203,13 @@ export function NotifyPanel() {
   } else {
     body = (
       <>
-        <p className="mt-1 flex items-center gap-2 font-bold">
+        <p className="flex items-center gap-2 text-base font-bold">
           <BellRing aria-hidden className="size-5 text-primary-ink" />
           通知はオン
         </p>
-        <fieldset className="mt-2">
-          <legend className="text-sm text-ink-muted">知らせるタイミング</legend>
-          <div className="divide-y divide-line">
+        <fieldset className="flex flex-col gap-2">
+          <legend className={`${label} mb-2`}>知らせるタイミング</legend>
+          <div className="ui-card divide-y divide-line rounded-2xl px-4">
             {TIMINGS.map((t) => (
               <Check
                 key={t.key}
@@ -214,16 +222,25 @@ export function NotifyPanel() {
             ))}
           </div>
         </fieldset>
-        <div className="mt-2 border-t border-line pt-1">
-          <Check
-            checked={push.prefs.showTitle}
-            onChange={(v) => setPref('showTitle', v)}
-            hint="患者さんの情報（イニシャル・病名など）を課題名に入れているなら、オフのままにしてね。オフのときは「実習記録」のように種類で知らせるよ"
-          >
-            通知に課題名を出す
-          </Check>
-        </div>
-        <div className="mt-3 flex flex-wrap items-center gap-2">
+        <section className="flex flex-col gap-2">
+          <h3 className={label}>課題名</h3>
+          <div className="ui-card rounded-2xl px-4">
+            <Check
+              checked={push.prefs.showTitle}
+              onChange={(v) => setPref('showTitle', v)}
+              hint={
+                <>
+                  オフのときは「実習記録」のように、種類で知らせるよ。
+                  <br />
+                  課題名に患者さんのイニシャルや病名を入れているなら、オフのままにしてね。
+                </>
+              }
+            >
+              通知に課題名を出す
+            </Check>
+          </div>
+        </section>
+        <div className="flex flex-wrap items-center gap-2">
           <button type="button" onClick={test} disabled={busy !== null} className={softBtn}>
             <Send aria-hidden className="size-4" />
             {busy === 'test' ? '送っているよ…' : 'テスト通知を送る'}
@@ -242,11 +259,11 @@ export function NotifyPanel() {
   }
 
   return (
-    <section aria-label="通知" data-state={stateName} className="flex flex-col">
+    <section aria-label="通知" data-state={stateName} className="flex flex-col gap-4">
       {body}
       <p
         aria-live="polite"
-        className={`text-sm empty:hidden ${message ? 'mt-3' : ''} ${
+        className={`text-sm empty:hidden ${
           message?.tone === 'error' ? 'text-danger' : 'text-ink-muted'
         }`}
       >
