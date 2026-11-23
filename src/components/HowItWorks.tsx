@@ -16,9 +16,15 @@ export function HowItWorks() {
         </p>
         <ul className="space-y-1.5">
           <li className="flex gap-2">
+            <span className="shrink-0 rounded-full bg-tag-black px-2 font-bold text-white">黒</span>
+            <span>
+              締切を過ぎた。いちばん上に出すので、遅れて出すか、先生に連絡するかを決めよう
+            </span>
+          </li>
+          <li className="flex gap-2">
             <span className="shrink-0 rounded-full bg-tag-red px-2 font-bold text-white">赤</span>
             <span>
-              締切を過ぎた・24時間を切った・使える時間の7割以上が必要・ほかの課題と合わせると間に合わない
+              24時間を切った・使える時間の7割以上が必要・ほかの課題と合わせると間に合わない
             </span>
           </li>
           <li className="flex gap-2">
@@ -37,7 +43,8 @@ export function HowItWorks() {
           ：締切の早い順に残りの作業を積み上げて、その締切までに使える時間を超えた分。1件ずつなら間に合うのに、まとめると足りない課題に気づけるよ。
         </p>
         <p>
-          同じ色の中は、追い込まれ具合と締切の近さに、種類の重み（実習記録と看護過程は重め。実習中はさらに重く）と成績・単位への影響を掛けた点数の順。
+          並び順は黒 → 赤 → 黄 →
+          緑。同じ色の中は、追い込まれ具合と締切の近さに、種類の重み（実習記録と看護過程は重め。実習中はさらに重く）と成績・単位への影響を掛けた点数の順。
         </p>
         <p>今日のプランは、今日使える時間を上の課題から0.5h ずつ割り振ったものだよ。</p>
         <p>

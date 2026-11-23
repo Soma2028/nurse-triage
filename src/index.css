@@ -3,7 +3,7 @@
 /*
  * 色は役割ごとのトークンにまとめる。夢のタネの生成り・炭色に合わせ、差し色は紺。
  * ライトのみ（ダークモードには対応しない）。
- * タッグの赤・黄・緑は判定の意味を持つので、それ以外の場所では使わない。
+ * タッグの黒・赤・黄・緑は判定の意味を持つので、それ以外の場所では使わない。
  */
 @theme {
   --color-paper: #fbf8f3; /* 背景（生成り） */
@@ -19,9 +19,10 @@
   --color-primary-soft: #eaf0f7; /* 選択中の薄い背景 */
   --color-on-primary: #ffffff;
 
-  --color-danger: #b42318; /* 不足・期限切れの文字 */
+  --color-danger: #b42318; /* 不足・締切過ぎの文字 */
   --color-danger-soft: #fdecea;
 
+  --color-tag-black: #1a1714; /* 締切過ぎ。文字の炭色（ink）より一段黒くして見分ける */
   --color-tag-red: #d92d20;
   --color-tag-yellow: #e3a600;
   --color-tag-green: #178a4a;

@@ -18,6 +18,8 @@ interface Props {
   practice: boolean
   practiceNote: string | null
   redCount: number
+  /** 締切過ぎ（黒）の件数。赤には含めない */
+  blackCount: number
   remainTotal: number
   /** キャラクターのひとこと（時間不足の警告もここで伝える） */
   speech: Speech
@@ -43,6 +45,7 @@ export function HomeScreen({
   practice,
   practiceNote,
   redCount,
+  blackCount,
   remainTotal,
   speech,
   onTogglePractice,
@@ -92,6 +95,13 @@ export function HomeScreen({
         </motion.div>
 
         <div className="flex flex-wrap gap-2 short:hidden" aria-label="まとめ">
+          {blackCount > 0 && (
+            <Pill>
+              <span aria-hidden className={`size-2 rounded-full ${TRIAGE_STYLE.black.dot}`} />
+              締切過ぎ
+              <b className="text-ink tabular-nums">{blackCount}</b>件
+            </Pill>
+          )}
           <Pill>
             <span aria-hidden className={`size-2 rounded-full ${TRIAGE_STYLE.red.dot}`} />赤
             <b className="text-ink tabular-nums">{redCount}</b>件

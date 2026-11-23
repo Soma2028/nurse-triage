@@ -70,3 +70,22 @@ describe('buildPlan', () => {
     expect(plan.free).toBe(2.5)
   })
 })
+
+describe('buildPlan: 黒（締切過ぎ）', () => {
+  it('残り作業があれば黒も入り、一番先に割り振る', () => {
+    const late = task(1.5, -1) // 1日前に締切
+    const soon = task(3, 1)
+    const plan = buildPlan(analyse([soon, late], S, NOW), 4)
+    expect(plan.items.map((i) => [i.task.id, i.triage, i.hours])).toEqual([
+      [late.id, 'black', 1.5],
+      [soon.id, 'red', 2.5],
+    ])
+  })
+
+  it('残り作業がない黒（進捗100%で未完了）は入れない', () => {
+    const late = task(2, -1, 100)
+    const plan = buildPlan(analyse([late], S, NOW), 4)
+    expect(plan.items).toEqual([])
+    expect(plan.free).toBe(4)
+  })
+})

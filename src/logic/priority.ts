@@ -14,7 +14,8 @@ const RATIO_RED = 0.7
 const RATIO_YELLOW = 0.3
 const YELLOW_DAYS = 3
 
-const TRIAGE_ORDER: Record<Triage, number> = { red: 0, yellow: 1, green: 2 }
+/** 並び順。黒（締切過ぎ）がいちばん上 */
+const TRIAGE_ORDER: Record<Triage, number> = { black: 0, red: 1, yellow: 2, green: 3 }
 
 /** 種類の重み。実習中は rec / proc に上乗せ */
 export function typeWeight(task: Task, practice: boolean): number {
@@ -29,14 +30,15 @@ export function remainHours(task: Task): number {
 }
 
 function judge(ms: number, ratio: number, shortage: number): [Triage, TriageLabel] {
-  if (ms < 0) return ['red', '期限切れ']
+  // 締切ちょうど（ms = 0）はまだ過ぎていない
+  if (ms < 0) return ['black', '締切過ぎ']
   if (shortage > SHORTAGE_RED || ratio >= RATIO_RED || ms < DAY_MS) return ['red', '今すぐ']
   if (ratio >= RATIO_YELLOW || ms <= YELLOW_DAYS * DAY_MS) return ['yellow', '早めに着手']
   return ['green', '計画的に']
 }
 
 /**
- * 未完了の課題を評価し、赤 → 黄 → 緑、同色内は score の高い順に並べて返す。
+ * 未完了の課題を評価し、黒 → 赤 → 黄 → 緑、同色内は score の高い順に並べて返す。
  * 純粋関数（now を引数で受け取る）。schedule があれば日ごとの使える時間で avail を計算する。
  */
 export function analyse(
@@ -87,7 +89,7 @@ export function analyse(
 
 /**
  * 時間不足の警告用：不足がある課題のうち締切が最も早いもの。
- * 期限切れは別扱い（もう間に合わせようがない）なので除く。
+ * 締切過ぎ（黒）は別扱い（もう間に合わせようがない）なので除く。
  */
 export function firstShortage(analysed: readonly Analysed[]): Analysed | undefined {
   return analysed
@@ -96,4 +98,11 @@ export function firstShortage(analysed: readonly Analysed[]): Analysed | undefin
       (min, a) => (!min || a.task.due < min.task.due ? a : min),
       undefined,
     )
+}
+
+/** ホームのまとめ用：色ごとの件数（赤に黒は含めない） */
+export function countByTriage(analysed: readonly Analysed[]): Record<Triage, number> {
+  const count: Record<Triage, number> = { black: 0, red: 0, yellow: 0, green: 0 }
+  for (const a of analysed) count[a.triage]++
+  return count
 }

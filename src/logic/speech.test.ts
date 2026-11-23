@@ -36,13 +36,14 @@ describe('homeSpeech', () => {
     expect(s.lines[0]).toContain('片づいた')
   })
 
-  it('期限切れがいちばん優先', () => {
+  it('締切過ぎがいちばん優先（遅れて出すか、先生に連絡するか）', () => {
     const s = speak([
       task({ title: '過ぎた', dueIn: -HOUR_MS }),
       task({ title: '大きい', dueIn: 2 * DAY_MS, estHours: 30 }),
     ])
     expect(s.mood).toBe('worry')
     expect(s.lines[0]).toBe('『過ぎた』の締切が過ぎてるよ。')
+    expect(s.lines[1]).toContain('先生に連絡')
   })
 
   it('時間不足なら、締切の早い不足課題と足りない時間を伝える', () => {

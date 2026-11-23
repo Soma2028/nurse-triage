@@ -15,7 +15,7 @@ const q = (title: string) => `『${title}』`
 
 /**
  * ホームでキャラクターが話すひとこと。状況ごとに決まった文を返す（開くたびに変わらないよう、ランダムにしない）。
- * 優先順：課題なし → 期限切れ → 時間不足 → 24時間以内 → 今日は休み → 追い込まれている → ふつう
+ * 優先順：課題なし → 締切過ぎ → 時間不足 → 24時間以内 → 今日は休み → 追い込まれている → ふつう
  */
 export function homeSpeech(analysed: readonly Analysed[], plan: Plan): Speech {
   if (analysed.length === 0) {
@@ -26,7 +26,10 @@ export function homeSpeech(analysed: readonly Analysed[], plan: Plan): Speech {
   if (overdue) {
     return {
       mood: 'worry',
-      lines: [`${q(overdue.task.title)}の締切が過ぎてるよ。`, 'まずはこれを片づけよう。'],
+      lines: [
+        `${q(overdue.task.title)}の締切が過ぎてるよ。`,
+        '遅れて出すか、先生に連絡するか決めよう。',
+      ],
     }
   }
 

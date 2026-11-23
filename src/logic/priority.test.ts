@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { DAY_MS, HOUR_MS } from '../constants'
 import type { Settings, Task } from '../types'
-import { analyse, firstShortage, remainHours } from './priority'
+import { analyse, countByTriage, firstShortage, remainHours } from './priority'
 
 const NOW = new Date('2026-11-23T09:00:00+09:00').getTime()
 
@@ -25,12 +25,27 @@ function task(p: Partial<Task> & { dueIn: number }): Task {
 const find = (r: ReturnType<typeof analyse>, id: string) => r.find((a) => a.task.id === id)!
 
 describe('analyse: トリアージ判定', () => {
-  it('締切が過ぎた課題は赤「期限切れ」', () => {
+  it('締切が過ぎた課題は黒「締切過ぎ」', () => {
     const t = task({ dueIn: -1 * HOUR_MS })
     const [a] = analyse([t], NORMAL, NOW)
-    expect(a.triage).toBe('red')
-    expect(a.label).toBe('期限切れ')
+    expect(a.triage).toBe('black')
+    expect(a.label).toBe('締切過ぎ')
     expect(a.avail).toBe(0)
+  })
+
+  it('締切ちょうどはまだ赤、1分過ぎ・1日過ぎは黒', () => {
+    const just = task({ dueIn: 0 })
+    const min1 = task({ dueIn: -60 * 1000 })
+    const day1 = task({ dueIn: -DAY_MS })
+    const r = analyse([just, min1, day1], NORMAL, NOW)
+    expect(find(r, just.id)).toMatchObject({ triage: 'red', label: '今すぐ' })
+    expect(find(r, min1.id)).toMatchObject({ triage: 'black', label: '締切過ぎ' })
+    expect(find(r, day1.id)).toMatchObject({ triage: 'black', label: '締切過ぎ' })
+  })
+
+  it('完了した課題は、締切を過ぎていても出さない', () => {
+    const done = task({ dueIn: -DAY_MS, doneAt: NOW - 2 * DAY_MS })
+    expect(analyse([done], NORMAL, NOW)).toEqual([])
   })
 
   it('24時間以内の課題は（作業量が小さくても）赤「今すぐ」', () => {
@@ -185,5 +200,38 @@ describe('analyse: 実習スケジュール', () => {
       '2026-11-24': 'practice',
     })[0].score
     expect(practice).toBeGreaterThan(plain)
+  })
+})
+
+describe('analyse: 黒（締切過ぎ）の並び順と集計', () => {
+  const black = () => task({ dueIn: -2 * HOUR_MS, estHours: 0.5, importance: 1 })
+  const red = () => task({ dueIn: 5 * HOUR_MS, estHours: 1, importance: 3 }) // 24時間以内 → 赤
+  const yellow = () => task({ dueIn: 3 * DAY_MS, estHours: 0.5 })
+  const green = () => task({ dueIn: 20 * DAY_MS, estHours: 1 })
+
+  it('黒 → 赤 → 黄 → 緑（黒は score が低くても一番上）', () => {
+    const tasks = [green(), yellow(), red(), black()]
+    const r = analyse(tasks, NORMAL, NOW)
+    expect(r.map((a) => a.triage)).toEqual(['black', 'red', 'yellow', 'green'])
+    expect(r[0].score).toBeLessThan(r[1].score)
+  })
+
+  it('黒が2件なら、同じ黒の中は score の高い順', () => {
+    const small = task({ dueIn: -HOUR_MS, estHours: 0.5, importance: 1 })
+    const big = task({ dueIn: -HOUR_MS, estHours: 4, importance: 3 })
+    const r = analyse([small, big, red()], NORMAL, NOW)
+    expect(r.map((a) => a.task.id)).toEqual([big.id, small.id, expect.any(String)])
+  })
+
+  it('集計：赤の件数に黒を含めない', () => {
+    const r = analyse([black(), black(), red(), yellow(), green()], NORMAL, NOW)
+    expect(countByTriage(r)).toEqual({ black: 2, red: 1, yellow: 1, green: 1 })
+    expect(countByTriage([])).toEqual({ black: 0, red: 0, yellow: 0, green: 0 })
+  })
+
+  it('時間不足の警告は黒を除く', () => {
+    const r = analyse([task({ dueIn: -HOUR_MS, estHours: 10 })], NORMAL, NOW)
+    expect(r[0].shortage).toBeGreaterThan(0)
+    expect(firstShortage(r)).toBeUndefined()
   })
 })

@@ -39,6 +39,12 @@ export const DAY_MS = 24 * HOUR_MS
 /** タッグ色ごとの Tailwind クラス（黄は文字を濃色に） */
 export const TRIAGE_STYLE: Record<Triage, { tag: string; bar: string; dot: string; name: string }> =
   {
+    black: {
+      tag: 'bg-tag-black text-white',
+      bar: 'bg-tag-black',
+      dot: 'bg-tag-black',
+      name: '黒',
+    },
     red: { tag: 'bg-tag-red text-white', bar: 'bg-tag-red', dot: 'bg-tag-red', name: '赤' },
     yellow: {
       tag: 'bg-tag-yellow text-slate-900',

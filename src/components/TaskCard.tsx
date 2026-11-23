@@ -17,14 +17,14 @@ interface Props {
   className?: string
 }
 
-/** 根拠の一行。足りない分は危険色で出す */
+/** 根拠の一行。足りない分・締切を過ぎた時間（「3時間超過」「2日超過」）は危険色で出す */
 export function Reason({ a }: { a: Analysed }) {
   const { remain, avail, shortage, ms } = a
   const head = `あと約${formatHours(remain)}`
   if (ms < 0) {
     return (
       <>
-        {head} ／ <span className="font-bold text-danger">締切を過ぎてるよ</span>
+        {head} ／ <span className="font-bold text-danger">{formatRemaining(ms)}</span>
       </>
     )
   }

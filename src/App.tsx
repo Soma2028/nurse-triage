@@ -8,7 +8,7 @@ import { TaskSheet } from './components/TaskSheet'
 import { TasksScreen } from './components/TasksScreen'
 import { UndoToast } from './components/UndoToast'
 import { buildPlan } from './logic/plan'
-import { analyse, firstShortage } from './logic/priority'
+import { analyse, countByTriage, firstShortage } from './logic/priority'
 import {
   autoPracticeToday,
   dayKey,
@@ -49,7 +49,7 @@ export default function App() {
           ? '今日は実習の日（スケジュールより）'
           : '今日はふだんの日（スケジュールより）'
   const plan = useMemo(() => buildPlan(analysed, hours), [analysed, hours])
-  const redCount = analysed.filter((a) => a.triage === 'red').length
+  const counts = countByTriage(analysed)
   const remainTotal = analysed.reduce((s, a) => s + a.remain, 0)
   const shortage = firstShortage(analysed)
   const speech = useMemo(() => homeSpeech(analysed, plan), [analysed, plan])
@@ -94,7 +94,8 @@ export default function App() {
                 plan={plan}
                 practice={practice}
                 practiceNote={practiceNote}
-                redCount={redCount}
+                redCount={counts.red}
+                blackCount={counts.black}
                 remainTotal={remainTotal}
                 speech={speech}
                 onTogglePractice={togglePractice}
