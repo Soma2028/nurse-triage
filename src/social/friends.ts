@@ -98,6 +98,11 @@ const subscribe = (l: () => void) => {
 }
 const getStore = () => store
 
+/** 招待した人と自分の関係 */
+export type Relation = 'none' | 'friends' | 'requested' | 'requestedBy' | 'blocked'
+
+export type LookupResult = { person: Person; relation: Relation } | { error: string }
+
 /** 操作の結果。result はうまくいったとき、error はだめだったときの理由 */
 export interface ActResult {
   result?: string
@@ -154,11 +159,25 @@ export function useFriends(enabled: boolean) {
   )
 
   const current = useSyncExternalStore(subscribe, getStore, getStore)
+  /** 招待リンクのコードの持ち主と、いまの関係を調べる（申請はしない） */
+  const lookup = useCallback(async (code: string): Promise<LookupResult> => {
+    const r = await authedCall(() => tokenRef.current(), 'POST', '/api/friends', {
+      action: 'lookup',
+      code,
+    })
+    const person = r.data?.person
+    if (r.ok && isPerson(person) && typeof r.data?.relation === 'string') {
+      return { person, relation: r.data.relation as Relation }
+    }
+    return { error: typeof r.data?.error === 'string' ? r.data.error : 'network' }
+  }, [])
+
   const mine = current.userId === userId
   return {
     data: mine ? current.data : null,
     error: mine ? current.error : null,
     load,
     act,
+    lookup,
   }
 }

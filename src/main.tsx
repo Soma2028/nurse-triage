@@ -4,8 +4,12 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import { loadClerkKey } from './social/config.ts'
+import { takeInviteFromUrl } from './social/invite.ts'
 import { StoreProvider } from './store/StoreProvider.tsx'
 import { registerServiceWorker } from './sync/registerSW.ts'
+
+// 招待リンク（/f/コード）から開いたら、そのコードを覚えてアドレスを / に戻す
+takeInviteFromUrl()
 
 // ログインの機能（Clerk）は、公開キーが取れたときだけ読み込む。
 // 取れなくても、読み込めなくても、課題・カレンダー・通知はいつもどおり使える

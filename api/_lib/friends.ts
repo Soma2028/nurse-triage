@@ -23,6 +23,7 @@ const code = z
 
 export const friendActionSchema = z.discriminatedUnion('action', [
   z.strictObject({ action: z.literal('request'), code }),
+  z.strictObject({ action: z.literal('lookup'), code }),
   z.strictObject({ action: z.literal('accept'), userId }),
   z.strictObject({ action: z.literal('decline'), userId }),
   z.strictObject({ action: z.literal('cancel'), userId }),
@@ -53,7 +54,7 @@ export async function getFriends(
   return { status: 200, body: await snapshot(db, me, profile.friendCode) }
 }
 
-/** POST /api/friends：申請・承認・断る・取り消す・フレンドをやめる・ブロック・ブロックを外す・コードを作り直す */
+/** POST /api/friends：招待した人を調べる・申請・承認・断る・取り消す・フレンドをやめる・ブロック・ブロックを外す・コードを作り直す */
 export async function postFriends(
   token: string | null,
   input: unknown,
@@ -73,6 +74,33 @@ export async function postFriends(
 
   const a = parsed.data
   switch (a.action) {
+    case 'lookup': {
+      // 招待リンクを開いたとき、だれからの招待かを出す（申請はしない）
+      const other = await db.findUserByCode(a.code)
+      if (other === me) return fail(400, 'self')
+      if (!other) return fail(404, 'not_found')
+      const rel = await db.relation(me, other)
+      if (rel.blockedBy) return fail(404, 'not_found')
+      const p = await db.getProfile(other)
+      if (!p) return fail(404, 'not_found')
+      const person = {
+        userId: other,
+        nickname: p.nickname,
+        icon: p.icon,
+        grade: p.grade,
+        bio: p.bio,
+      }
+      const relation = rel.friends
+        ? 'friends'
+        : rel.blocked
+          ? 'blocked'
+          : rel.requested
+            ? 'requested'
+            : rel.requestedBy
+              ? 'requestedBy'
+              : 'none'
+      return { status: 200, body: { person, relation } }
+    }
     case 'request': {
       const other = await db.findUserByCode(a.code)
       if (other === me) return fail(400, 'self')

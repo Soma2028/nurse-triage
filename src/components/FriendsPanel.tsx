@@ -1,9 +1,11 @@
-import { ChevronLeft, ChevronRight, Copy } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Copy, QrCode as QrIcon, Share2 } from 'lucide-react'
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import type { ActResult, FriendAction, FriendState, Person } from '../social/friends'
 import { gradeLabel } from '../social/profile'
+import { inviteLink } from '../social/invite'
 import { Avatar } from './Avatar'
 import { Group } from './Group'
+import { QrCode } from './QrCode'
 
 /** 人の一覧のどこにいる人か */
 type Kind = 'friend' | 'incoming' | 'outgoing' | 'blocked'
@@ -90,6 +92,7 @@ export function FriendsPanel({
   const [message, setMessage] = useState<Message>(null)
   const [busy, setBusy] = useState(false)
   const [code, setCode] = useState('')
+  const [showQr, setShowQr] = useState(false)
 
   // 開いたら最新にする（申請が届いているかもしれない）
   useEffect(() => {
@@ -150,6 +153,31 @@ export function FriendsPanel({
       setMessage({ tone: 'info', text: 'コードをコピーしたよ。' })
     } catch {
       setMessage({ tone: 'error', text: 'コピーできなかったよ。コードを長押しして選んでね。' })
+    }
+  }
+
+  const link = inviteLink(data.friendCode)
+
+  /** 招待リンクを送る。共有の画面が使えなければ、リンクをコピーする */
+  const share = async () => {
+    const shareData = {
+      title: '看護トリアージ',
+      text: '看護トリアージでフレンドになろう',
+      url: link,
+    }
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData)
+        return
+      } catch (e) {
+        if ((e as Error).name === 'AbortError') return // 送るのをやめた
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(link)
+      setMessage({ tone: 'info', text: 'リンクをコピーしたよ。LINE などに貼って送ってね。' })
+    } catch {
+      setMessage({ tone: 'error', text: 'リンクを送れなかったよ。コードを教えてね。' })
     }
   }
 
@@ -256,6 +284,33 @@ export function FriendsPanel({
           </div>
         </Group>
         <p className={note}>このコードを教えると、相手から申請できるよ。</p>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={share}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-primary-soft px-4 text-sm font-bold text-primary-ink transition hover:bg-primary hover:text-on-primary"
+          >
+            <Share2 aria-hidden className="size-4" />
+            リンクを送る
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowQr((v) => !v)}
+            aria-expanded={showQr}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-primary-soft px-4 text-sm font-bold text-primary-ink transition hover:bg-primary hover:text-on-primary"
+          >
+            <QrIcon aria-hidden className="size-4" />
+            {showQr ? 'QR をしまう' : 'QR を出す'}
+          </button>
+        </div>
+        {showQr && (
+          <div className="ui-card flex flex-col items-center gap-2 rounded-2xl p-4">
+            <QrCode text={link} label="自分の招待リンクの QR コード" />
+            <p className="text-center text-xs leading-5 text-ink-muted">
+              相手の iPhone のカメラで読み取ってもらってね。
+            </p>
+          </div>
+        )}
         <button
           type="button"
           disabled={busy}

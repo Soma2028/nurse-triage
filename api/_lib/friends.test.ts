@@ -149,6 +149,30 @@ describe('フレンド', () => {
     expect((await post('ta', { action: 'accept', userId: 'b' })).body).toEqual({ error: 'limit' })
   })
 
+  it('lookup：招待した人と、いまの関係を返す（申請はしない）', async () => {
+    const { post, names } = setup()
+    expect((await post('ta', { action: 'lookup', code: 'bbbb3333' })).body).toEqual({
+      person: { userId: 'b', nickname: 'ベニ', icon: 'cat', grade: null, bio: '' },
+      relation: 'none',
+    })
+    expect(await names('tb')).toMatchObject({ incoming: [] })
+    await post('ta', { action: 'request', code: 'BBBB3333' })
+    expect((await post('ta', { action: 'lookup', code: 'BBBB3333' })).body).toMatchObject({
+      relation: 'requested',
+    })
+    expect((await post('tb', { action: 'lookup', code: 'AAAA2222' })).body).toMatchObject({
+      relation: 'requestedBy',
+    })
+    expect((await post('ta', { action: 'lookup', code: 'AAAA2222' })).body).toEqual({
+      error: 'self',
+    })
+    // ブロックされていたら、見つからないのと同じ
+    await post('tb', { action: 'block', userId: 'a' })
+    expect((await post('ta', { action: 'lookup', code: 'BBBB3333' })).body).toEqual({
+      error: 'not_found',
+    })
+  })
+
   it('知らない操作は 400', async () => {
     const { post } = setup()
     expect((await post('ta', { action: 'hack' })).status).toBe(400)

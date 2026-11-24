@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { useCallback, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useMemo, useState } from 'react'
 import { HomeScreen } from './components/HomeScreen'
 import { BottomNav, DesktopNav, type Screen } from './components/Nav'
 import { ScheduleScreen } from './components/ScheduleScreen'
@@ -18,10 +18,16 @@ import {
 } from './logic/schedule'
 import { dayNote, homeView } from './logic/home'
 import { baseTransition } from './motion'
+import { usePendingInvite } from './social/invite'
 import { useStore } from './store/context'
 import { useNotifySync } from './sync/useNotifySync'
 import type { Task } from './types'
 import { formatDay } from './utils/format'
+
+// 招待のシートは Clerk を使うので、招待リンクから開いたときだけ読み込む
+const InviteSheet = lazy(() =>
+  import('./components/InviteSheet').then((m) => ({ default: m.InviteSheet })),
+)
 
 /** 追加・編集パネルの状態。editingId が null なら新規追加 */
 type Sheet = { open: false } | { open: true; editingId: string | null; defaultDue?: number }
@@ -30,6 +36,7 @@ export default function App() {
   const { state, dispatch, now } = useStore()
   const [screen, setScreen] = useState<Screen>('home')
   const [sheet, setSheet] = useState<Sheet>({ open: false })
+  const invite = usePendingInvite()
 
   const { settings, schedule } = state
   // 通知をオンにしている端末だけ、課題の締切などを裏でサーバーに送る
@@ -152,6 +159,12 @@ export default function App() {
         onSubmit={submit}
         onClose={closeSheet}
       />
+
+      {invite && (
+        <Suspense fallback={null}>
+          <InviteSheet />
+        </Suspense>
+      )}
 
       <UndoToast
         undo={state.undo}
