@@ -29,6 +29,7 @@ const RESULT_TEXT: Record<string, string> = {
 }
 
 const ERROR_TEXT: Record<string, string> = {
+  not_ready: 'この機能はまだ準備中だよ。少し待ってから試してね。',
   rate_limited: '続けて何回も試したので、少し時間をおいてね。',
   cheer_limit: `同じ人への応援は、1日${MAX_CHEERS_PER_DAY}回までだよ。`,
   not_found: 'そのコードの人が見つからなかったよ。コードを確かめてね。',

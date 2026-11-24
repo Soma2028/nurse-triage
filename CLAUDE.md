@@ -70,7 +70,7 @@
 
 - `SPEC-social.md` の段階1〜8はすべて済み（ログイン・プロフィール・フレンド・招待リンクと QR・今日の進み具合・応援）。テーブルは `migrations/002_social.sql` と `003_blocks.sql`（どちらも実行済み）
 - API の回数制限は `api/_lib/rateLimit.ts`（決まりは `LIMITS`）。数えられないときは通す（アプリを止めない）。新しい API を足すときは、ここで回数を決める
-- 新しいテーブルが要る変更では、SQL を `migrations/` に足し、ユーザーに実行してもらってから使う（実行し忘れると、その API が 500 になる。`dbCode` が `42P01` ならテーブルがない）
+- 新しいテーブル・列が要る変更では、SQL を `migrations/` に足し、ユーザーに実行してもらう。**実行し忘れても読み込みが止まらないようにする**：`socialDb.ts` の `Schema` に足し、ないときは「ないもの」として読む（写真なし・0件など）。ないものを使う操作は `NotReadyError`（503・`not_ready`）で断る。`socialDb.pglite.test.ts` に、その SQL をまだ実行していないときのテストも足す
 - 招待リンクは `vercel.json` の rewrite で index.html を返し、`main.tsx` の `takeInviteFromUrl` でコードを取り出してアドレスを `/` に戻す。`InviteSheet` は Clerk を使うので、招待から開いたときだけ読み込む
 - 進み具合は `ProgressSync`（Clerk を使うので必要なときだけ読み込む）が、変わったら2秒まとめて `/api/progress` に送る。送るのは日付と数だけ。見せるのをやめるとサーバーの分も消す
 - 応援はフレンドにだけ、同じ相手に1日（日本時間）3回まで。相手の端末に通知で届けるため、`DeviceLink` が通知の端末（devices.user_id）にログインした人を付け、ログアウトの前に外す。通知の文面に課題のことは書かない

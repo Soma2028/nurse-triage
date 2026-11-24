@@ -5,7 +5,7 @@ import type { SocialDeps } from './account.js'
 import { neonDb } from './db.js'
 import { MissingEnvError, readEnv, readSocialEnv } from './env.js'
 import { bearerToken, clerkIdentity } from './identity.js'
-import { neonSocialDb } from './socialDb.js'
+import { NotReadyError, neonSocialDb } from './socialDb.js'
 import type { Deps, Result } from './handlers.js'
 import { webPushSender } from './push.js'
 import { RATE_LIMITED, allowed, clientIp, neonRateLimiter, type LimitName } from './rateLimit.js'
@@ -122,6 +122,11 @@ export async function handleAuthed(
     if (e instanceof MissingEnvError) {
       console.error(e.message)
       return json(500, { error: 'server not configured' })
+    }
+    if (e instanceof NotReadyError) {
+      // まだテーブルや列がない機能を使おうとした（読み込みは止めず、その操作だけ断る）
+      console.error(e.message)
+      return json(503, { error: 'not_ready' })
     }
     console.error('handler failed', e)
     // データベースのエラーなら、その種類（SQLSTATE の5文字。中身は出さない）だけ返して、原因を探せるようにする
