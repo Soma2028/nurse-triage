@@ -59,6 +59,8 @@ const CACHE_KEY = 'nurse-triage-friends'
 interface Store {
   userId: string | null
   data: FriendState | null
+  /** 最後の読み込みに失敗した理由（サーバーの error か、HTTP の番号）。うまくいったら null */
+  error: string | null
 }
 
 function readCache(): Store {
@@ -68,11 +70,11 @@ function readCache(): Store {
       unknown
     > | null
     const data = toFriendState(d?.data)
-    if (d && typeof d.userId === 'string' && data) return { userId: d.userId, data }
+    if (d && typeof d.userId === 'string' && data) return { userId: d.userId, data, error: null }
   } catch {
     // 読めなければ読み込み直す
   }
-  return { userId: null, data: null }
+  return { userId: null, data: null, error: null }
 }
 
 let store: Store = readCache()
@@ -81,7 +83,8 @@ const listeners = new Set<() => void>()
 function set(next: Store) {
   store = next
   try {
-    if (next.userId && next.data) localStorage.setItem(CACHE_KEY, JSON.stringify(next))
+    if (next.userId && next.data)
+      localStorage.setItem(CACHE_KEY, JSON.stringify({ userId: next.userId, data: next.data }))
     else localStorage.removeItem(CACHE_KEY)
   } catch {
     // 保存できなくても動く
@@ -116,15 +119,21 @@ export function useFriends(enabled: boolean) {
     if (!userId) return
     const r = await authedCall(() => tokenRef.current(), 'GET', '/api/friends')
     const data = toFriendState(r.data)
-    if (r.ok && data) set({ userId, data })
+    if (r.ok && data) set({ userId, data, error: null })
+    else {
+      // 失敗しても前の一覧は残し、理由だけ覚えておく（「読み込んでいるよ」のまま止まらないように）
+      const reason = typeof r.data?.error === 'string' ? r.data.error : String(r.status)
+      console.error('フレンドを読み込めなかった', r.status, reason)
+      set({ userId, data: store.userId === userId ? store.data : null, error: reason })
+    }
   }, [userId])
 
   useEffect(() => {
     if (!isSignedIn || !userId) {
-      if (store.userId) set({ userId: null, data: null })
+      if (store.userId) set({ userId: null, data: null, error: null })
       return
     }
-    if (store.userId && store.userId !== userId) set({ userId: null, data: null })
+    if (store.userId && store.userId !== userId) set({ userId: null, data: null, error: null })
     if (enabled) void load()
   }, [isSignedIn, userId, enabled, load])
 
@@ -134,7 +143,7 @@ export function useFriends(enabled: boolean) {
       const r = await authedCall(() => tokenRef.current(), 'POST', '/api/friends', action)
       const data = toFriendState(r.data)
       if (r.ok && data) {
-        set({ userId, data })
+        set({ userId, data, error: null })
         return { result: String(r.data?.result ?? '') }
       }
       if (r.status === 400 && !r.data?.error) return { error: 'invalid input' }
@@ -144,5 +153,11 @@ export function useFriends(enabled: boolean) {
   )
 
   const current = useSyncExternalStore(subscribe, getStore, getStore)
-  return { data: current.userId === userId ? current.data : null, load, act }
+  const mine = current.userId === userId
+  return {
+    data: mine ? current.data : null,
+    error: mine ? current.error : null,
+    load,
+    act,
+  }
 }

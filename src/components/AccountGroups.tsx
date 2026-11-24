@@ -142,7 +142,12 @@ function SignedProfileGroup() {
         title="フレンド"
         onClose={() => setFriendsOpen(false)}
       >
-        <FriendsPanel data={friends.data} act={friends.act} reload={friends.load} />
+        <FriendsPanel
+          data={friends.data}
+          error={friends.error}
+          act={friends.act}
+          reload={friends.load}
+        />
       </Sheet>
       <Sheet open={loginOpen && !isSignedIn} title="ログイン" onClose={() => setLoginOpen(false)}>
         <LoginForm

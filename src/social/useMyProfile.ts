@@ -69,20 +69,17 @@ export function useMyProfile() {
   })
   const current = useSyncExternalStore(subscribe, getState, getState)
 
-  const load = useCallback(
-    async (id: string) => {
-      // 前の人のプロフィールが見えないよう、人が変わったら読み込み中にする
-      if (state.userId !== id) set({ userId: id, status: 'loading', profile: null })
-      const r = await authedCall(() => tokenRef.current(), 'GET', '/api/profile')
-      if (state.userId !== id) return // 読み込みの間にログアウトした
-      if (r.ok && (r.data?.profile === null || isProfile(r.data?.profile))) {
-        set({ userId: id, status: 'ready', profile: r.data.profile as Profile | null })
-      } else if (state.status !== 'ready') {
-        set({ ...state, status: 'error' })
-      }
-    },
-    [],
-  )
+  const load = useCallback(async (id: string) => {
+    // 前の人のプロフィールが見えないよう、人が変わったら読み込み中にする
+    if (state.userId !== id) set({ userId: id, status: 'loading', profile: null })
+    const r = await authedCall(() => tokenRef.current(), 'GET', '/api/profile')
+    if (state.userId !== id) return // 読み込みの間にログアウトした
+    if (r.ok && (r.data?.profile === null || isProfile(r.data?.profile))) {
+      set({ userId: id, status: 'ready', profile: r.data.profile as Profile | null })
+    } else if (state.status !== 'ready') {
+      set({ ...state, status: 'error' })
+    }
+  }, [])
 
   useEffect(() => {
     if (!isLoaded) return

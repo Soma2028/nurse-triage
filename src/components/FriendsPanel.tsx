@@ -76,10 +76,13 @@ function PersonRow({
  */
 export function FriendsPanel({
   data,
+  error,
   act,
   reload,
 }: {
   data: FriendState | null
+  /** 読み込みに失敗した理由（なければ null） */
+  error: string | null
   act: (a: FriendAction) => Promise<ActResult>
   reload: () => Promise<void>
 }) {
@@ -107,7 +110,19 @@ export function FriendsPanel({
   }
 
   if (!data) {
-    return <p className="text-sm text-ink-muted">読み込んでいるよ</p>
+    if (!error) return <p className="text-sm text-ink-muted">読み込んでいるよ</p>
+    return (
+      <div className="flex flex-col gap-4">
+        <p className="text-sm leading-6 text-ink">
+          {error === 'no_profile'
+            ? '先にプロフィールを作ってね。'
+            : `フレンドを読み込めなかったよ（${error}）。電波のいいところで、もう一度試してね。`}
+        </p>
+        <button type="button" onClick={() => void reload()} className={plainBtn}>
+          もう一度
+        </button>
+      </div>
+    )
   }
 
   if (detail) {
