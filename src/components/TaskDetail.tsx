@@ -1,28 +1,24 @@
 import { Check, Pencil, Trash2 } from 'lucide-react'
 import { IMPORTANCE_LABEL, TASK_TYPES } from '../constants'
-import { PROGRESS_STEP } from '../store/reducer'
 import type { Analysed } from '../types'
 import { Group, LinkRow, Row } from './Group'
-import { ProgressBar, Reason, TagChip, TaskMeta } from './TaskRow'
+import { ProgressSlider, Reason, TagChip, TaskMeta } from './TaskRow'
 
 const primaryBtn =
   'inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-primary text-base font-bold text-on-primary transition hover:bg-primary-strong'
-const plainBtn =
-  'inline-flex min-h-12 items-center justify-center gap-1 rounded-full border border-line bg-surface px-4 text-base font-bold text-ink transition hover:bg-paper'
-
 /** 課題のくわしいことと操作（TaskDetailPage の中身）。課題の一覧・ホームの行を押すと開く */
 export function TaskDetail({
   a,
   rank,
   onComplete,
-  onAdvance,
+  onSetProgress,
   onEdit,
   onRemove,
 }: {
   a: Analysed
   rank: number
   onComplete: () => void
-  onAdvance: () => void
+  onSetProgress: (progress: number) => void
   onEdit: () => void
   onRemove: () => void
 }) {
@@ -46,12 +42,9 @@ export function TaskDetail({
         <Row label="成績・単位への影響">
           <span className="pr-2 text-sm text-ink">{IMPORTANCE_LABEL[task.importance]}</span>
         </Row>
-        <div className="flex flex-col gap-2 px-4 py-3">
-          <div className="flex items-center gap-3 text-base text-ink">
-            <span className="flex-1">進捗</span>
-            <span className="pr-2 font-bold tabular-nums">{task.progress}%</span>
-          </div>
-          <ProgressBar a={a} />
+        <div className="flex flex-col px-4 pt-3 pb-1">
+          <p className="text-base text-ink">進捗</p>
+          <ProgressSlider key={task.id} a={a} onCommit={onSetProgress} />
         </div>
       </Group>
 
@@ -65,14 +58,6 @@ export function TaskDetail({
       <button type="button" onClick={onComplete} className={primaryBtn}>
         <Check aria-hidden className="size-5" strokeWidth={2.5} />
         完了にする
-      </button>
-      <button
-        type="button"
-        onClick={onAdvance}
-        className={plainBtn}
-        aria-label={`進捗を${PROGRESS_STEP}%進める`}
-      >
-        +{PROGRESS_STEP}%
       </button>
 
       {/* せっていのアカウントのページと同じ、行の一覧 */}

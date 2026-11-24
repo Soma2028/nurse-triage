@@ -42,11 +42,11 @@ describe('reducer', () => {
     expect(u).toEqual(before)
   })
 
-  it('進捗+25%、100%になったら自動で完了', () => {
-    let s = reducer(base(), { type: 'advance', id: 'a', now: NOW })
+  it('スライダーで進捗を変え、100%にしたら自動で完了', () => {
+    let s = reducer(base(), { type: 'setProgress', id: 'a', progress: 75, now: NOW })
     expect(s.tasks[0].progress).toBe(75)
     expect(s.undo).toBeNull()
-    s = reducer(s, { type: 'advance', id: 'b', now: NOW }) // 80 → 100
+    s = reducer(s, { type: 'setProgress', id: 'b', progress: 100, now: NOW }) // 80 → 100
     expect(s.tasks.map((x) => x.id)).toEqual(['a'])
     expect(s.done[0]).toMatchObject({ id: 'b', progress: 100, doneAt: NOW })
     expect(s.undo?.kind).toBe('complete')
@@ -61,7 +61,7 @@ describe('reducer', () => {
   })
 
   it('「戻す」で未完了に戻る（doneAt を外す。100%なら90%に）', () => {
-    let s = reducer(base(), { type: 'advance', id: 'b', now: NOW })
+    let s = reducer(base(), { type: 'setProgress', id: 'b', progress: 100, now: NOW })
     s = reducer(s, { type: 'restore', id: 'b', now: NOW })
     const b = s.tasks.find((x) => x.id === 'b')!
     expect(b.doneAt).toBeUndefined()
@@ -154,8 +154,8 @@ describe('reducer: 実習スケジュール', () => {
     expect(s.settings.hoursNormal).toBe(6)
   })
 
-  it('進めた分を今日のぶんに数える（+25%・完了・編集）', () => {
-    let s = reducer(base(), { type: 'advance', id: 'a', now: NOW }) // 2h の 25%
+  it('進めた分を今日のぶんに数える（スライダー・完了・編集）', () => {
+    let s = reducer(base(), { type: 'setProgress', id: 'a', progress: 75, now: NOW }) // 2h の 25%
     expect(s.today).toEqual({ day: '2026-11-23', hours: 0.5 })
     s = reducer(s, { type: 'complete', id: 'b', now: NOW }) // 2h の残り 20%
     expect(s.today?.hours).toBe(0.9)

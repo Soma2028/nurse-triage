@@ -1,3 +1,4 @@
+import { useState, type CSSProperties } from 'react'
 import { TRIAGE_STYLE } from '../constants'
 import type { Analysed } from '../types'
 import { formatDue, formatHours, formatRemaining } from '../utils/format'
@@ -77,21 +78,52 @@ export function TaskMeta({ a }: { a: Analysed }) {
   )
 }
 
-/** 課題の進み具合のバー。色はその課題のタッグの色 */
-export function ProgressBar({ a, label = '進捗' }: { a: Analysed; label?: string }) {
+/** スライダーのきざみ（%） */
+const SLIDER_STEP = 25
+
+/**
+ * 進み具合のスライダー（25% きざみ）。動かしている間は表示だけ変え、指を離したら保存する。
+ * 100% にすると完了になる（元に戻せる）。ホームのつぎにやる・課題のくわしいページで共通。色はタッグの色
+ */
+export function ProgressSlider({
+  a,
+  onCommit,
+}: {
+  a: Analysed
+  onCommit: (progress: number) => void
+}) {
+  const [draft, setDraft] = useState<number | null>(null)
+  const value = draft ?? a.task.progress
+  const commit = () => {
+    if (draft !== null && draft !== a.task.progress) onCommit(draft)
+    setDraft(null)
+  }
+  const style = {
+    '--pct': `${value}%`,
+    '--fill': `var(--color-tag-${a.triage})`,
+  } as CSSProperties
+
   return (
-    <div
-      className="h-2 overflow-hidden rounded-full bg-line"
-      role="progressbar"
-      aria-label={label}
-      aria-valuemin={0}
-      aria-valuemax={100}
-      aria-valuenow={a.task.progress}
-    >
-      <div
-        className={`h-full rounded-full ${TRIAGE_STYLE[a.triage].bar}`}
-        style={{ width: `${a.task.progress}%` }}
+    <div className="flex items-center gap-3">
+      <input
+        type="range"
+        min={0}
+        max={100}
+        step={SLIDER_STEP}
+        value={value}
+        aria-label="進捗"
+        aria-valuetext={`${value}%`}
+        className="ui-range min-w-0 flex-1"
+        style={style}
+        onChange={(e) => setDraft(Number(e.target.value))}
+        onPointerUp={commit}
+        onTouchEnd={commit}
+        onKeyUp={commit}
+        onBlur={commit}
       />
+      <span className="w-12 shrink-0 text-right text-base font-bold text-ink tabular-nums">
+        {value}%
+      </span>
     </div>
   )
 }

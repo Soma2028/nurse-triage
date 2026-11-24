@@ -16,11 +16,11 @@ import { TaskRow } from './TaskRow'
 type Tab = 'open' | 'done'
 
 interface Props {
+  onSetProgress: (id: string, progress: number) => void
   analysed: Analysed[]
   done: Task[]
   shortage: Analysed | undefined
   onAdd: () => void
-  onAdvance: (id: string) => void
   onComplete: (id: string) => void
   onEdit: (id: string) => void
   onRemove: (id: string) => void
@@ -33,7 +33,7 @@ export function TasksScreen({
   done,
   shortage,
   onAdd,
-  onAdvance,
+  onSetProgress,
   onComplete,
   onEdit,
   onRemove,
@@ -51,7 +51,7 @@ export function TasksScreen({
           id={openId}
           backLabel="課題の一覧にもどる"
           onBack={back}
-          onAdvance={onAdvance}
+          onSetProgress={onSetProgress}
           onComplete={onComplete}
           onEdit={onEdit}
           onRemove={onRemove}

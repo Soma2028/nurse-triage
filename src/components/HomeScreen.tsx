@@ -1,5 +1,4 @@
 import { motion } from 'framer-motion'
-import { useState, type CSSProperties } from 'react'
 import type { HomeView } from '../logic/home'
 import { enter } from '../motion'
 import type { Analysed, Plan } from '../types'
@@ -12,7 +11,7 @@ import { Group } from './Group'
 import { PageStack } from './PageStack'
 import { TaskDetailPage } from './TaskDetailPage'
 import { usePageNav } from './pageNav'
-import { Reason, TagChip, TaskMeta, TaskRow } from './TaskRow'
+import { ProgressSlider, Reason, TagChip, TaskMeta, TaskRow } from './TaskRow'
 import { todayProgress, type TodayProgress } from '../logic/today'
 import { TodayPlan } from './TodayPlan'
 
@@ -30,57 +29,12 @@ interface Props {
   shortage: Analysed | undefined
   /** 今日進めた時間 */
   worked: number
-  onAdvance: (id: string) => void
   /** つぎにやるのスライダーで進捗を変えたとき */
   onSetProgress: (id: string, progress: number) => void
   onComplete: (id: string) => void
   onEdit: (id: string) => void
   onRemove: (id: string) => void
   onAdd: () => void
-}
-
-/** スライダーのきざみ（%） */
-const SLIDER_STEP = 25
-
-/**
- * 進み具合のスライダー（25% きざみ）。動かしている間は表示だけ変え、指を離したら保存する。
- * 100% にすると完了になる（元に戻せる）
- */
-function ProgressSlider({ a, onCommit }: { a: Analysed; onCommit: (progress: number) => void }) {
-  const [draft, setDraft] = useState<number | null>(null)
-  const value = draft ?? a.task.progress
-  const commit = () => {
-    if (draft !== null && draft !== a.task.progress) onCommit(draft)
-    setDraft(null)
-  }
-  const style = {
-    '--pct': `${value}%`,
-    '--fill': `var(--color-tag-${a.triage})`,
-  } as CSSProperties
-
-  return (
-    <div className="flex items-center gap-3">
-      <input
-        type="range"
-        min={0}
-        max={100}
-        step={SLIDER_STEP}
-        value={value}
-        aria-label="進捗"
-        aria-valuetext={`${value}%`}
-        className="ui-range min-w-0 flex-1"
-        style={style}
-        onChange={(e) => setDraft(Number(e.target.value))}
-        onPointerUp={commit}
-        onTouchEnd={commit}
-        onKeyUp={commit}
-        onBlur={commit}
-      />
-      <span className="w-12 shrink-0 text-right text-base font-bold text-ink tabular-nums">
-        {value}%
-      </span>
-    </div>
-  )
 }
 
 /**
@@ -217,7 +171,6 @@ export function HomeScreen({
   blackCount,
   shortage,
   worked,
-  onAdvance,
   onSetProgress,
   onComplete,
   onEdit,
@@ -236,7 +189,7 @@ export function HomeScreen({
           id={openId}
           backLabel="ホームにもどる"
           onBack={back}
-          onAdvance={onAdvance}
+          onSetProgress={onSetProgress}
           onComplete={onComplete}
           onEdit={onEdit}
           onRemove={onRemove}
