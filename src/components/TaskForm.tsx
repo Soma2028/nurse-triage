@@ -1,9 +1,9 @@
-import { Minus, Plus } from 'lucide-react'
 import { useId, useState, type FormEvent } from 'react'
 import { IMPORTANCE_LABEL, TASK_TYPE_KEYS, TASK_TYPES } from '../constants'
 import { daysFromToday } from '../store/sample'
 import type { Importance, Task, TaskType } from '../types'
-import { formatHours, fromDatetimeLocal, toDatetimeLocal } from '../utils/format'
+import { formatDue, fromDatetimeLocal, toDatetimeLocal } from '../utils/format'
+import { Group, HoursStepper, Picker, Row } from './Group'
 import { Segmented } from './Segmented'
 
 interface Props {
@@ -20,9 +20,6 @@ const IMPORTANCES: Importance[] = [1, 2, 3]
 
 const MIN_HOURS = 0.5
 const MAX_HOURS = 99
-
-const stepBtn =
-  'inline-flex size-11 shrink-0 items-center justify-center rounded-full border border-line bg-surface text-ink transition hover:bg-paper disabled:opacity-40'
 
 /** 課題の追加・編集フォーム（TaskSheet の中に置く） */
 export function TaskForm({ editing, now, defaultDue, onSubmit }: Props) {
@@ -44,14 +41,15 @@ export function TaskForm({ editing, now, defaultDue, onSubmit }: Props) {
     if (!hoursTouched) setEstHours(TASK_TYPES[t].defaultHours)
   }
 
-  const stepHours = (d: number) => {
-    setEstHours((h) => Math.min(MAX_HOURS, Math.max(MIN_HOURS, h + d)))
+  const changeHours = (h: number) => {
+    setEstHours(h)
     setHoursTouched(true)
   }
 
+  const dueMs = fromDatetimeLocal(due)
+
   const submit = (e: FormEvent) => {
     e.preventDefault()
-    const dueMs = fromDatetimeLocal(due)
     if (!title.trim()) return setError('課題名を入れてね')
     if (Number.isNaN(dueMs)) return setError('締切を入れてね')
     setError(null)
@@ -69,112 +67,89 @@ export function TaskForm({ editing, now, defaultDue, onSubmit }: Props) {
 
   return (
     <form className="flex flex-col gap-4" onSubmit={submit} noValidate>
-      <div>
-        <label htmlFor={`${id}-title`} className="ui-label">
-          課題名
-        </label>
+      <Group>
         <input
           id={`${id}-title`}
-          className="ui-input"
+          aria-label="課題名"
+          className="min-h-12 w-full min-w-0 bg-transparent px-4 text-base text-ink placeholder:text-ink-muted focus:outline-none"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="例：実習記録（4日目）"
+          placeholder="課題名　例：実習記録 4日目"
           autoComplete="off"
           required
         />
-      </div>
+      </Group>
 
-      <div>
-        <label htmlFor={`${id}-type`} className="ui-label">
-          種類
-        </label>
-        <select
-          id={`${id}-type`}
-          className="ui-input"
-          value={type}
-          onChange={(e) => changeType(e.target.value as TaskType)}
-        >
-          {TASK_TYPE_KEYS.map((k) => (
-            <option key={k} value={k}>
-              {TASK_TYPES[k].label}
-            </option>
-          ))}
-        </select>
-      </div>
+      <Group>
+        <Row label="種類" htmlFor={`${id}-type`}>
+          <Picker text={TASK_TYPES[type].short}>
+            <select
+              id={`${id}-type`}
+              className="ui-picker"
+              value={type}
+              onChange={(e) => changeType(e.target.value as TaskType)}
+            >
+              {TASK_TYPE_KEYS.map((k) => (
+                <option key={k} value={k}>
+                  {TASK_TYPES[k].label}
+                </option>
+              ))}
+            </select>
+          </Picker>
+        </Row>
+        <Row label="締切" htmlFor={`${id}-due`}>
+          <Picker text={Number.isNaN(dueMs) ? '選んでね' : formatDue(dueMs)}>
+            <input
+              id={`${id}-due`}
+              type="datetime-local"
+              className="ui-picker"
+              value={due}
+              onChange={(e) => setDue(e.target.value)}
+              onClick={(e) => e.currentTarget.showPicker?.()}
+              required
+            />
+          </Picker>
+        </Row>
+        <Row label="見込み時間">
+          <HoursStepper
+            label="見込み時間"
+            value={estHours}
+            min={MIN_HOURS}
+            max={MAX_HOURS}
+            onChange={changeHours}
+          />
+        </Row>
+        {editing && (
+          <div className="px-4 pt-3 pb-1">
+            <label htmlFor={`${id}-progress`} className="flex justify-between text-base text-ink">
+              進捗
+              <span className="font-bold tabular-nums">{progress}%</span>
+            </label>
+            <input
+              id={`${id}-progress`}
+              type="range"
+              min={0}
+              max={100}
+              step={10}
+              className="h-11 w-full accent-primary"
+              value={progress}
+              onChange={(e) => setProgress(Number(e.target.value))}
+            />
+          </div>
+        )}
+      </Group>
 
-      <div>
-        <label htmlFor={`${id}-due`} className="ui-label">
-          締切
-        </label>
-        <input
-          id={`${id}-due`}
-          type="datetime-local"
-          className="ui-input"
-          value={due}
-          onChange={(e) => setDue(e.target.value)}
-          required
-        />
-      </div>
-
-      <div className="flex items-center justify-between gap-4">
-        <p className="ui-label" id={`${id}-hours`}>
-          見込み時間
-        </p>
-        <div className="flex items-center gap-1" role="group" aria-labelledby={`${id}-hours`}>
-          <button
-            type="button"
-            className={stepBtn}
-            onClick={() => stepHours(-0.5)}
-            disabled={estHours <= MIN_HOURS}
-            aria-label="見込み時間を30分減らす"
-          >
-            <Minus aria-hidden className="size-4" />
-          </button>
-          <output className="w-12 text-center text-base font-bold tabular-nums" aria-live="polite">
-            {formatHours(estHours)}
-          </output>
-          <button
-            type="button"
-            className={stepBtn}
-            onClick={() => stepHours(0.5)}
-            disabled={estHours >= MAX_HOURS}
-            aria-label="見込み時間を30分増やす"
-          >
-            <Plus aria-hidden className="size-4" />
-          </button>
-        </div>
-      </div>
-
-      {editing && (
-        <div>
-          <label htmlFor={`${id}-progress`} className="ui-label">
-            進捗 <span className="tabular-nums">{progress}%</span>
-          </label>
-          <input
-            id={`${id}-progress`}
-            type="range"
-            min={0}
-            max={100}
-            step={10}
-            className="mt-1 h-11 w-full accent-primary"
-            value={progress}
-            onChange={(e) => setProgress(Number(e.target.value))}
+      <Group label="成績・単位への影響">
+        <div className="p-1">
+          <Segmented
+            className="border-0"
+            label="成績・単位への影響"
+            value={importance}
+            onChange={setImportance}
+            options={IMPORTANCES.map((v) => ({ value: v, label: IMPORTANCE_LABEL[v] }))}
           />
         </div>
-      )}
-
-      <div>
-        <p className="ui-label" id={`${id}-imp`}>
-          成績・単位への影響
-        </p>
-        <Segmented
-          className="mt-1"
-          label="成績・単位への影響"
-          value={importance}
-          onChange={setImportance}
-          options={IMPORTANCES.map((v) => ({ value: v, label: IMPORTANCE_LABEL[v] }))}
-        />
-      </div>
+      </Group>
 
       {error && (
         <p role="alert" className="text-sm font-bold text-danger">

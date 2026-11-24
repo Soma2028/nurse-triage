@@ -59,6 +59,13 @@
   .ui-label {
     @apply block text-sm font-medium text-ink;
   }
+  /* 行（Group の Row）全体を覆う、見えない入力欄。押すと iPhone の選ぶ画面が開き、値は Picker が文字で出す */
+  .ui-picker {
+    @apply absolute inset-0 size-full cursor-pointer appearance-none opacity-0;
+  }
+  .ui-inline::-webkit-calendar-picker-indicator {
+    display: none;
+  }
 }
 
 @layer base {

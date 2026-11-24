@@ -1,8 +1,8 @@
-import { ChevronRight, Minus, Plus } from 'lucide-react'
-import { useState, type ReactNode } from 'react'
+import { ChevronRight } from 'lucide-react'
+import { useState } from 'react'
 import { useNotifyStatus } from '../sync/useNotifyStatus'
 import type { Settings } from '../types'
-import { formatHours } from '../utils/format'
+import { Group, HoursStepper, Row } from './Group'
 import { PriorityHelp } from './Help'
 import { NotifyPanel } from './NotifyPanel'
 import { PracticeSwitch } from './PracticeSwitch'
@@ -20,19 +20,6 @@ interface Props {
 
 const MIN_H = 0.5
 const MAX_H = 16
-
-const stepBtn =
-  'inline-flex size-11 items-center justify-center rounded-full border border-line bg-surface text-ink transition hover:bg-paper disabled:opacity-40'
-
-/** 行をまとめる白い面（iPhone の設定アプリのような一覧） */
-function Group({ label, children }: { label?: string; children: ReactNode }) {
-  return (
-    <section className="flex flex-col gap-2">
-      {label && <h2 className="px-4 text-xs font-bold tracking-wide text-ink-muted">{label}</h2>}
-      <div className="ui-card divide-y divide-line overflow-hidden rounded-2xl">{children}</div>
-    </section>
-  )
-}
 
 /** 押すとシートを開く行 */
 function LinkRow({
@@ -57,52 +44,17 @@ function LinkRow({
   )
 }
 
-function HoursStepper({
-  label,
-  value,
-  today,
-  onChange,
-}: {
-  label: string
-  value: number
-  today: boolean
-  onChange: (h: number) => void
-}) {
-  const step = (d: number) => onChange(Math.min(MAX_H, Math.max(MIN_H, value + d)))
+/** 今日の分に「今日」の印を付けた名前 */
+function TodayLabel({ label, today }: { label: string; today: boolean }) {
   return (
-    <div className="flex min-h-12 items-center justify-between gap-2 py-1 pr-2 pl-4">
-      <p className="flex min-w-0 items-center gap-2 text-base">
-        {label}
-        {today && (
-          <span className="rounded-full bg-primary-soft px-2 text-xs leading-5 font-bold text-primary-ink">
-            今日
-          </span>
-        )}
-      </p>
-      <div className="flex shrink-0 items-center gap-1" role="group" aria-label={label}>
-        <button
-          type="button"
-          className={stepBtn}
-          onClick={() => step(-0.5)}
-          disabled={value <= MIN_H}
-          aria-label={`${label}を30分減らす`}
-        >
-          <Minus aria-hidden className="size-4" />
-        </button>
-        <output className="w-12 text-center text-base font-bold tabular-nums" aria-live="polite">
-          {formatHours(value)}
-        </output>
-        <button
-          type="button"
-          className={stepBtn}
-          onClick={() => step(0.5)}
-          disabled={value >= MAX_H}
-          aria-label={`${label}を30分増やす`}
-        >
-          <Plus aria-hidden className="size-4" />
-        </button>
-      </div>
-    </div>
+    <>
+      {label}
+      {today && (
+        <span className="rounded-full bg-primary-soft px-2 text-xs leading-5 font-bold text-primary-ink">
+          今日
+        </span>
+      )}
+    </>
   )
 }
 
@@ -131,18 +83,24 @@ export function SettingsScreen({
         </Group>
 
         <Group label="1日に使える時間">
-          <HoursStepper
-            label="実習中"
-            value={settings.hoursPractice}
-            today={practice}
-            onChange={(h) => onChangeSettings({ hoursPractice: h })}
-          />
-          <HoursStepper
-            label="ふだん"
-            value={settings.hoursNormal}
-            today={!practice}
-            onChange={(h) => onChangeSettings({ hoursNormal: h })}
-          />
+          <Row label={<TodayLabel label="実習中" today={practice} />}>
+            <HoursStepper
+              label="実習中"
+              value={settings.hoursPractice}
+              min={MIN_H}
+              max={MAX_H}
+              onChange={(h) => onChangeSettings({ hoursPractice: h })}
+            />
+          </Row>
+          <Row label={<TodayLabel label="ふだん" today={!practice} />}>
+            <HoursStepper
+              label="ふだん"
+              value={settings.hoursNormal}
+              min={MIN_H}
+              max={MAX_H}
+              onChange={(h) => onChangeSettings({ hoursNormal: h })}
+            />
+          </Row>
         </Group>
 
         <Group>
