@@ -57,7 +57,7 @@ function TodayLabel({ label, today }: { label: string; today: boolean }) {
   )
 }
 
-type Open = 'notify' | 'home' | 'priority' | 'calendar' | null
+type Open = 'notify' | 'home' | 'priority' | 'calendar' | 'clear' | null
 
 /** せってい。実習・1日に使える時間・通知・ヘルプ・データの見出しで分ける */
 export function SettingsScreen({
@@ -118,7 +118,7 @@ export function SettingsScreen({
         <Group label="データ">
           <button
             type="button"
-            onClick={onClearAll}
+            onClick={() => setOpen('clear')}
             className="flex min-h-12 w-full items-center px-4 text-left text-base text-danger transition hover:bg-danger-soft"
           >
             すべて消す
@@ -126,6 +126,31 @@ export function SettingsScreen({
         </Group>
       </div>
 
+      {/* すべて消す前に、もう一度たずねる */}
+      <Sheet open={open === 'clear'} title="課題をぜんぶ消す？" onClose={close}>
+        <div className="flex flex-col gap-4">
+          <p className="text-sm leading-6 text-ink">
+            終わった課題も、まだの課題も、ぜんぶ消えるよ。消したあと5秒だけ、元に戻せるよ。
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              close()
+              onClearAll()
+            }}
+            className="min-h-12 rounded-full bg-danger text-base font-bold text-on-primary transition hover:opacity-90"
+          >
+            ぜんぶ消す
+          </button>
+          <button
+            type="button"
+            onClick={close}
+            className="min-h-12 rounded-full border border-line bg-surface text-base font-bold text-ink transition hover:bg-paper"
+          >
+            やめる
+          </button>
+        </div>
+      </Sheet>
       <Sheet open={open === 'notify'} title="通知" onClose={close}>
         <NotifyPanel />
       </Sheet>
