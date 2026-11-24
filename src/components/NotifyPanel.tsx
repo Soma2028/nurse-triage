@@ -11,7 +11,6 @@ import {
 import { currentEnv, detectSupport, isIOS } from '../sync/support'
 import { Group, Picker, Row, Switch, SwitchRow } from './Group'
 
-type Busy = 'enable' | 'disable' | null
 type Message = { tone: 'info' | 'error'; text: string } | null
 
 const readPermission = (): NotificationPermission =>
@@ -59,19 +58,23 @@ const note = 'px-4 text-xs leading-5 text-ink-muted'
 export function NotifyPanel() {
   const push = usePushState()
   const [permission, refreshPermission] = usePermission()
-  const [busy, setBusy] = useState<Busy>(null)
+  /**
+   * スイッチを押したあと、登録・解除が終わるまでの「押した側」の値。
+   * 押した瞬間にスイッチを切り替え、登録は裏で進める。失敗したら null に戻して元の表示にする
+   */
+  const [pending, setPending] = useState<boolean | null>(null)
   const [message, setMessage] = useState<Message>(null)
   const env = useMemo(() => currentEnv(), [])
   const support = detectSupport(env)
   const ios = isIOS(env)
 
   const enable = async () => {
-    setBusy('enable')
+    setPending(true)
     setMessage(null)
     // タップの処理の中で、ほかの await より先に許可を聞く（enableNotifications の最初で聞いている）
     const result = await enableNotifications()
     refreshPermission()
-    setBusy(null)
+    setPending(null)
     if (result === 'failed')
       setMessage({
         tone: 'error',
@@ -82,11 +85,16 @@ export function NotifyPanel() {
   }
 
   const disable = async () => {
-    setBusy('disable')
+    setPending(false)
     setMessage(null)
     await disableNotifications()
-    setBusy(null)
-    setMessage({ tone: 'info', text: '通知をやめたよ。サーバーにあったデータも消したよ。' })
+    setPending(null)
+  }
+
+  /** 登録・解除の途中にもう一度押されても、終わるまでは受け付けない（見た目はそのまま） */
+  const toggle = () => {
+    if (pending !== null) return
+    void (push.enabled ? disable() : enable())
   }
 
   const setPref = <K extends keyof NotifyPrefs>(key: K, value: NotifyPrefs[K]) =>
@@ -154,7 +162,7 @@ export function NotifyPanel() {
       </>
     )
   } else {
-    const on = push.enabled
+    const on = pending ?? push.enabled
     body = (
       <>
         {push.lost && !on && (
@@ -164,19 +172,7 @@ export function NotifyPanel() {
         )}
         <section className="flex flex-col gap-2">
           <Group>
-            <SwitchRow
-              label="通知"
-              note={
-                busy === 'enable'
-                  ? '準備しているよ…'
-                  : busy === 'disable'
-                    ? 'やめているよ…'
-                    : undefined
-              }
-              on={busy === 'enable' ? true : busy === 'disable' ? false : on}
-              onToggle={on ? disable : enable}
-              disabled={busy !== null}
-            />
+            <SwitchRow label="通知" on={on} onToggle={toggle} />
           </Group>
           <p className={note}>
             {on
