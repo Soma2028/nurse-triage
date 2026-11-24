@@ -100,15 +100,18 @@ export function CalendarHelp({
   const rows: [string, string][] = [
     ['実習の日', formatHours(hoursPractice)],
     ['印のない日', formatHours(hoursNormal)],
+    ['テストの日', formatHours(hoursNormal)],
     ['休みの日', '0h'],
   ]
   return (
     <div className="flex flex-col gap-8">
       <Group label="予定の入れ方">
         <Item title="実習や休みの期間">右下の＋から、始まりと終わりの日を選んで入れてね。</Item>
+        <Item title="テストの日">右下の＋で「テスト」を選んで、その日を入れてね。</Item>
         <Item title="1日だけ変えたいとき">
-          日付をタップして、「実習」「休み」「なし」から選んでね。
+          日付をタップして、「実習」「休み」「テスト」「なし」から選んでね。
         </Item>
+        <Item title="月を変える">表を左右になぞると、前や次の月に移るよ。</Item>
         <Item title="課題の締切">
           課題の締切の日には、色の点と課題名が出るよ。日付をタップすると、その日の課題を直したり、追加したりできるよ。
         </Item>

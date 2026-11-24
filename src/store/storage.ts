@@ -1,6 +1,6 @@
 import { DEFAULT_SETTINGS, TASK_TYPES } from '../constants'
 import { isDayKey } from '../logic/schedule'
-import type { Schedule, Settings, Task } from '../types'
+import type { DayKind, Schedule, Settings, Task } from '../types'
 
 export const STORAGE_KEY = 'nurse-triage-v1'
 
@@ -71,10 +71,12 @@ function toSettings(v: unknown): Settings {
   return settings
 }
 
+const DAY_KINDS: readonly unknown[] = ['practice', 'off', 'test'] satisfies DayKind[]
+
 function toSchedule(v: unknown): Schedule {
   if (!v || typeof v !== 'object' || Array.isArray(v)) return {}
   return Object.fromEntries(
-    Object.entries(v).filter(([k, kind]) => isDayKey(k) && (kind === 'practice' || kind === 'off')),
+    Object.entries(v).filter(([k, kind]) => isDayKey(k) && DAY_KINDS.includes(kind)),
   ) as Schedule
 }
 

@@ -88,13 +88,14 @@ describe('storage', () => {
       settings: { ...data.settings, practiceOverride: { date: '11/23', on: true } },
       schedule: {
         '2026-11-24': 'practice',
+        '2026-11-26': 'test',
         '2026-02-30': 'off',
         '2026-11-25': 'holiday',
         foo: 'off',
       },
     })
     const r = load(memoryStorage({ [STORAGE_KEY]: raw }))!
-    expect(r.schedule).toEqual({ '2026-11-24': 'practice' })
+    expect(r.schedule).toEqual({ '2026-11-24': 'practice', '2026-11-26': 'test' })
     expect(r.settings.practiceOverride).toBeUndefined()
   })
 

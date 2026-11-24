@@ -22,8 +22,8 @@ export interface Settings {
   practiceOverride?: { date: string; on: boolean }
 }
 
-/** カレンダーの印。印のない日は通常日 */
-export type DayKind = 'practice' | 'off'
+/** カレンダーの印。印のない日は通常日。テストの日は、使える時間はふだんと同じで、印だけ付ける */
+export type DayKind = 'practice' | 'off' | 'test'
 
 /** 日付キー（ローカル時刻の YYYY-MM-DD）→ 印 */
 export type Schedule = Record<string, DayKind>

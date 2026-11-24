@@ -61,8 +61,10 @@ describe('dayNote：今日使える時間の理由', () => {
     const practice: Schedule = { [today]: 'practice' }
     const off: Schedule = { [today]: 'off', [later]: 'practice' }
     const plain: Schedule = { [later]: 'practice' }
+    const test: Schedule = { [today]: 'test' }
     expect(dayNote(S, practice, NOW)).toBe('今日は実習日')
     expect(dayNote(S, off, NOW)).toBe('今日は休み')
+    expect(dayNote(S, test, NOW)).toBe('今日はテスト')
     expect(dayNote(S, plain, NOW)).toBeNull()
   })
 

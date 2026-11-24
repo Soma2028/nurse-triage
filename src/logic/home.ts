@@ -29,6 +29,9 @@ export function dayNote(settings: Settings, schedule: Schedule, now: number): st
   if (isPracticeToday(settings, schedule, now)) return '今日は実習日'
   const today = dayKey(now)
   const overridden = settings.practiceOverride?.date === today
-  if (hasUpcoming(schedule, now) && !overridden && schedule[today] === 'off') return '今日は休み'
+  if (hasUpcoming(schedule, now) && !overridden) {
+    if (schedule[today] === 'off') return '今日は休み'
+    if (schedule[today] === 'test') return '今日はテスト'
+  }
   return null
 }

@@ -121,11 +121,18 @@ describe('isPracticeToday / hoursOn', () => {
     )
   })
 
-  it('日ごとの時間：実習 2.5h／通常 4h／休み 0h', () => {
-    const sch: Schedule = { '2026-11-24': 'practice', '2026-11-25': 'off' }
+  it('日ごとの時間：実習 2.5h／通常 4h／休み 0h／テスト 4h', () => {
+    const sch: Schedule = { '2026-11-24': 'practice', '2026-11-25': 'off', '2026-11-27': 'test' }
     expect(hoursOn('2026-11-24', S, sch, NOW)).toBe(2.5)
     expect(hoursOn('2026-11-25', S, sch, NOW)).toBe(0)
     expect(hoursOn('2026-11-26', S, sch, NOW)).toBe(4)
+    expect(hoursOn('2026-11-27', S, sch, NOW)).toBe(4)
+  })
+
+  it('テストの日は実習中にしない', () => {
+    const sch: Schedule = { '2026-11-23': 'test' }
+    expect(isPracticeToday(S, sch, NOW)).toBe(false)
+    expect(todayHours(S, sch, NOW)).toBe(4)
   })
 
   it('今日だけの手動上書きが優先、昨日の上書きは無視', () => {

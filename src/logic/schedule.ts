@@ -80,6 +80,7 @@ export function autoPracticeToday(schedule: Schedule, now: number): boolean {
   return schedule[dayKey(now)] === 'practice'
 }
 
+/** 印ごとの時間。テストの日と印のない日は、ふだんの時間 */
 function kindHours(kind: DayKind | undefined, settings: Settings): number {
   if (kind === 'practice') return settings.hoursPractice
   if (kind === 'off') return 0

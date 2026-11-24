@@ -1,8 +1,18 @@
+import { motion } from 'framer-motion'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+  type MouseEvent,
+  type PointerEvent,
+} from 'react'
 import { TRIAGE_STYLE } from '../constants'
 import { markRun, monthCells, tasksByDay } from '../logic/calendar'
 import { addDays, dayKey, keyStart, rangeKeys } from '../logic/schedule'
+import { ENTER_DISTANCE, baseTransition } from '../motion'
 import type { Analysed, DayKind, Schedule, Settings } from '../types'
 import { CalendarHelp } from './Help'
 import { HelpButton, ScreenLayout } from './ScreenLayout'
@@ -24,16 +34,29 @@ interface Props {
 const WEEK_HEAD = ['月', '火', '水', '木', '金', '土', '日']
 const WEEKDAY_NAME = ['日', '月', '火', '水', '木', '金', '土']
 
-/** マスの塗り（実習は薄い紺、休みは灰色。続く日は塗りがつながって見える） */
+/**
+ * マスの塗り（実習は薄い紺、休みは灰色。続く日は塗りがつながって見える）。
+ * テストは、タッグの色とまぎれないよう塗らずに点線の枠にする
+ */
 const KIND_CELL: Record<DayKind, string> = {
   practice: 'bg-primary-soft',
   off: 'bg-line',
+  test: 'bg-surface outline-1 -outline-offset-1 outline-ink-muted outline-dashed',
 }
 const KIND_MARK: Record<DayKind, { char: string; className: string }> = {
   practice: { char: '実', className: 'text-primary-ink' },
   off: { char: '休', className: 'text-ink-muted' },
+  test: { char: '試', className: 'text-ink' },
 }
-const KIND_NAME: Record<DayKind, string> = { practice: '実習', off: '休み' }
+const KIND_NAME: Record<DayKind, string> = { practice: '実習', off: '休み', test: 'テスト' }
+const KIND_OPTIONS: { value: DayKind; label: string }[] = [
+  { value: 'practice', label: '実習' },
+  { value: 'off', label: '休み' },
+  { value: 'test', label: 'テスト' },
+]
+
+/** 横にこれだけ動かしたら、月を変えるスワイプとみなす（px） */
+const SWIPE_MIN = 48
 
 /** マスの中の大きさ（px）：上下の余白 4+4、日付の行 16、課題1件ごとに 4+16 */
 const CELL_PAD = 8
@@ -59,8 +82,8 @@ const softBtn =
   'inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-primary-soft px-4 text-sm font-bold text-primary-ink transition hover:bg-primary hover:text-on-primary'
 const label = 'text-xs font-bold tracking-wide text-ink-muted'
 
-/** マスの高さから、課題を何件まで並べられるか */
-function useChipCapacity() {
+/** マスの高さから、課題を何件まで並べられるか。月で行の数が変わるので、月が変わったら測り直す */
+function useChipCapacity(month: string) {
   const ref = useRef<HTMLDivElement>(null)
   const [cap, setCap] = useState(1)
   useEffect(() => {
@@ -76,15 +99,16 @@ function useChipCapacity() {
     const ro = new ResizeObserver(measure)
     ro.observe(el)
     return () => ro.disconnect()
-  }, [])
+  }, [month])
   return [ref, cap] as const
 }
 
 type AddKind = DayKind | 'task'
 
 /**
- * カレンダー。TimeTree のように、実習・休みの予定と課題の締切を1つの月の表に出す。
- * 日付をタップするとその日のシート、右下の＋で予定（実習・休み・課題）を追加する。
+ * カレンダー。TimeTree のように、実習・休み・テストの予定と課題の締切を1つの月の表に出す。
+ * 日付をタップするとその日のシート、右下の＋で予定（実習・休み・テスト・課題）を追加する。
+ * 表を左右になぞると前後の月に移る。
  */
 export function ScheduleScreen({
   schedule,
@@ -99,7 +123,12 @@ export function ScheduleScreen({
   const [month, setMonth] = useState(() => today.slice(0, 7)) // YYYY-MM
   const [selected, setSelected] = useState<string | null>(null) // 開いている日のシート
   const [help, setHelp] = useState(false)
-  const [gridRef, capacity] = useChipCapacity()
+  const [gridRef, capacity] = useChipCapacity(month)
+  /** 月を動かした向き（1：次の月、-1：前の月）。表が入ってくる向きに使う */
+  const [dir, setDir] = useState(0)
+  const swipe = useRef<{ x: number; y: number } | null>(null)
+  /** 最後に月を変えるスワイプをした時刻（直後のタップを無視するため） */
+  const swipedAt = useRef(-Infinity)
 
   // 予定を追加するシート
   const [addOpen, setAddOpen] = useState(false)
@@ -118,7 +147,29 @@ export function ScheduleScreen({
 
   const moveMonth = (n: number) => {
     const d = new Date(y, m - 1 + n, 1)
+    setDir(Math.sign(n))
     setMonth(dayKey(d.getTime()).slice(0, 7))
+  }
+
+  // 表を左右になぞると月を変える（左へなぞると次の月）。縦の動きが大きいときは何もしない
+  const onPointerDown = (e: PointerEvent) => {
+    swipe.current = { x: e.clientX, y: e.clientY }
+  }
+  const onPointerUp = (e: PointerEvent) => {
+    const from = swipe.current
+    swipe.current = null
+    if (!from) return
+    const dx = e.clientX - from.x
+    const dy = e.clientY - from.y
+    if (Math.abs(dx) < SWIPE_MIN || Math.abs(dx) < Math.abs(dy) * 1.5) return
+    // なぞったあとに来るタップで、日のシートが開かないようにする
+    swipedAt.current = e.timeStamp
+    moveMonth(dx < 0 ? 1 : -1)
+  }
+  const onClickCapture = (e: MouseEvent) => {
+    if (e.timeStamp - swipedAt.current > 500) return
+    e.stopPropagation()
+    e.preventDefault()
   }
 
   const openAdd = () => {
@@ -133,6 +184,8 @@ export function ScheduleScreen({
       onAddTask()
       return
     }
+    // テストは1日だけのことが多いので、終わりの日を始まりの日にそろえる
+    if (k === 'test') setEnd(start)
     setAddKind(k)
   }
 
@@ -167,15 +220,27 @@ export function ScheduleScreen({
           >
             <ChevronLeft aria-hidden className="size-5" />
           </button>
-          <h2 className="w-28 text-center text-base font-bold tabular-nums" aria-live="polite">
+          <h2
+            className="w-28 text-center text-base font-bold whitespace-nowrap tabular-nums"
+            aria-live="polite"
+          >
             {y}年{m}月
           </h2>
           <button type="button" className={navBtn} onClick={() => moveMonth(1)} aria-label="次の月">
             <ChevronRight aria-hidden className="size-5" />
           </button>
-          <p className="ml-auto text-sm whitespace-nowrap text-ink-muted">
-            実習 <b className="text-ink tabular-nums">{count('practice')}</b> ・ 休み{' '}
-            <b className="text-ink tabular-nums">{count('off')}</b>
+          {/* この月の日数。マスの印と同じ1文字で、狭い画面でも1行に収める */}
+          <p className="ml-auto flex gap-2 text-sm whitespace-nowrap text-ink-muted">
+            {KIND_OPTIONS.map((o) => (
+              <span key={o.value} aria-label={`${o.label} ${count(o.value)}日`}>
+                <span aria-hidden className={`font-bold ${KIND_MARK[o.value].className}`}>
+                  {KIND_MARK[o.value].char}
+                </span>{' '}
+                <b aria-hidden className="text-ink tabular-nums">
+                  {count(o.value)}
+                </b>
+              </span>
+            ))}
           </p>
         </div>
       }
@@ -183,69 +248,83 @@ export function ScheduleScreen({
       addLabel="予定を追加する"
       fill
     >
-      <div aria-hidden className="grid grid-cols-7 gap-1 pb-1 text-center text-xs text-ink-muted">
-        {WEEK_HEAD.map((w) => (
-          <span key={w}>{w}</span>
-        ))}
-      </div>
-
-      <div
-        ref={gridRef}
-        role="grid"
-        aria-label={`${y}年${m}月のカレンダー`}
-        className="grid min-h-0 flex-1 grid-cols-7 gap-1"
-        style={{ gridTemplateRows: `repeat(${cells.length / 7}, minmax(44px, 1fr))` }}
+      <motion.div
+        key={month}
+        initial={dir === 0 ? false : { opacity: 0, x: dir * ENTER_DISTANCE }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={baseTransition}
+        onPointerDown={onPointerDown}
+        onPointerUp={onPointerUp}
+        onPointerCancel={() => (swipe.current = null)}
+        onClickCapture={onClickCapture}
+        className="flex min-h-0 flex-1 touch-pan-y flex-col"
       >
-        {cells.map((key, i) => {
-          if (key === null) return <span key={`blank-${i}`} aria-hidden />
-          const kind = schedule[key]
-          const tasks = byDay.get(key) ?? []
-          const shown = tasks.length > capacity ? tasks.slice(0, capacity - 1) : tasks
-          const more = tasks.length - shown.length
-          const isToday = key === today
-          const past = key < today
-          return (
-            <button
-              key={key}
-              type="button"
-              data-cell
-              onClick={() => setSelected(key)}
-              aria-label={`${shortDate(key)}${kind ? ` ${KIND_NAME[kind]}` : ''}${tasks.length ? ` 締切${tasks.length}件` : ''}${isToday ? '（今日）' : ''}`}
-              className={`flex min-h-0 min-w-0 flex-col gap-1 overflow-hidden rounded-xl p-1 text-left focus-visible:outline-2 focus-visible:outline-primary-ink ${
-                kind ? KIND_CELL[kind] : 'bg-surface'
-              } ${isToday ? 'ring-2 ring-ink ring-inset' : ''}`}
-            >
-              <span className="flex h-4 shrink-0 items-center justify-between gap-1 px-1 text-xs leading-4">
-                <span
-                  className={`tabular-nums ${isToday ? 'font-bold text-ink' : past ? 'text-ink-muted' : 'text-ink'}`}
-                >
-                  {Number(key.slice(8))}
+        <div aria-hidden className="grid grid-cols-7 gap-1 pb-1 text-center text-xs text-ink-muted">
+          {WEEK_HEAD.map((w) => (
+            <span key={w}>{w}</span>
+          ))}
+        </div>
+
+        <div
+          ref={gridRef}
+          role="grid"
+          aria-label={`${y}年${m}月のカレンダー`}
+          className="grid min-h-0 flex-1 grid-cols-7 gap-1"
+          style={{ gridTemplateRows: `repeat(${cells.length / 7}, minmax(44px, 1fr))` }}
+        >
+          {cells.map((key, i) => {
+            if (key === null) return <span key={`blank-${i}`} aria-hidden />
+            const kind = schedule[key]
+            const tasks = byDay.get(key) ?? []
+            const shown = tasks.length > capacity ? tasks.slice(0, capacity - 1) : tasks
+            const more = tasks.length - shown.length
+            const isToday = key === today
+            const past = key < today
+            return (
+              <button
+                key={key}
+                type="button"
+                data-cell
+                onClick={() => setSelected(key)}
+                aria-label={`${shortDate(key)}${kind ? ` ${KIND_NAME[kind]}` : ''}${tasks.length ? ` 締切${tasks.length}件` : ''}${isToday ? '（今日）' : ''}`}
+                className={`flex min-h-0 min-w-0 flex-col gap-1 overflow-hidden rounded-xl p-1 text-left focus-visible:outline-2 focus-visible:outline-primary-ink ${
+                  kind ? KIND_CELL[kind] : 'bg-surface'
+                } ${isToday ? 'ring-2 ring-ink ring-inset' : ''}`}
+              >
+                <span className="flex h-4 shrink-0 items-center justify-between gap-1 px-1 text-xs leading-4">
+                  <span
+                    className={`tabular-nums ${isToday ? 'font-bold text-ink' : past ? 'text-ink-muted' : 'text-ink'}`}
+                  >
+                    {Number(key.slice(8))}
+                  </span>
+                  {kind && (
+                    <span aria-hidden className={`font-bold ${KIND_MARK[kind].className}`}>
+                      {KIND_MARK[kind].char}
+                    </span>
+                  )}
                 </span>
-                {kind && (
-                  <span aria-hidden className={`font-bold ${KIND_MARK[kind].className}`}>
-                    {KIND_MARK[kind].char}
+                {shown.map((a) => (
+                  <span
+                    key={a.task.id}
+                    className="flex h-4 min-w-0 shrink-0 items-center gap-1 text-xs leading-4"
+                  >
+                    <span
+                      aria-hidden
+                      className={`size-2 shrink-0 rounded-full ${TRIAGE_STYLE[a.triage].dot}`}
+                    />
+                    <span className="truncate text-ink">{a.task.title}</span>
+                  </span>
+                ))}
+                {more > 0 && (
+                  <span className="h-4 shrink-0 px-1 text-xs leading-4 text-ink-muted">
+                    +{more}
                   </span>
                 )}
-              </span>
-              {shown.map((a) => (
-                <span
-                  key={a.task.id}
-                  className="flex h-4 min-w-0 shrink-0 items-center gap-1 text-xs leading-4"
-                >
-                  <span
-                    aria-hidden
-                    className={`size-2 shrink-0 rounded-full ${TRIAGE_STYLE[a.triage].dot}`}
-                  />
-                  <span className="truncate text-ink">{a.task.title}</span>
-                </span>
-              ))}
-              {more > 0 && (
-                <span className="h-4 shrink-0 px-1 text-xs leading-4 text-ink-muted">+{more}</span>
-              )}
-            </button>
-          )
-        })}
-      </div>
+              </button>
+            )
+          })}
+        </div>
+      </motion.div>
 
       {/* 日のシート：その日の予定と、締切の課題 */}
       <Sheet
@@ -261,11 +340,7 @@ export function ScheduleScreen({
                 label="この日の予定"
                 value={dayKind ?? 'none'}
                 onChange={(v) => onSetDays([selected], v === 'none' ? null : v)}
-                options={[
-                  { value: 'practice', label: '実習' },
-                  { value: 'off', label: '休み' },
-                  { value: 'none', label: 'なし' },
-                ]}
+                options={[...KIND_OPTIONS, { value: 'none' as const, label: 'なし' }]}
               />
               {dayKind && run.length > 1 && (
                 <button
@@ -330,18 +405,14 @@ export function ScheduleScreen({
         )}
       </Sheet>
 
-      {/* ＋：予定を追加（実習・休みは期間で、課題はいつものフォームで） */}
+      {/* ＋：予定を追加（実習・休み・テストは期間で、課題はいつものフォームで） */}
       <Sheet open={addOpen} title="予定を追加" onClose={() => setAddOpen(false)}>
         <form onSubmit={submitAdd} noValidate className="flex flex-col gap-4">
           <Segmented
             label="追加するもの"
             value={addKind}
             onChange={chooseAddKind}
-            options={[
-              { value: 'practice', label: '実習' },
-              { value: 'off', label: '休み' },
-              { value: 'task', label: '課題' },
-            ]}
+            options={[...KIND_OPTIONS, { value: 'task' as const, label: '課題' }]}
           />
           <div className="grid grid-cols-2 gap-2">
             <label className="ui-label min-w-0">
@@ -350,7 +421,11 @@ export function ScheduleScreen({
                 type="date"
                 className="ui-input px-2"
                 value={start}
-                onChange={(e) => setStart(e.target.value)}
+                onChange={(e) => {
+                  setStart(e.target.value)
+                  // テストは1日だけのことが多いので、終わりの日も一緒に動かす
+                  if (addKind === 'test') setEnd(e.target.value)
+                }}
               />
             </label>
             <label className="ui-label min-w-0">

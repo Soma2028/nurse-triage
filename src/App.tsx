@@ -46,9 +46,11 @@ export default function App() {
       ? '今日だけ手で切り替えてるよ'
       : schedule[dayKey(now)] === 'off'
         ? '今日は休みの日（スケジュールより）'
-        : practice
-          ? '今日は実習の日（スケジュールより）'
-          : '今日はふだんの日（スケジュールより）'
+        : schedule[dayKey(now)] === 'test'
+          ? '今日はテストの日（スケジュールより）'
+          : practice
+            ? '今日は実習の日（スケジュールより）'
+            : '今日はふだんの日（スケジュールより）'
   const plan = useMemo(() => buildPlan(analysed, hours), [analysed, hours])
   const counts = countByTriage(analysed)
   const shortage = firstShortage(analysed)
