@@ -8,7 +8,11 @@ import { formatHours } from '../utils/format'
 import { Chara } from './Chara'
 import { OverloadWarning } from './OverloadWarning'
 import { ScreenLayout } from './ScreenLayout'
-import { TaskCard } from './TaskCard'
+import { Check } from 'lucide-react'
+import { PROGRESS_STEP } from '../store/reducer'
+import { Group } from './Group'
+import { TaskDetailSheet } from './TaskDetailSheet'
+import { Reason, TagChip, TaskMeta, TaskRow } from './TaskRow'
 import { TodayPlan } from './TodayPlan'
 
 interface Props {
@@ -25,7 +29,66 @@ interface Props {
   shortage: Analysed | undefined
   onAdvance: (id: string) => void
   onComplete: (id: string) => void
+  onEdit: (id: string) => void
+  onRemove: (id: string) => void
   onAdd: () => void
+}
+
+/**
+ * 「つぎにやる」の1件。上を押すとくわしいシート、下の2つのボタンでその場で進められる
+ */
+function NextCard({
+  a,
+  rank,
+  onOpen,
+  onComplete,
+  onAdvance,
+}: {
+  a: Analysed
+  rank: number
+  onOpen: () => void
+  onComplete: () => void
+  onAdvance: () => void
+}) {
+  return (
+    <div className="ui-card flex flex-col gap-3 p-4">
+      <button
+        type="button"
+        onClick={onOpen}
+        className="flex items-start gap-3 text-left"
+        aria-label={`${rank}番目「${a.label}」 ${a.task.title}のくわしいこと`}
+      >
+        <TagChip a={a} rank={rank} size="lg" />
+        <span className="min-w-0 flex-1">
+          <span className="block text-base font-bold break-words text-ink">{a.task.title}</span>
+          <span className="block text-xs text-ink-muted">
+            <TaskMeta a={a} />
+          </span>
+        </span>
+      </button>
+      <p className="text-sm leading-6 text-ink-muted">
+        <Reason a={a} />
+      </p>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={onComplete}
+          className="inline-flex min-h-11 flex-1 items-center justify-center gap-1 rounded-full bg-primary text-sm font-bold text-on-primary transition hover:bg-primary-strong"
+        >
+          <Check aria-hidden className="size-4" strokeWidth={2.5} />
+          完了
+        </button>
+        <button
+          type="button"
+          onClick={onAdvance}
+          aria-label={`進捗を${PROGRESS_STEP}%進める`}
+          className="inline-flex min-h-11 flex-1 items-center justify-center rounded-full border border-line bg-surface text-sm font-bold text-ink transition hover:bg-paper"
+        >
+          +{PROGRESS_STEP}%
+        </button>
+      </div>
+    </div>
+  )
 }
 
 /** 見出しの下の1行：締切過ぎ・赤の件数（0件は出さない）と、今日使える時間 */
@@ -92,9 +155,11 @@ export function HomeScreen({
   shortage,
   onAdvance,
   onComplete,
+  onEdit,
+  onRemove,
   onAdd,
 }: Props) {
-  // ほかの急ぎで開いているカード（同時に開くのは1枚）
+  // くわしいシートを開いている課題
   const [openId, setOpenId] = useState<string | null>(null)
   const { next, urgent } = view
 
@@ -122,10 +187,10 @@ export function HomeScreen({
             <h2 id="next-heading" className={label}>
               つぎにやる
             </h2>
-            <TaskCard
+            <NextCard
               a={next}
               rank={analysed.indexOf(next) + 1}
-              open
+              onOpen={() => setOpenId(next.task.id)}
               onAdvance={() => onAdvance(next.task.id)}
               onComplete={() => onComplete(next.task.id)}
             />
@@ -141,27 +206,27 @@ export function HomeScreen({
         )}
 
         {urgent.length > 0 && (
-          <section aria-labelledby="urgent-heading" className="flex flex-col gap-2">
-            <h2 id="urgent-heading" className={label}>
-              ほかの急ぎ
-            </h2>
-            <ol className="flex flex-col gap-2">
-              {urgent.map((a) => (
-                <li key={a.task.id}>
-                  <TaskCard
-                    a={a}
-                    rank={analysed.indexOf(a) + 1}
-                    open={openId === a.task.id}
-                    onToggle={() => setOpenId(openId === a.task.id ? null : a.task.id)}
-                    onAdvance={() => onAdvance(a.task.id)}
-                    onComplete={() => onComplete(a.task.id)}
-                  />
-                </li>
-              ))}
-            </ol>
-          </section>
+          <Group label="ほかの急ぎ">
+            {urgent.map((a) => (
+              <TaskRow
+                key={a.task.id}
+                a={a}
+                rank={analysed.indexOf(a) + 1}
+                onOpen={() => setOpenId(a.task.id)}
+              />
+            ))}
+          </Group>
         )}
       </div>
+      <TaskDetailSheet
+        analysed={analysed}
+        openId={openId}
+        onClose={() => setOpenId(null)}
+        onAdvance={onAdvance}
+        onComplete={onComplete}
+        onEdit={onEdit}
+        onRemove={onRemove}
+      />
     </ScreenLayout>
   )
 }

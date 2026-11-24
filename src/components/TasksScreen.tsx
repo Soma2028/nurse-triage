@@ -1,15 +1,15 @@
-import { motion } from 'framer-motion'
 import { RotateCcw } from 'lucide-react'
 import { useState } from 'react'
 import { TASK_TYPES } from '../constants'
-import { cardInView } from '../motion'
 import type { Analysed, Task } from '../types'
 import { formatDue } from '../utils/format'
 import { Chara } from './Chara'
 import { OverloadWarning } from './OverloadWarning'
 import { ScreenLayout } from './ScreenLayout'
 import { Segmented } from './Segmented'
-import { TaskCard } from './TaskCard'
+import { Group } from './Group'
+import { TaskDetailSheet } from './TaskDetailSheet'
+import { TaskRow } from './TaskRow'
 
 type Tab = 'open' | 'done'
 
@@ -25,7 +25,7 @@ interface Props {
   onRestore: (id: string) => void
 }
 
-/** 課題の一覧。未完了は優先順位どおり（押すと開く）、完了は「戻す」で未完了に戻せる */
+/** 課題の一覧。未完了は優先順位どおりの1行ずつ（押すとくわしいシート）、完了は「戻す」で未完了に戻せる */
 export function TasksScreen({
   analysed,
   done,
@@ -68,28 +68,17 @@ export function TasksScreen({
               </p>
             </div>
           ) : (
-            <ol className="flex flex-col gap-2">
+            <Group>
               {analysed.map((a, i) => (
-                <motion.li key={a.task.id} {...cardInView(i)}>
-                  <TaskCard
-                    a={a}
-                    rank={i + 1}
-                    open={openId === a.task.id}
-                    onToggle={() => setOpenId(openId === a.task.id ? null : a.task.id)}
-                    onAdvance={() => onAdvance(a.task.id)}
-                    onComplete={() => onComplete(a.task.id)}
-                    onEdit={() => onEdit(a.task.id)}
-                    onRemove={() => onRemove(a.task.id)}
-                  />
-                </motion.li>
+                <TaskRow key={a.task.id} a={a} rank={i + 1} onOpen={() => setOpenId(a.task.id)} />
               ))}
-            </ol>
+            </Group>
           )}
         </div>
       ) : done.length === 0 ? (
         <p className="px-2 py-4 text-sm text-ink-muted">完了した課題はまだないよ。</p>
       ) : (
-        <ul className="ui-card divide-y divide-line overflow-hidden">
+        <ul className="ui-card divide-y divide-line overflow-hidden rounded-2xl">
           {done.map((t) => (
             <li key={t.id} className="flex items-center gap-2 py-2 pr-2 pl-4">
               <div className="min-w-0 flex-1">
@@ -114,6 +103,15 @@ export function TasksScreen({
           ))}
         </ul>
       )}
+      <TaskDetailSheet
+        analysed={analysed}
+        openId={openId}
+        onClose={() => setOpenId(null)}
+        onAdvance={onAdvance}
+        onComplete={onComplete}
+        onEdit={onEdit}
+        onRemove={onRemove}
+      />
     </ScreenLayout>
   )
 }

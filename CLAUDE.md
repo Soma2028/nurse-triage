@@ -21,7 +21,7 @@
 - **ライトのみ。ダークモードには対応しない**（一度対応したが、やめた）
 - 色を持つのはトリアージのタッグだけ。紺はボタン・選択中だけ。「超過」「足りない」は赤い文字にせず太字の炭色（危険色は入力の誤りと「すべて消す」だけ）。カレンダーの今日は炭色の枠
 - 余白は4の倍数だけ（4・8・12・16・24・32）。文字は 22（`text-title`）・16・14・12px の4段階だけ
-- 部品は共通クラス（`ui-card` `ui-input` `ui-label`）と共通の部品（`ScreenLayout` `Sheet` `TaskCard` `Segmented`、行の一覧は `Group` `Row` `Picker` `HoursStepper`）で1通りずつ。似た部品を新しく作らない
+- 部品は共通クラス（`ui-card` `ui-input` `ui-label`）と共通の部品（`ScreenLayout` `Sheet` `TaskRow` `TaskDetailSheet` `Segmented`、行の一覧は `Group` `Row` `Picker` `HoursStepper`）で1通りずつ。似た部品を新しく作らない
 - 動きは `src/motion.ts` の値だけを使う（0.3秒・16px・ease-out、押すと97%）
 - アイコンは lucide-react。絵文字アイコンは使わない
 - 文言はやわらかい話し言葉（「〜しよう」「〜だよ」）。カッコ書きの補足や説明っぽい文を増やさない

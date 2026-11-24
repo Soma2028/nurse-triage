@@ -122,6 +122,8 @@ export default function App() {
                 shortage={shortage}
                 onAdvance={advance}
                 onComplete={complete}
+                onEdit={openEdit}
+                onRemove={(id) => dispatch({ type: 'remove', id, now: Date.now() })}
                 onAdd={() => openAdd()}
               />
             )}
