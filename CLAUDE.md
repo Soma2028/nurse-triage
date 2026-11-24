@@ -69,6 +69,7 @@
 ## ログイン・フレンド（実装済み）
 
 - `SPEC-social.md` の段階1〜8はすべて済み（ログイン・プロフィール・フレンド・招待リンクと QR・今日の進み具合・応援）。テーブルは `migrations/002_social.sql` と `003_blocks.sql`（どちらも実行済み）
+- API の回数制限は `api/_lib/rateLimit.ts`（決まりは `LIMITS`）。数えられないときは通す（アプリを止めない）。新しい API を足すときは、ここで回数を決める
 - 新しいテーブルが要る変更では、SQL を `migrations/` に足し、ユーザーに実行してもらってから使う（実行し忘れると、その API が 500 になる。`dbCode` が `42P01` ならテーブルがない）
 - 招待リンクは `vercel.json` の rewrite で index.html を返し、`main.tsx` の `takeInviteFromUrl` でコードを取り出してアドレスを `/` に戻す。`InviteSheet` は Clerk を使うので、招待から開いたときだけ読み込む
 - 進み具合は `ProgressSync`（Clerk を使うので必要なときだけ読み込む）が、変わったら2秒まとめて `/api/progress` に送る。送るのは日付と数だけ。見せるのをやめるとサーバーの分も消す

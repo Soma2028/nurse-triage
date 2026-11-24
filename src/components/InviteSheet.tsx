@@ -81,6 +81,7 @@ const RELATION_TEXT: Record<string, string> = {
 }
 
 const ERROR_TEXT: Record<string, string> = {
+  rate_limited: '続けて何回も試したので、少し時間をおいてから開いてね。',
   not_found: '招待が見つからなかったよ。コードが作り直されたのかも。',
   self: '自分の招待リンクだよ。友だちに送ってね。',
 }

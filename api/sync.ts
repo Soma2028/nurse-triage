@@ -3,5 +3,5 @@ import { sync } from './_lib/handlers.js'
 import { handle } from './_lib/http.js'
 
 export function POST(request: Request) {
-  return handle(request, sync)
+  return handle(request, sync, 'sync')
 }

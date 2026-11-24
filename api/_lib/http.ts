@@ -8,6 +8,7 @@ import { bearerToken, clerkIdentity } from './identity.js'
 import { neonSocialDb } from './socialDb.js'
 import type { Deps, Result } from './handlers.js'
 import { webPushSender } from './push.js'
+import { RATE_LIMITED, allowed, clientIp, neonRateLimiter, type LimitName } from './rateLimit.js'
 
 /** 受け取る JSON の大きさの上限（課題200件でも余裕がある大きさ） */
 const MAX_BODY_BYTES = 200_000
@@ -20,6 +21,7 @@ export function getDeps(): Deps {
     const env = readEnv()
     deps = {
       db: neonDb(env.DATABASE_URL),
+      limiter: neonRateLimiter(env.DATABASE_URL),
       sendPush: webPushSender({
         subject: env.VAPID_SUBJECT,
         publicKey: env.VAPID_PUBLIC_KEY,
@@ -38,6 +40,8 @@ export function json(status: number, body: Record<string, unknown>): Response {
 export async function handle(
   request: Request,
   run: (input: unknown, deps: Deps) => Promise<Result>,
+  /** 接続元ごとに数える回数制限（ログインのない通知の API 用） */
+  limit?: LimitName,
 ): Promise<Response> {
   const text = await request.text()
   if (new TextEncoder().encode(text).length > MAX_BODY_BYTES) {
@@ -51,7 +55,11 @@ export async function handle(
   }
 
   try {
-    const result = await run(input, getDeps())
+    const deps = getDeps()
+    if (limit && !(await allowed(deps.limiter, limit, `ip:${clientIp(request.headers)}`))) {
+      return json(RATE_LIMITED.status, RATE_LIMITED.body)
+    }
+    const result = await run(input, deps)
     return json(result.status, result.body)
   } catch (e) {
     if (e instanceof MissingEnvError) {
@@ -72,6 +80,7 @@ function getSocialDeps(): SocialDeps {
     socialDeps = {
       db: neonSocialDb(env.DATABASE_URL),
       identity: clerkIdentity(env.CLERK_SECRET_KEY),
+      limiter: neonRateLimiter(env.DATABASE_URL),
       sendPush:
         VAPID_SUBJECT && VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY
           ? webPushSender({

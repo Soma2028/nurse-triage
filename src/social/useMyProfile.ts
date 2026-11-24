@@ -58,7 +58,7 @@ const subscribe = (l: () => void) => {
 }
 const getState = () => state
 
-export type SaveResult = 'ok' | 'invalid' | 'failed'
+export type SaveResult = 'ok' | 'invalid' | 'limited' | 'failed'
 
 export function useMyProfile() {
   const { isLoaded, isSignedIn, userId, getToken } = useAuth()
@@ -98,7 +98,7 @@ export function useMyProfile() {
         set({ userId, status: 'ready', profile: r.data.profile })
         return 'ok'
       }
-      return r.status === 400 ? 'invalid' : 'failed'
+      return r.status === 400 ? 'invalid' : r.status === 429 ? 'limited' : 'failed'
     },
     [userId],
   )

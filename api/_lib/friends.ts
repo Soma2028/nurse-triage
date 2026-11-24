@@ -6,6 +6,7 @@
 import { z } from 'zod'
 import { UNAUTHORIZED, type SocialDeps } from './account.js'
 import type { Result } from './handlers.js'
+import { RATE_LIMITED, allowed } from './rateLimit.js'
 import { FRIEND_CODE_LENGTH, newFriendCode } from './profile.js'
 import { fromJst, toJst } from './schedule.js'
 import { STAMPS, type SocialDb, type Stamp } from './socialDb.js'
@@ -77,13 +78,16 @@ export async function getFriends(
 export async function postFriends(
   token: string | null,
   input: unknown,
-  { db, identity, sendPush }: SocialDeps,
+  { db, identity, sendPush, limiter }: SocialDeps,
   now: number = Date.now(),
 ): Promise<Result> {
   const me = token ? await identity.verify(token) : null
   if (!me) return UNAUTHORIZED
   const parsed = friendActionSchema.safeParse(input)
   if (!parsed.success) return fail(400, 'invalid input')
+  // コードを使う操作は、総当たりで探されないよう少なめに数える
+  const usesCode = parsed.data.action === 'request' || parsed.data.action === 'lookup'
+  if (!(await allowed(limiter, usesCode ? 'code' : 'friends', me))) return RATE_LIMITED
   const profile = await db.getProfile(me)
   if (!profile) return fail(409, 'no_profile')
   let friendCode = profile.friendCode

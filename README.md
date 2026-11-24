@@ -250,6 +250,27 @@ flowchart TB
 3. **テーブル**：Neon の SQL Editor で [migrations/002_social.sql](migrations/002_social.sql) と [migrations/003_blocks.sql](migrations/003_blocks.sql) を1回ずつ実行する
 4. 応援を通知で届けるには、通知の環境変数（VAPID）も入っている必要がある
 
+## セキュリティ
+
+- **ヘッダー**（`vercel.json`）：Content-Security-Policy で読み込み先を自分と Clerk・Cloudflare のロボット対策だけにしぼり、ほかのサイトの枠への埋め込みを禁止（`frame-ancestors 'none'`・`X-Frame-Options: DENY`）。ほかに `X-Content-Type-Options`・`Referrer-Policy`・`Permissions-Policy`・`Cross-Origin-Opener-Policy`
+- **回数制限**（`api/_lib/rateLimit.ts`、テーブルは [migrations/004_rate_limits.sql](migrations/004_rate_limits.sql)）：上限を超えると 429
+
+  | 操作                                           | 上限（1時間）           |
+  | ---------------------------------------------- | ----------------------- |
+  | フレンドコードを使う操作（申請・招待を調べる） | 1人20回（総当たり対策） |
+  | そのほかのフレンドの操作                       | 1人120回                |
+  | プロフィールの保存                             | 1人30回                 |
+  | 今日の進み具合                                 | 1人300回                |
+  | 通知の端末にログインを付ける・外す             | 1人30回                 |
+  | 通知の登録                                     | 接続元ごとに20回        |
+  | 課題の同期                                     | 接続元ごとに600回       |
+
+  数えられないとき（テーブルがない・DB の不調）は、アプリを止めないよう通す。古い記録は cron（15分ごと）で消す
+
+- **ログイン**：本番では、公開版のアドレスで作られた Clerk のトークンだけを受け付ける（localhost・プレビューは受け付けない）
+- **秘密の値**：端末の secret はサーバーに SHA-256 だけ置き、比べるときは時間で中身がわからない方法で比べる。環境変数の値はリポジトリに入れない
+- **使わない入口は置かない**：テスト通知の `/api/test` は消した
+
 ## 起動方法
 
 Node.js 22.12 以上が必要です。
@@ -309,7 +330,8 @@ api/
 migrations/001_init.sql     通知のテーブル
 migrations/002_social.sql   ログイン・プロフィール・フレンド・進み具合・応援のテーブル
 migrations/003_blocks.sql   ブロックのテーブル
-vercel.json                 招待リンク（/f/コード）で index.html を返す
+migrations/004_rate_limits.sql   API の回数制限のテーブル
+vercel.json                 招待リンク（/f/コード）で index.html を返す・セキュリティのヘッダー
 public/sw.js                通知を受け取る service worker（キャッシュはしない）
 ```
 

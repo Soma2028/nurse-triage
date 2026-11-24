@@ -5,6 +5,7 @@ import { randomInt } from 'node:crypto'
 import { z } from 'zod'
 import { UNAUTHORIZED, type SocialDeps } from './account.js'
 import type { Result } from './handlers.js'
+import { RATE_LIMITED, allowed } from './rateLimit.js'
 
 /** 選べるアイコン。src/social/profile.ts の PROFILE_ICONS と同じ */
 export const PROFILE_ICONS = [
@@ -83,10 +84,11 @@ export async function getProfile(
 export async function putProfile(
   token: string | null,
   input: unknown,
-  { db, identity }: SocialDeps,
+  { db, identity, limiter }: SocialDeps,
 ): Promise<Result> {
   const userId = token ? await identity.verify(token) : null
   if (!userId) return UNAUTHORIZED
+  if (!(await allowed(limiter, 'profile', userId))) return RATE_LIMITED
   const parsed = profileSchema.safeParse(input)
   if (!parsed.success) {
     return {

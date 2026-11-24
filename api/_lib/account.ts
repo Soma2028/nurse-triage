@@ -3,6 +3,7 @@
  */
 import type { Identity } from './identity.js'
 import type { SendPush } from './push.js'
+import type { RateLimiter } from './rateLimit.js'
 import type { Result } from './handlers.js'
 import type { SocialDb } from './socialDb.js'
 
@@ -11,6 +12,8 @@ export interface SocialDeps {
   identity: Identity
   /** 応援を通知で届ける。VAPID の鍵がなければ無し（応援はアプリの中にだけ出る） */
   sendPush?: SendPush
+  /** API の回数制限（なければ数えない） */
+  limiter?: RateLimiter
 }
 
 export const UNAUTHORIZED: Result = { status: 401, body: { error: 'unauthorized' } }

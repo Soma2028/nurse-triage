@@ -6,12 +6,15 @@ import type { z } from 'zod'
 import { hashSecret, secretMatches } from './auth.js'
 import type { Db, Device } from './db.js'
 import type { SendPush } from './push.js'
+import type { RateLimiter } from './rateLimit.js'
 import type { Reminder } from './schedule.js'
 import { subscribeSchema, syncSchema, unsubscribeSchema } from './validate.js'
 
 export interface Deps {
   db: Db
   sendPush: SendPush
+  /** API の回数制限（なければ数えない） */
+  limiter?: RateLimiter
 }
 
 export interface Result {

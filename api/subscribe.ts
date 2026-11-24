@@ -3,7 +3,7 @@ import { subscribe, unsubscribe } from './_lib/handlers.js'
 import { handle } from './_lib/http.js'
 
 export function POST(request: Request) {
-  return handle(request, subscribe)
+  return handle(request, subscribe, 'subscribe')
 }
 
 export function DELETE(request: Request) {

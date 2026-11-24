@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { UNAUTHORIZED, type SocialDeps } from './account.js'
 import { secretMatches } from './auth.js'
 import type { Result } from './handlers.js'
+import { RATE_LIMITED, allowed } from './rateLimit.js'
 
 export const deviceSchema = z.strictObject({
   deviceId: z.uuid(),
@@ -17,10 +18,11 @@ type Checked = { ok: false; result: Result } | { ok: true; me: string; deviceId:
 async function check(
   token: string | null,
   input: unknown,
-  { db, identity }: SocialDeps,
+  { db, identity, limiter }: SocialDeps,
 ): Promise<Checked> {
   const me = token ? await identity.verify(token) : null
   if (!me) return { ok: false, result: UNAUTHORIZED }
+  if (!(await allowed(limiter, 'device', me))) return { ok: false, result: RATE_LIMITED }
   const parsed = deviceSchema.safeParse(input)
   if (!parsed.success)
     return { ok: false, result: { status: 400, body: { error: 'invalid input' } } }

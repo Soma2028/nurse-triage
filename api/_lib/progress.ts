@@ -5,6 +5,7 @@
 import { z } from 'zod'
 import { UNAUTHORIZED, type SocialDeps } from './account.js'
 import type { Result } from './handlers.js'
+import { RATE_LIMITED, allowed } from './rateLimit.js'
 
 const count = z.number().int().min(0).max(999)
 
@@ -22,10 +23,11 @@ const fail = (status: number, error: string): Result => ({ status, body: { error
 export async function putProgress(
   token: string | null,
   input: unknown,
-  { db, identity }: SocialDeps,
+  { db, identity, limiter }: SocialDeps,
 ): Promise<Result> {
   const me = token ? await identity.verify(token) : null
   if (!me) return UNAUTHORIZED
+  if (!(await allowed(limiter, 'progress', me))) return RATE_LIMITED
   const parsed = progressSchema.safeParse(input)
   if (!parsed.success) return fail(400, 'invalid input')
   const profile = await db.getProfile(me)
@@ -39,10 +41,11 @@ export async function putProgress(
 export async function patchShare(
   token: string | null,
   input: unknown,
-  { db, identity }: SocialDeps,
+  { db, identity, limiter }: SocialDeps,
 ): Promise<Result> {
   const me = token ? await identity.verify(token) : null
   if (!me) return UNAUTHORIZED
+  if (!(await allowed(limiter, 'progress', me))) return RATE_LIMITED
   const parsed = shareSchema.safeParse(input)
   if (!parsed.success) return fail(400, 'invalid input')
   if (!(await db.getProfile(me))) return fail(409, 'no_profile')
