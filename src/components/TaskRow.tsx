@@ -1,4 +1,3 @@
-import { ChevronRight } from 'lucide-react'
 import { TRIAGE_STYLE } from '../constants'
 import type { Analysed } from '../types'
 import { formatDue, formatHours, formatRemaining } from '../utils/format'
@@ -34,7 +33,8 @@ export function Reason({ a }: { a: Analysed }) {
 
 /**
  * トリアージのタッグ（小さな色の四角に順位）。色を持つのはここだけ。
- * 色だけに頼らないよう、言葉（「今すぐ」など）はとなりの行に文字で出す
+ * 色だけに頼らないよう、言葉（「今すぐ」など）はとなりの行に文字で出す。
+ * sm は、課題名の上に置く小さな札（順位ではなく「赤」などの名前）
  */
 export function TagChip({
   a,
@@ -43,9 +43,19 @@ export function TagChip({
 }: {
   a: Analysed
   rank: number
-  size?: 'md' | 'lg'
+  size?: 'sm' | 'md' | 'lg'
 }) {
   const style = TRIAGE_STYLE[a.triage]
+  if (size === 'sm') {
+    return (
+      <span
+        aria-hidden
+        className={`inline-flex h-5 shrink-0 items-center rounded-md px-2 text-xs font-black ${style.tag}`}
+      >
+        {style.name}
+      </span>
+    )
+  }
   return (
     <span
       aria-hidden
@@ -58,12 +68,31 @@ export function TagChip({
   )
 }
 
-/** 「今すぐ ・ 11/25(水) 8:30 ・ あと10時間」 */
+/** 「今すぐ ・ あと10時間 ・ 11/25(水) 8:30」。狭いときは後ろの締切の日時から切れる */
 export function TaskMeta({ a }: { a: Analysed }) {
   return (
     <>
-      {a.label} ・ {formatDue(a.task.due)} ・ <b className="text-ink">{formatRemaining(a.ms)}</b>
+      {a.label} ・ <b className="text-ink">{formatRemaining(a.ms)}</b> ・ {formatDue(a.task.due)}
     </>
+  )
+}
+
+/** 課題の進み具合のバー。色はその課題のタッグの色 */
+export function ProgressBar({ a, label = '進捗' }: { a: Analysed; label?: string }) {
+  return (
+    <div
+      className="h-2 overflow-hidden rounded-full bg-line"
+      role="progressbar"
+      aria-label={label}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={a.task.progress}
+    >
+      <div
+        className={`h-full rounded-full ${TRIAGE_STYLE[a.triage].bar}`}
+        style={{ width: `${a.task.progress}%` }}
+      />
+    </div>
   )
 }
 
@@ -83,7 +112,10 @@ export function TaskRow({ a, rank, onOpen }: { a: Analysed; rank: number; onOpen
           <TaskMeta a={a} />
         </span>
       </span>
-      <ChevronRight aria-hidden className="size-4 shrink-0 text-ink-muted" />
+      {/* 進み具合。行全体が押せるので「›」は置かず、そのぶん課題名と締切に幅を回す */}
+      <span className="shrink-0 text-sm font-bold text-ink-muted tabular-nums">
+        {a.task.progress}%<span className="sr-only">進んだ</span>
+      </span>
     </button>
   )
 }

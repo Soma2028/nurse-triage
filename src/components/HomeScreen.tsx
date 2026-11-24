@@ -1,18 +1,18 @@
 import { motion } from 'framer-motion'
 import { useState } from 'react'
-import { TRIAGE_STYLE } from '../constants'
 import type { HomeView } from '../logic/home'
 import { enter } from '../motion'
 import type { Analysed, Plan } from '../types'
 import { formatHours } from '../utils/format'
-import { Chara } from './Chara'
+import { Chara, type Mood } from './Chara'
 import { OverloadWarning } from './OverloadWarning'
 import { ScreenLayout } from './ScreenLayout'
 import { Check } from 'lucide-react'
 import { PROGRESS_STEP } from '../store/reducer'
 import { Group } from './Group'
 import { TaskDetailSheet } from './TaskDetailSheet'
-import { Reason, TagChip, TaskMeta, TaskRow } from './TaskRow'
+import { ProgressBar, Reason, TagChip, TaskMeta, TaskRow } from './TaskRow'
+import { todayProgress, type TodayProgress } from '../logic/today'
 import { TodayPlan } from './TodayPlan'
 
 interface Props {
@@ -27,6 +27,8 @@ interface Props {
   /** 締切過ぎ（黒）の件数。赤には含めない */
   blackCount: number
   shortage: Analysed | undefined
+  /** 今日進めた時間 */
+  worked: number
   onAdvance: (id: string) => void
   onComplete: (id: string) => void
   onEdit: (id: string) => void
@@ -35,7 +37,8 @@ interface Props {
 }
 
 /**
- * 「つぎにやる」の1件。上を押すとくわしいシート、下の2つのボタンでその場で進められる
+ * 「つぎにやる」の1件。上を押すとくわしいシート、下の2つのボタンでその場で進められる。
+ * 主役は課題名と進み具合のバー（タッグは課題名の上の小さな札）
  */
 function NextCard({
   a,
@@ -51,24 +54,32 @@ function NextCard({
   onAdvance: () => void
 }) {
   return (
-    <div className="ui-card flex flex-col gap-3 p-4">
+    <div className="ui-card flex flex-col gap-4 p-4">
       <button
         type="button"
         onClick={onOpen}
-        className="flex items-start gap-3 text-left"
+        className="flex flex-col gap-2 text-left"
         aria-label={`${rank}番目「${a.label}」 ${a.task.title}のくわしいこと`}
       >
-        <TagChip a={a} rank={rank} size="lg" />
-        <span className="min-w-0 flex-1">
-          <span className="block text-base font-bold break-words text-ink">{a.task.title}</span>
-          <span className="block text-xs text-ink-muted">
+        <span className="flex min-w-0 items-center gap-2 text-xs text-ink-muted">
+          <TagChip a={a} rank={rank} size="sm" />
+          <span className="truncate">
             <TaskMeta a={a} />
           </span>
         </span>
+        <span className="text-title font-bold break-words text-ink">{a.task.title}</span>
+        <span className="flex w-full items-center gap-3">
+          <span className="block min-w-0 flex-1">
+            <ProgressBar a={a} />
+          </span>
+          <span className="shrink-0 text-base font-bold text-ink tabular-nums">
+            {a.task.progress}%
+          </span>
+        </span>
+        <span className="text-sm leading-6 text-ink-muted">
+          <Reason a={a} />
+        </span>
       </button>
-      <p className="text-sm leading-6 text-ink-muted">
-        <Reason a={a} />
-      </p>
       <div className="flex gap-2">
         <button
           type="button"
@@ -91,37 +102,59 @@ function NextCard({
   )
 }
 
-/** 見出しの下の1行：締切過ぎ・赤の件数（0件は出さない）と、今日使える時間 */
-function Summary({
-  blackCount,
-  redCount,
+/**
+ * いちばん上：キャラクターと「今日のぶん」。カードにせず、背景の上にそのまま置く。
+ * キャラクターの顔は、今日のぶんが終わったら笑顔、急ぎ（黒・赤）があれば心配顔
+ */
+function TodayHeader({
+  progress,
   hours,
+  urgent,
 }: {
-  blackCount: number
-  redCount: number
+  progress: TodayProgress
   hours: number
+  urgent: boolean
 }) {
+  const { worked, target, ratio } = progress
+  const finished = target > 0 && ratio >= 1
+  const mood: Mood = finished ? 'happy' : urgent ? 'worry' : 'normal'
+  const showBar = hours > 0 && target > 0
+  let line: string
+  if (hours === 0) line = worked > 0 ? '休みの日なのに、えらいね。' : '今日は休みの日だよ。'
+  else if (finished) line = '今日のぶんは終わったよ。おつかれさま。'
+  else if (worked === 0) line = '「つぎにやる」から始めよう。'
+  else line = `あと${formatHours(target - worked)}だよ。`
+
   return (
-    <p
-      className="flex items-center gap-4 overflow-hidden text-sm whitespace-nowrap text-ink-muted"
-      aria-label="まとめ"
-    >
-      {blackCount > 0 && (
-        <span className="inline-flex items-center gap-1">
-          <span aria-hidden className={`size-2 rounded-full ${TRIAGE_STYLE.black.dot}`} />
-          締切過ぎ <b className="text-ink tabular-nums">{blackCount}</b>
-        </span>
-      )}
-      {redCount > 0 && (
-        <span className="inline-flex items-center gap-1">
-          <span aria-hidden className={`size-2 rounded-full ${TRIAGE_STYLE.red.dot}`} />赤{' '}
-          <b className="text-ink tabular-nums">{redCount}</b>
-        </span>
-      )}
-      <span>
-        今日 <b className="text-ink tabular-nums">{formatHours(hours)}</b>
-      </span>
-    </p>
+    <section aria-label="今日のぶん" className="flex items-center gap-4 px-2">
+      <Chara mood={mood} size={64} />
+      <div className="min-w-0 flex-1">
+        {showBar && (
+          <>
+            <p className="flex items-baseline justify-between gap-2 text-sm text-ink-muted">
+              <span className="font-bold text-ink">今日のぶん</span>
+              <span className="tabular-nums">
+                <b className="text-base text-ink">{formatHours(worked)}</b> / {formatHours(target)}
+              </span>
+            </p>
+            <div
+              className="mt-2 h-2 overflow-hidden rounded-full bg-line"
+              role="progressbar"
+              aria-label="今日のぶんの進み具合"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(ratio * 100)}
+            >
+              <div
+                className="h-full rounded-full bg-ink transition-[width] duration-300 ease-out"
+                style={{ width: `${ratio * 100}%` }}
+              />
+            </div>
+          </>
+        )}
+        <p className={`text-sm text-ink ${showBar ? 'mt-2' : ''}`}>{line}</p>
+      </div>
+    </section>
   )
 }
 
@@ -153,6 +186,7 @@ export function HomeScreen({
   redCount,
   blackCount,
   shortage,
+  worked,
   onAdvance,
   onComplete,
   onEdit,
@@ -164,13 +198,16 @@ export function HomeScreen({
   const { next, urgent } = view
 
   return (
-    <ScreenLayout
-      title={date}
-      note={dayNote}
-      sub={<Summary blackCount={blackCount} redCount={redCount} hours={plan.hours} />}
-      onAdd={onAdd}
-    >
+    <ScreenLayout title={date} note={dayNote} onAdd={onAdd}>
       <div className="flex flex-col gap-4">
+        {analysed.length > 0 && (
+          <TodayHeader
+            progress={todayProgress(worked, plan)}
+            hours={plan.hours}
+            urgent={redCount + blackCount > 0}
+          />
+        )}
+
         <OverloadWarning a={shortage} />
 
         {analysed.length === 0 ? (
@@ -195,9 +232,7 @@ export function HomeScreen({
               onComplete={() => onComplete(next.task.id)}
             />
           </motion.section>
-        ) : (
-          <Empty mood="normal" lines={['急ぎの課題はないよ。', '今日のプランを進めよう。']} />
-        )}
+        ) : null}
 
         {analysed.length > 0 && (
           <motion.div {...enter(0.08)}>

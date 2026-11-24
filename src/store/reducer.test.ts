@@ -28,7 +28,7 @@ describe('reducer', () => {
   it('add / update', () => {
     let s = reducer(base(), { type: 'add', task: t('c') })
     expect(s.tasks.map((x) => x.id)).toEqual(['a', 'b', 'c'])
-    s = reducer(s, { type: 'update', task: { ...t('c'), title: '変更' } })
+    s = reducer(s, { type: 'update', task: { ...t('c'), title: '変更' }, now: NOW })
     expect(s.tasks[2].title).toBe('変更')
   })
 
@@ -62,7 +62,7 @@ describe('reducer', () => {
 
   it('「戻す」で未完了に戻る（doneAt を外す。100%なら90%に）', () => {
     let s = reducer(base(), { type: 'advance', id: 'b', now: NOW })
-    s = reducer(s, { type: 'restore', id: 'b' })
+    s = reducer(s, { type: 'restore', id: 'b', now: NOW })
     const b = s.tasks.find((x) => x.id === 'b')!
     expect(b.doneAt).toBeUndefined()
     expect('doneAt' in b).toBe(false)
@@ -152,6 +152,29 @@ describe('reducer: 実習スケジュール', () => {
     expect(s.tasks.map((x) => x.id)).toEqual(['a', 'b'])
     expect(s.schedule).toEqual({ '2026-11-24': 'off' })
     expect(s.settings.hoursNormal).toBe(6)
+  })
+
+  it('進めた分を今日のぶんに数える（+25%・完了・編集）', () => {
+    let s = reducer(base(), { type: 'advance', id: 'a', now: NOW }) // 2h の 25%
+    expect(s.today).toEqual({ day: '2026-11-23', hours: 0.5 })
+    s = reducer(s, { type: 'complete', id: 'b', now: NOW }) // 2h の残り 20%
+    expect(s.today?.hours).toBe(0.9)
+    s = reducer(s, { type: 'update', task: { ...t('a'), progress: 100 }, now: NOW }) // 75% → 100%
+    expect(s.today?.hours).toBe(1.4)
+  })
+
+  it('完了を元に戻すと、今日のぶんも戻る', () => {
+    let s = reducer(base(), { type: 'complete', id: 'a', now: NOW })
+    expect(s.today?.hours).toBe(1)
+    s = reducer(s, { type: 'undo' })
+    expect(s.today).toBeUndefined()
+  })
+
+  it('今日完了にした課題を「戻す」と、完了で数えた分を引く', () => {
+    let s = reducer(base(), { type: 'complete', id: 'a', now: NOW })
+    s = reducer(s, { type: 'dismissUndo' })
+    s = reducer(s, { type: 'restore', id: 'a', now: NOW })
+    expect(s.today?.hours).toBe(0)
   })
 
   it('起動時に60日より前の印を消す', () => {

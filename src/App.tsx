@@ -27,6 +27,7 @@ import { useStore } from './store/context'
 import { useNotifySync } from './sync/useNotifySync'
 import type { Task } from './types'
 import { formatDay } from './utils/format'
+import { workedToday } from './logic/today'
 
 // 招待のシートは Clerk を使うので、招待リンクから開いたときだけ読み込む
 const InviteSheet = lazy(() =>
@@ -102,7 +103,7 @@ export default function App() {
   const closeSheet = useCallback(() => setSheet({ open: false }), [])
 
   const submit = (task: Task) => {
-    dispatch(editing ? { type: 'update', task } : { type: 'add', task })
+    dispatch(editing ? { type: 'update', task, now: Date.now() } : { type: 'add', task })
     closeSheet()
   }
 
@@ -137,6 +138,7 @@ export default function App() {
                 redCount={counts.red}
                 blackCount={counts.black}
                 shortage={shortage}
+                worked={workedToday(state.today, now)}
                 onAdvance={advance}
                 onComplete={complete}
                 onEdit={openEdit}
@@ -154,7 +156,7 @@ export default function App() {
                 onComplete={complete}
                 onEdit={openEdit}
                 onRemove={(id) => dispatch({ type: 'remove', id, now: Date.now() })}
-                onRestore={(id) => dispatch({ type: 'restore', id })}
+                onRestore={(id) => dispatch({ type: 'restore', id, now: Date.now() })}
               />
             )}
             {screen === 'schedule' && (

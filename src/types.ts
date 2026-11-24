@@ -14,6 +14,12 @@ export interface Task {
   doneAt?: number // 完了日時
 }
 
+/** 今日進めた時間の記録（日付が変わったら数え直す） */
+export interface DayLog {
+  day: string // YYYY-MM-DD（ローカル時刻）
+  hours: number
+}
+
 export interface Settings {
   practiceMode: boolean // 実習期間中か（スケジュールに今日以降の印がないときに使う）
   hoursPractice: number // 実習中の1日の作業時間

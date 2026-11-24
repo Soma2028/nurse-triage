@@ -34,6 +34,7 @@ const data: Persisted = {
     practiceOverride: { date: '2026-11-23', on: false },
   },
   schedule: { '2026-11-24': 'practice', '2026-11-25': 'off' },
+  today: { day: '2026-11-24', hours: 1.5 },
 }
 
 describe('storage', () => {
@@ -52,6 +53,7 @@ describe('storage', () => {
       'done',
       'settings',
       'schedule',
+      'today',
     ])
   })
 
@@ -97,6 +99,12 @@ describe('storage', () => {
     const r = load(memoryStorage({ [STORAGE_KEY]: raw }))!
     expect(r.schedule).toEqual({ '2026-11-24': 'practice', '2026-11-26': 'test' })
     expect(r.settings.practiceOverride).toBeUndefined()
+  })
+
+  it('今日のぶんの記録がおかしければ捨てる', () => {
+    const raw = { ...data, today: { day: 'きのう', hours: -1 } }
+    const st = memoryStorage({ [STORAGE_KEY]: JSON.stringify(raw) })
+    expect(load(st)?.today).toBeUndefined()
   })
 
   it('getItem / setItem が例外を投げてもアプリは止まらない', () => {

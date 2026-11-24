@@ -1,6 +1,6 @@
 import { DEFAULT_SETTINGS, TASK_TYPES } from '../constants'
 import { isDayKey } from '../logic/schedule'
-import type { DayKind, Schedule, Settings, Task } from '../types'
+import type { DayKind, DayLog, Schedule, Settings, Task } from '../types'
 
 export const STORAGE_KEY = 'nurse-triage-v1'
 
@@ -10,6 +10,8 @@ export interface Persisted {
   done: Task[]
   settings: Settings
   schedule: Schedule
+  /** 今日進めた時間（後から追加。古いデータには無い） */
+  today?: DayLog
 }
 
 type StorageLike = Pick<Storage, 'getItem' | 'setItem'>
@@ -80,6 +82,14 @@ function toSchedule(v: unknown): Schedule {
   ) as Schedule
 }
 
+function toDayLog(v: unknown): DayLog | undefined {
+  const l = v as Record<string, unknown> | null
+  if (!l || typeof l !== 'object') return undefined
+  if (typeof l.day !== 'string' || !isDayKey(l.day) || !isNum(l.hours) || l.hours < 0)
+    return undefined
+  return { day: l.day, hours: l.hours }
+}
+
 /** 保存データを読む。ない・壊れている・読めないときは null */
 export function load(storage: StorageLike | undefined = defaultStorage()): Persisted | null {
   try {
@@ -93,6 +103,7 @@ export function load(storage: StorageLike | undefined = defaultStorage()): Persi
       done: toTasks(d.done),
       settings: toSettings(d.settings),
       schedule: toSchedule(d.schedule),
+      today: toDayLog(d.today),
     }
   } catch {
     return null
@@ -106,8 +117,8 @@ export function save(
 ): boolean {
   try {
     if (!storage) return false
-    const { tasks, done, settings, schedule } = data
-    storage.setItem(STORAGE_KEY, JSON.stringify({ tasks, done, settings, schedule }))
+    const { tasks, done, settings, schedule, today } = data
+    storage.setItem(STORAGE_KEY, JSON.stringify({ tasks, done, settings, schedule, today }))
     return true
   } catch {
     return false

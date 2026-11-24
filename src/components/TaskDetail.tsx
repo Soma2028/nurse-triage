@@ -1,9 +1,9 @@
 import { Check, Pencil, Trash2 } from 'lucide-react'
-import { IMPORTANCE_LABEL, TASK_TYPES, TRIAGE_STYLE } from '../constants'
+import { IMPORTANCE_LABEL, TASK_TYPES } from '../constants'
 import { PROGRESS_STEP } from '../store/reducer'
 import type { Analysed } from '../types'
 import { Group, Row } from './Group'
-import { Reason, TagChip, TaskMeta } from './TaskRow'
+import { ProgressBar, Reason, TagChip, TaskMeta } from './TaskRow'
 
 const primaryBtn =
   'inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-primary text-base font-bold text-on-primary transition hover:bg-primary-strong'
@@ -51,19 +51,7 @@ export function TaskDetail({
             進捗
             <span className="font-bold tabular-nums">{task.progress}%</span>
           </div>
-          <div
-            className="h-2 overflow-hidden rounded-full bg-line"
-            role="progressbar"
-            aria-label="進捗"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={task.progress}
-          >
-            <div
-              className={`h-full rounded-full ${TRIAGE_STYLE[triage].bar}`}
-              style={{ width: `${task.progress}%` }}
-            />
-          </div>
+          <ProgressBar a={a} />
         </div>
       </Group>
 

@@ -48,9 +48,12 @@ export function TodayPlan({ plan, className = '' }: Props) {
                   className={`size-2 shrink-0 rounded-full ${TRIAGE_STYLE[i.triage].dot}`}
                 />
                 <span className="w-10 shrink-0 font-bold tabular-nums">{formatHours(i.hours)}</span>
-                <span className="min-w-0 truncate">
+                <span className="min-w-0 flex-1 truncate">
                   {i.task.title}
                   <span className="sr-only">（{TRIAGE_STYLE[i.triage].name}）</span>
+                </span>
+                <span className="shrink-0 text-ink-muted tabular-nums">
+                  {i.task.progress}%<span className="sr-only">進んだ</span>
                 </span>
               </li>
             ))}
