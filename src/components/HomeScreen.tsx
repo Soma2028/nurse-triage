@@ -7,11 +7,12 @@ import { Chara, type Mood } from './Chara'
 import { OverloadWarning } from './OverloadWarning'
 import { ScreenLayout } from './ScreenLayout'
 import { Check } from 'lucide-react'
+import { PROGRESS_STEP } from '../constants'
 import { Group } from './Group'
 import { PageStack } from './PageStack'
 import { TaskDetailPage } from './TaskDetailPage'
 import { usePageNav } from './pageNav'
-import { ProgressSlider, Reason, TagChip, TaskMeta, TaskRow } from './TaskRow'
+import { ProgressBar, Reason, TagChip, TaskMeta, TaskRow } from './TaskRow'
 import { todayProgress, type TodayProgress } from '../logic/today'
 import { TodayPlan } from './TodayPlan'
 
@@ -38,24 +39,24 @@ interface Props {
 }
 
 /**
- * 「つぎにやる」の1件。上を押すとくわしいページ。進み具合はスライダーで、その場で動かせる。
- * 主役は課題名と進み具合（タッグは課題名の上の小さな札）
+ * 「つぎにやる」の1件。上を押すとくわしいページ、下の2つのボタンでその場で進められる。
+ * 主役は課題名と進み具合のバー（タッグは課題名の上の小さな札）
  */
 function NextCard({
   a,
   rank,
   onOpen,
   onComplete,
-  onSetProgress,
+  onAdvance,
 }: {
   a: Analysed
   rank: number
   onOpen: () => void
   onComplete: () => void
-  onSetProgress: (progress: number) => void
+  onAdvance: () => void
 }) {
   return (
-    <div className="ui-card flex flex-col gap-2 p-4">
+    <div className="ui-card flex flex-col gap-4 p-4">
       <button
         type="button"
         onClick={onOpen}
@@ -69,19 +70,36 @@ function NextCard({
           </span>
         </span>
         <span className="text-title font-bold break-words text-ink">{a.task.title}</span>
+        <span className="flex w-full items-center gap-3">
+          <span className="block min-w-0 flex-1">
+            <ProgressBar a={a} />
+          </span>
+          <span className="shrink-0 text-base font-bold text-ink tabular-nums">
+            {a.task.progress}%
+          </span>
+        </span>
         <span className="text-sm leading-6 text-ink-muted">
           <Reason a={a} />
         </span>
       </button>
-      <ProgressSlider key={a.task.id} a={a} onCommit={onSetProgress} />
-      <button
-        type="button"
-        onClick={onComplete}
-        className="mt-2 inline-flex min-h-11 items-center justify-center gap-1 rounded-full bg-primary text-sm font-bold text-on-primary transition hover:bg-primary-strong"
-      >
-        <Check aria-hidden className="size-4" strokeWidth={2.5} />
-        完了
-      </button>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={onComplete}
+          className="inline-flex min-h-11 flex-1 items-center justify-center gap-1 rounded-full bg-primary text-sm font-bold text-on-primary transition hover:bg-primary-strong"
+        >
+          <Check aria-hidden className="size-4" strokeWidth={2.5} />
+          完了
+        </button>
+        <button
+          type="button"
+          onClick={onAdvance}
+          aria-label={`進捗を${PROGRESS_STEP}%進める`}
+          className="inline-flex min-h-11 flex-1 items-center justify-center rounded-full border border-line bg-surface text-sm font-bold text-ink transition hover:bg-paper"
+        >
+          +{PROGRESS_STEP}%
+        </button>
+      </div>
     </div>
   )
 }
@@ -225,7 +243,9 @@ export function HomeScreen({
                   a={next}
                   rank={analysed.indexOf(next) + 1}
                   onOpen={() => setOpenId(next.task.id)}
-                  onSetProgress={(v) => onSetProgress(next.task.id, v)}
+                  onAdvance={() =>
+                    onSetProgress(next.task.id, Math.min(100, next.task.progress + PROGRESS_STEP))
+                  }
                   onComplete={() => onComplete(next.task.id)}
                 />
               </motion.section>

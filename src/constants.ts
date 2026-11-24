@@ -61,3 +61,6 @@ export const TRIAGE_STYLE: Record<Triage, { tag: string; bar: string; dot: strin
     },
     green: { tag: 'bg-tag-green text-white', bar: 'bg-tag-green', dot: 'bg-tag-green', name: '緑' },
   }
+
+/** ホームのつぎにやるの「+25%」で進める割合（%） */
+export const PROGRESS_STEP = 25

@@ -128,6 +128,25 @@ export function ProgressSlider({
   )
 }
 
+/** 課題の進み具合のバー。色はその課題のタッグの色 */
+export function ProgressBar({ a, label = '進捗' }: { a: Analysed; label?: string }) {
+  return (
+    <div
+      className="h-2 overflow-hidden rounded-full bg-line"
+      role="progressbar"
+      aria-label={label}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={a.task.progress}
+    >
+      <div
+        className={`h-full rounded-full ${TRIAGE_STYLE[a.triage].bar}`}
+        style={{ width: `${a.task.progress}%` }}
+      />
+    </div>
+  )
+}
+
 /** 課題の1行（白い面の一覧の中に並べる）。押すと、くわしいことと操作のページを開く */
 export function TaskRow({ a, rank, onOpen }: { a: Analysed; rank: number; onOpen: () => void }) {
   return (

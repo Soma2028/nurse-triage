@@ -5,14 +5,14 @@ import { addDays, dayKey, weekday } from './schedule'
 const MAX_RUN_DAYS = 400
 
 /**
- * 月のマス。月曜始まりで、前後の空きは null。行がそろうよう7の倍数にする。
+ * 月のマス。日曜始まりで、前後の空きは null。行がそろうよう7の倍数にする。
  * month は 'YYYY-MM'
  */
 export function monthCells(month: string): (string | null)[] {
   const [y, m] = month.split('-').map(Number)
   const first = `${month}-01`
   const days = new Date(y, m, 0).getDate()
-  const offset = (weekday(first) + 6) % 7
+  const offset = weekday(first)
   const cells: (string | null)[] = [
     ...Array<null>(offset).fill(null),
     ...Array.from({ length: days }, (_, i) => addDays(first, i)),

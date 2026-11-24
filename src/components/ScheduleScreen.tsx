@@ -37,7 +37,7 @@ interface Props {
   onEditTask: (id: string) => void
 }
 
-const WEEK_HEAD = ['月', '火', '水', '木', '金', '土', '日']
+const WEEK_HEAD = ['日', '月', '火', '水', '木', '金', '土']
 const WEEKDAY_NAME = ['日', '月', '火', '水', '木', '金', '土']
 
 /**

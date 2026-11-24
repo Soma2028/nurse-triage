@@ -4,18 +4,24 @@ import { markRun, monthCells, tasksByDay } from './calendar'
 import { analyse } from './priority'
 
 describe('monthCells', () => {
-  it('月曜始まりで、前後を null で埋めて7の倍数にする', () => {
-    // 2026年11月1日は日曜 → 前に6つ空き、30日まで、後ろに6つ空き（計42）
-    const cells = monthCells('2026-11')
+  it('日曜始まりで、前後を null で埋めて7の倍数にする', () => {
+    // 2026年12月1日は火曜 → 前に2つ空き、31日まで、後ろに2つ空き（計35）
+    const cells = monthCells('2026-12')
     expect(cells.length % 7).toBe(0)
-    expect(cells.slice(0, 7)).toEqual([null, null, null, null, null, null, '2026-11-01'])
-    expect(cells.filter(Boolean)).toHaveLength(30)
+    expect(cells.slice(0, 3)).toEqual([null, null, '2026-12-01'])
+    expect(cells.filter(Boolean)).toHaveLength(31)
     expect(cells.at(-1)).toBeNull()
   })
 
-  it('2026年2月（月曜始まりではない28日の月）', () => {
+  it('1日が日曜の月は空きなしで始まる（2026年11月）', () => {
+    const cells = monthCells('2026-11')
+    expect(cells[0]).toBe('2026-11-01')
+    expect(cells.length).toBe(35)
+  })
+
+  it('2026年2月（日曜始まりで、ちょうど4週の28日の月）', () => {
     const cells = monthCells('2026-02')
-    expect(cells.length % 7).toBe(0)
+    expect(cells.length).toBe(28)
     expect(cells.filter(Boolean)).toHaveLength(28)
   })
 })
