@@ -12,7 +12,7 @@ export type GetToken = () => Promise<string | null>
 
 export async function authedCall(
   getToken: GetToken,
-  method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
   path: string,
   body?: unknown,
 ): Promise<AuthedResult> {

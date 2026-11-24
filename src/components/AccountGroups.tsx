@@ -3,7 +3,11 @@ import { ChevronRight } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { authedCall } from '../social/api'
 import { useSocialAvailable } from '../social/SocialContext'
+import { gradeLabel } from '../social/profile'
+import { useMyProfile } from '../social/useMyProfile'
+import { Avatar } from './Avatar'
 import { Group, Row } from './Group'
+import { ProfileForm } from './ProfileForm'
 import { LoginForm } from './LoginForm'
 import { Sheet } from './Sheet'
 
@@ -34,8 +38,11 @@ const LOAD_TIMEOUT_MS = 10_000
 
 function SignedProfileGroup() {
   const { isLoaded, isSignedIn } = useAuth()
-  const { user } = useUser()
+  const me = useMyProfile()
   const [loginOpen, setLoginOpen] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
+  /** ログインした直後か。プロフィールがまだなければ、作るシートをそのまま開く */
+  const [justSignedIn, setJustSignedIn] = useState(false)
   const [gaveUp, setGaveUp] = useState(false)
 
   useEffect(() => {
@@ -46,30 +53,83 @@ function SignedProfileGroup() {
 
   if (!isLoaded && gaveUp) return <OfflineProfileGroup />
 
+  const sheetOpen =
+    !!isSignedIn && (profileOpen || (justSignedIn && me.status === 'ready' && me.profile === null))
+  const closeProfile = () => {
+    setProfileOpen(false)
+    setJustSignedIn(false)
+  }
+
+  let row
+  if (!isSignedIn) {
+    row = (
+      <button
+        type="button"
+        onClick={() => setLoginOpen(true)}
+        disabled={!isLoaded}
+        className={`${rowBtn} disabled:text-ink-muted`}
+      >
+        <span className="min-w-0 flex-1">ログインする</span>
+        {!isLoaded && <span className="text-sm text-ink-muted">つないでいるよ</span>}
+        <ChevronRight aria-hidden className="size-4 shrink-0 text-ink-muted" />
+      </button>
+    )
+  } else if (me.status === 'error') {
+    row = (
+      <button type="button" onClick={() => void me.reload()} className={rowBtn}>
+        <span className="min-w-0 flex-1">読み込めなかったよ</span>
+        <span className="text-sm font-bold text-primary-ink">もう一度</span>
+      </button>
+    )
+  } else if (me.status === 'loading') {
+    row = (
+      <Row label="プロフィール">
+        <span className="pr-2 text-sm text-ink-muted">読み込んでいるよ</span>
+      </Row>
+    )
+  } else if (!me.profile) {
+    row = (
+      <button type="button" onClick={() => setProfileOpen(true)} className={rowBtn}>
+        <span className="min-w-0 flex-1">プロフィールを作る</span>
+        <ChevronRight aria-hidden className="size-4 shrink-0 text-ink-muted" />
+      </button>
+    )
+  } else {
+    const sub = [gradeLabel(me.profile.grade), me.profile.bio].filter(Boolean).join(' ・ ')
+    row = (
+      <button
+        type="button"
+        onClick={() => setProfileOpen(true)}
+        aria-label={`プロフィールを直す：${me.profile.nickname}`}
+        className={`${rowBtn} gap-3 py-2`}
+      >
+        <Avatar icon={me.profile.icon} size="lg" />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate font-bold">{me.profile.nickname}</span>
+          {sub && <span className="block truncate text-xs text-ink-muted">{sub}</span>}
+        </span>
+        <ChevronRight aria-hidden className="size-4 shrink-0 text-ink-muted" />
+      </button>
+    )
+  }
+
   return (
     <>
-      <Group label="プロフィール">
-        {isSignedIn ? (
-          <Row label="ログイン中">
-            <span className="truncate pr-2 text-sm text-ink-muted">
-              {user?.primaryEmailAddress?.emailAddress ?? ''}
-            </span>
-          </Row>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setLoginOpen(true)}
-            disabled={!isLoaded}
-            className={`${rowBtn} disabled:text-ink-muted`}
-          >
-            <span className="min-w-0 flex-1">ログインする</span>
-            {!isLoaded && <span className="text-sm text-ink-muted">つないでいるよ</span>}
-            <ChevronRight aria-hidden className="size-4 shrink-0 text-ink-muted" />
-          </button>
-        )}
-      </Group>
+      <Group label="プロフィール">{row}</Group>
       <Sheet open={loginOpen && !isSignedIn} title="ログイン" onClose={() => setLoginOpen(false)}>
-        <LoginForm onDone={() => setLoginOpen(false)} />
+        <LoginForm
+          onDone={() => {
+            setLoginOpen(false)
+            setJustSignedIn(true)
+          }}
+        />
+      </Sheet>
+      <Sheet
+        open={sheetOpen}
+        title={me.profile ? 'プロフィール' : 'プロフィールを作る'}
+        onClose={closeProfile}
+      >
+        <ProfileForm current={me.profile} onSave={me.save} onDone={closeProfile} />
       </Sheet>
     </>
   )
@@ -85,6 +145,7 @@ type Open = 'signOut' | 'delete' | null
 
 function SignedAccountGroup() {
   const { isSignedIn, getToken } = useAuth()
+  const { user } = useUser()
   const { signOut } = useClerk()
   const [open, setOpen] = useState<Open>(null)
   const [busy, setBusy] = useState(false)
@@ -112,6 +173,11 @@ function SignedAccountGroup() {
   return (
     <>
       <Group label="アカウント">
+        <Row label="メールアドレス">
+          <span className="truncate pr-2 text-sm text-ink-muted">
+            {user?.primaryEmailAddress?.emailAddress ?? ''}
+          </span>
+        </Row>
         <button type="button" onClick={() => setOpen('signOut')} className={rowBtn}>
           ログアウト
         </button>

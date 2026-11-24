@@ -76,13 +76,26 @@ function getSocialDeps(): SocialDeps {
   return socialDeps
 }
 
-/** ログインした人向けの API。Authorization: Bearer <Clerk のセッショントークン> を処理に渡す */
+/** ログインした人向けの API。Authorization: Bearer <Clerk のセッショントークン> と、本文の JSON を処理に渡す */
 export async function handleAuthed(
   request: Request,
-  run: (token: string | null, deps: SocialDeps) => Promise<Result>,
+  run: (token: string | null, input: unknown, deps: SocialDeps) => Promise<Result>,
 ): Promise<Response> {
+  let input: unknown = undefined
+  if (request.method !== 'GET' && request.method !== 'DELETE') {
+    const text = await request.text()
+    if (new TextEncoder().encode(text).length > MAX_BODY_BYTES) {
+      return json(413, { error: 'too large' })
+    }
+    try {
+      input = JSON.parse(text)
+    } catch {
+      return json(400, { error: 'invalid json' })
+    }
+  }
   try {
-    const result = await run(bearerToken(request.headers.get('authorization')), getSocialDeps())
+    const token = bearerToken(request.headers.get('authorization'))
+    const result = await run(token, input, getSocialDeps())
     return json(result.status, result.body)
   } catch (e) {
     if (e instanceof MissingEnvError) {

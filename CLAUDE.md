@@ -67,8 +67,9 @@
 
 ## ログイン・フレンド（作っている途中）
 
-- `SPEC-social.md` の段階どおりに進める。段階2（ログイン・ログアウト・退会）まで作った。段階4の前に `migrations/003_blocks.sql` をユーザーが実行する
+- `SPEC-social.md` の段階どおりに進める。段階3（プロフィール）まで作った。段階4の前に `migrations/003_blocks.sql` をユーザーが実行する
 - Clerk の公開キーは `/api/config` から取り、localStorage に置いて次の起動からすぐ使う。Clerk は大きいので、`SocialRoot` と `AccountGroups` を別のファイルに分けて必要なときだけ読み込む（main の JS を 500kB 未満に保つ）
+- 自分のプロフィールは `useMyProfile`（`/api/profile`）。localStorage にも置き、次に開いたときに読み込みを待たずに出す。ログインした直後でプロフィールがなければ、作るシートを開く
 - サーバーは `Authorization: Bearer <Clerk のセッショントークン>` を `api/_lib/identity.ts` で確かめる。退会は DB のデータを先に消してから Clerk のアカウントを消す
 - ログインは Clerk のメールの6桁コード。画面は Clerk の既製の部品を使わず自前のシートで作る
 - プロフィールとフレンドはせっていの中だけに置く（下のタブは増やさない）
