@@ -240,7 +240,7 @@ export function FriendsPanel({
 
       {/* 長くならないよう、フレンドの一覧と、追加・設定を切り替えて見る */}
       <Segmented
-        label="フレンドのシートの表示"
+        label="フレンドのページの表示"
         value={tab}
         onChange={(t) => {
           setTab(t)

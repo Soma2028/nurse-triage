@@ -24,6 +24,16 @@ export const fadeUp: Variants = {
   show: { opacity: 1, y: 0, transition: baseTransition },
 }
 
+/**
+ * せっていの中のページの切り替え。進むときは右から、戻るときは左から 16px すべり込む。
+ * 消えるほうは動かさず、すぐ薄くする。custom に向き（1 か -1）を渡す
+ */
+export const pageSlide: Variants = {
+  enter: (dir: number) => ({ opacity: 0, x: dir * ENTER_DISTANCE }),
+  show: { opacity: 1, x: 0, transition: baseTransition },
+  exit: { opacity: 0, transition: { duration: DURATION.tap, ease: EASE_OUT } },
+}
+
 /** 下から現れる。delay で順番をつける */
 export function enter(delay = 0) {
   return {

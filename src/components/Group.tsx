@@ -1,4 +1,4 @@
-import { ChevronsUpDown, Minus, Plus } from 'lucide-react'
+import { ChevronRight, ChevronsUpDown, Minus, Plus, type LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { formatHours } from '../utils/format'
 
@@ -9,6 +9,64 @@ export function Group({ label, children }: { label?: string; children: ReactNode
       {label && <h2 className="px-4 text-xs font-bold tracking-wide text-ink-muted">{label}</h2>}
       <div className="ui-card divide-y divide-line overflow-hidden rounded-2xl">{children}</div>
     </section>
+  )
+}
+
+/** 行の左に置く小さなアイコンの枠。色は付けない（色を持つのはタッグだけ） */
+export function IconTile({ icon: Icon, danger = false }: { icon: LucideIcon; danger?: boolean }) {
+  return (
+    <span
+      aria-hidden
+      className={`inline-flex size-8 shrink-0 items-center justify-center rounded-xl border border-line bg-paper ${
+        danger ? 'text-danger' : 'text-ink'
+      }`}
+    >
+      <Icon className="size-4" strokeWidth={2} />
+    </span>
+  )
+}
+
+/** 押すとページやシートを開く行。左にアイコン、右に今の値と「›」 */
+export function LinkRow({
+  icon,
+  label,
+  value,
+  strong = false,
+  danger = false,
+  disabled = false,
+  chevron = !danger,
+  onClick,
+}: {
+  icon?: LucideIcon
+  label: ReactNode
+  value?: ReactNode
+  /** 右の値を太字にする（届いた申請など、見てほしいとき） */
+  strong?: boolean
+  /** 「すべて消す」のような、取り消しにくい操作 */
+  danger?: boolean
+  disabled?: boolean
+  chevron?: boolean
+  onClick?: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`flex min-h-12 w-full items-center gap-3 px-4 py-2 text-left text-base transition disabled:text-ink-muted ${
+        danger ? 'text-danger hover:bg-danger-soft' : 'text-ink hover:bg-paper'
+      }`}
+    >
+      {icon && <IconTile icon={icon} danger={danger} />}
+      {/* 名前は切らずに出し、狭いときは右の値のほうを「…」で切る */}
+      <span className="max-w-[70%] shrink-0 truncate">{label}</span>
+      <span
+        className={`min-w-0 flex-1 truncate text-right text-sm ${strong ? 'font-bold text-ink' : 'text-ink-muted'}`}
+      >
+        {value}
+      </span>
+      {chevron && <ChevronRight aria-hidden className="size-4 shrink-0 text-ink-muted" />}
+    </button>
   )
 }
 
@@ -113,12 +171,14 @@ export function Switch({
 
 /** 行全体がスイッチになっている行。note は名前の下に小さく出す補足 */
 export function SwitchRow({
+  icon,
   label,
   note,
   on,
   onToggle,
   disabled,
 }: {
+  icon?: LucideIcon
   label: string
   note?: ReactNode
   on: boolean
@@ -132,9 +192,10 @@ export function SwitchRow({
       aria-checked={on}
       onClick={onToggle}
       disabled={disabled}
-      className="flex min-h-12 w-full items-center justify-between gap-4 px-4 py-2 text-left transition hover:bg-paper disabled:opacity-60"
+      className="flex min-h-12 w-full items-center gap-3 px-4 py-2 text-left transition hover:bg-paper disabled:opacity-60"
     >
-      <span className="min-w-0">
+      {icon && <IconTile icon={icon} />}
+      <span className="min-w-0 flex-1">
         <span className="block text-base text-ink">{label}</span>
         {note && <span className="block text-xs text-ink-muted">{note}</span>}
       </span>

@@ -1,5 +1,5 @@
 import { useAuth, useClerk, useUser } from '@clerk/react'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, LogIn, Mail, UserRound, Users } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { authedCall } from '../social/api'
 import { useSocialAvailable } from '../social/SocialContext'
@@ -11,23 +11,18 @@ import { useMyProfile } from '../social/useMyProfile'
 import { Avatar } from './Avatar'
 import { forgetDeviceLink, unlinkThisDevice } from '../social/deviceLink'
 import { FriendsPanel } from './FriendsPanel'
-import { Group, Row } from './Group'
+import { Group, LinkRow, Row } from './Group'
 import { ProfileForm } from './ProfileForm'
 import { LoginForm } from './LoginForm'
 import { Sheet } from './Sheet'
 
 const rowBtn =
-  'flex min-h-12 w-full items-center gap-2 px-4 text-left text-base text-ink transition hover:bg-paper'
+  'flex min-h-12 w-full items-center gap-3 px-4 text-left text-base text-ink transition hover:bg-paper'
 
 /** プロフィールの1行（アイコン・ニックネーム・学年とひとこと）。なければ「プロフィールを作る」 */
 function ProfileRow({ profile, onClick }: { profile: ProfileInput | null; onClick: () => void }) {
   if (!profile) {
-    return (
-      <button type="button" onClick={onClick} className={rowBtn}>
-        <span className="min-w-0 flex-1">プロフィールを作る</span>
-        <ChevronRight aria-hidden className="size-4 shrink-0 text-ink-muted" />
-      </button>
-    )
+    return <LinkRow icon={UserRound} label="プロフィールを作る" onClick={onClick} />
   }
   const sub = [gradeLabel(profile.grade), profile.bio].filter(Boolean).join(' ・ ')
   return (
@@ -35,7 +30,7 @@ function ProfileRow({ profile, onClick }: { profile: ProfileInput | null; onClic
       type="button"
       onClick={onClick}
       aria-label={`プロフィールを直す：${profile.nickname}`}
-      className={`${rowBtn} gap-3 py-2`}
+      className={`${rowBtn} py-3`}
     >
       <Avatar icon={profile.icon} photo={profile.photo} size="lg" />
       <span className="min-w-0 flex-1">
@@ -60,18 +55,19 @@ const toInput = (p: ProfileInput): ProfileInput => ({
  * せっていのいちばん上の「プロフィール」のまとまり。
  * ログインしていなくても、端末の中だけのプロフィールを作って直せる（フレンドには見えない）
  */
-export function ProfileGroup() {
+export function ProfileGroup({ onOpenFriends }: { onOpenFriends: () => void }) {
   const available = useSocialAvailable()
   return available ? (
-    <SignedProfileGroup />
+    <SignedProfileGroup onOpenFriends={onOpenFriends} />
   ) : (
-    <LocalProfileGroup
-      loginRow={
-        <Row label="ログイン">
-          <span className="pr-2 text-sm text-ink-muted">いまはつながらないよ</span>
-        </Row>
-      }
-    />
+    <LocalProfileGroup loginRow={<OfflineLoginRow />} />
+  )
+}
+
+/** ログインできないとき（サーバーにつながらない）の行 */
+function OfflineLoginRow() {
+  return (
+    <LinkRow icon={LogIn} label="ログイン" value="いまはつながらないよ" disabled chevron={false} />
   )
 }
 
@@ -83,8 +79,8 @@ function LocalProfileGroup({ loginRow }: { loginRow: ReactNode }) {
     <>
       <Group>
         <ProfileRow profile={local} onClick={() => setOpen(true)} />
-        {loginRow}
       </Group>
+      <Group>{loginRow}</Group>
       <Sheet
         open={open}
         title={local ? 'プロフィール' : 'プロフィールを作る'}
@@ -106,7 +102,7 @@ function LocalProfileGroup({ loginRow }: { loginRow: ReactNode }) {
 /** Clerk がこれだけたっても動き出さなければ、つながらないとみなす */
 const LOAD_TIMEOUT_MS = 10_000
 
-function SignedProfileGroup() {
+function SignedProfileGroup({ onOpenFriends }: { onOpenFriends: () => void }) {
   const { isLoaded, isSignedIn } = useAuth()
   const me = useMyProfile()
   const local = useLocalProfile()
@@ -114,7 +110,6 @@ function SignedProfileGroup() {
   const cheersSeen = useCheersSeen()
   const newCheers = friends.data?.cheers.filter((c) => c.createdAt > cheersSeen).length ?? 0
   const [loginOpen, setLoginOpen] = useState(false)
-  const [friendsOpen, setFriendsOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   /** ログインした直後か。プロフィールがどこにもなければ、作るシートをそのまま開く */
   const [justSignedIn, setJustSignedIn] = useState(false)
@@ -151,20 +146,15 @@ function SignedProfileGroup() {
         <LocalProfileGroup
           loginRow={
             offline ? (
-              <Row label="ログイン">
-                <span className="pr-2 text-sm text-ink-muted">いまはつながらないよ</span>
-              </Row>
+              <OfflineLoginRow />
             ) : (
-              <button
-                type="button"
-                onClick={() => setLoginOpen(true)}
+              <LinkRow
+                icon={LogIn}
+                label="ログインしてフレンドとつながる"
+                value={isLoaded ? undefined : 'つないでいるよ'}
                 disabled={!isLoaded}
-                className={`${rowBtn} disabled:text-ink-muted`}
-              >
-                <span className="min-w-0 flex-1">ログインしてフレンドとつながる</span>
-                {!isLoaded && <span className="text-sm text-ink-muted">つないでいるよ</span>}
-                <ChevronRight aria-hidden className="size-4 shrink-0 text-ink-muted" />
-              </button>
+                onClick={() => setLoginOpen(true)}
+              />
             )
           }
         />
@@ -186,6 +176,16 @@ function SignedProfileGroup() {
     setProfileOpen(false)
     setJustSignedIn(false)
   }
+
+  const incoming = friends.data?.incoming.length ?? 0
+  const friendsValue =
+    incoming > 0
+      ? `申請 ${incoming}`
+      : newCheers > 0
+        ? `応援 ${newCheers}`
+        : friends.data
+          ? `${friends.data.friends.length}人`
+          : undefined
 
   let row
   if (status === 'error') {
@@ -210,36 +210,18 @@ function SignedProfileGroup() {
 
   return (
     <>
-      <Group>
-        {row}
-        {profile && (
-          <button type="button" onClick={() => setFriendsOpen(true)} className={rowBtn}>
-            <span className="min-w-0 flex-1">フレンド</span>
-            {friends.data && friends.data.incoming.length > 0 ? (
-              <span className="text-sm font-bold text-ink">
-                申請 {friends.data.incoming.length}
-              </span>
-            ) : newCheers > 0 ? (
-              <span className="text-sm font-bold text-ink">応援 {newCheers}</span>
-            ) : (
-              friends.data && (
-                <span className="text-sm text-ink-muted">{friends.data.friends.length}人</span>
-              )
-            )}
-            <ChevronRight aria-hidden className="size-4 shrink-0 text-ink-muted" />
-          </button>
-        )}
-      </Group>
-      <Sheet open={friendsOpen && !!profile} title="フレンド" onClose={() => setFriendsOpen(false)}>
-        <FriendsPanel
-          data={friends.data}
-          error={friends.error}
-          act={friends.act}
-          reload={friends.load}
-          shareProgress={profile?.shareProgress !== false}
-          onShareProgress={me.setShare}
-        />
-      </Sheet>
+      <Group>{row}</Group>
+      {profile && (
+        <Group>
+          <LinkRow
+            icon={Users}
+            label="フレンド"
+            value={friendsValue}
+            strong={incoming > 0 || newCheers > 0}
+            onClick={onOpenFriends}
+          />
+        </Group>
+      )}
       <Sheet
         open={sheetOpen}
         title={profile ? 'プロフィール' : 'プロフィールを作る'}
@@ -251,13 +233,48 @@ function SignedProfileGroup() {
   )
 }
 
-/** せっていのいちばん下のまとまりに置く「アカウント」の行（ログインしているときだけ）。押すとシート */
-export function AccountRow() {
-  const available = useSocialAvailable()
-  return available ? <SignedAccountRow /> : null
+/** せっていのフレンドのページの中身。開くたびに一覧を読み直す */
+export function FriendsPage({ onGone }: { onGone: () => void }) {
+  const { isLoaded, isSignedIn } = useAuth()
+  const me = useMyProfile()
+  const friends = useFriends(!!me.profile)
+  const profile = me.profile
+
+  // ログアウトしたら、このページにはいられないので、せっていに戻る
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) onGone()
+  }, [isLoaded, isSignedIn, onGone])
+
+  if (!profile) {
+    return <p className="px-4 text-sm text-ink-muted">読み込んでいるよ</p>
+  }
+  return (
+    <FriendsPanel
+      data={friends.data}
+      error={friends.error}
+      act={friends.act}
+      reload={friends.load}
+      shareProgress={profile.shareProgress !== false}
+      onShareProgress={me.setShare}
+    />
+  )
 }
 
-type Open = 'account' | 'signOut' | 'delete' | null
+/** せっていに置く「アカウント」の行（ログインしているときだけ）。押すとアカウントのページ */
+export function AccountRow({ onOpen }: { onOpen: () => void }) {
+  const available = useSocialAvailable()
+  return available ? <SignedAccountRow onOpen={onOpen} /> : null
+}
+
+function SignedAccountRow({ onOpen }: { onOpen: () => void }) {
+  const { isSignedIn } = useAuth()
+  const { user } = useUser()
+  if (!isSignedIn) return null
+  const email = user?.primaryEmailAddress?.emailAddress ?? ''
+  return <LinkRow icon={Mail} label="アカウント" value={email} onClick={onOpen} />
+}
+
+type Confirm = 'signOut' | 'delete' | null
 
 const primaryBtn =
   'min-h-12 rounded-full bg-primary text-base font-bold text-on-primary transition hover:bg-primary-strong'
@@ -266,19 +283,24 @@ const dangerBtn =
 const cancelBtn =
   'min-h-12 rounded-full border border-line bg-surface text-base font-bold text-ink transition hover:bg-paper'
 
-function SignedAccountRow() {
-  const { isSignedIn, getToken } = useAuth()
+/** せっていのアカウントのページ：メールアドレス・ログアウト・退会（どちらももう一度たずねる） */
+export function AccountPage({ onGone }: { onGone: () => void }) {
+  const { isLoaded, isSignedIn, getToken } = useAuth()
   const { user } = useUser()
   const { signOut } = useClerk()
-  const [open, setOpen] = useState<Open>(null)
+  const [confirm, setConfirm] = useState<Confirm>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const close = () => {
-    setOpen(null)
+    setConfirm(null)
     setError(null)
   }
 
-  if (!isSignedIn) return null
+  // ログアウト・退会したら、せっていに戻る
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) onGone()
+  }, [isLoaded, isSignedIn, onGone])
+
   const email = user?.primaryEmailAddress?.emailAddress ?? ''
 
   const deleteAccount = async () => {
@@ -298,33 +320,19 @@ function SignedAccountRow() {
 
   return (
     <>
-      <button type="button" onClick={() => setOpen('account')} className={rowBtn}>
-        <span className="min-w-0 flex-1">アカウント</span>
-        <span className="truncate text-sm text-ink-muted">{email}</span>
-        <ChevronRight aria-hidden className="size-4 shrink-0 text-ink-muted" />
-      </button>
+      <div className="flex flex-col gap-6">
+        <Group>
+          <Row label="メールアドレス">
+            <span className="truncate pr-2 text-sm text-ink-muted">{email}</span>
+          </Row>
+        </Group>
+        <Group>
+          <LinkRow label="ログアウト" chevron={false} onClick={() => setConfirm('signOut')} />
+          <LinkRow label="退会する" danger onClick={() => setConfirm('delete')} />
+        </Group>
+      </div>
 
-      <Sheet open={open === 'account'} title="アカウント" onClose={close}>
-        <div className="flex flex-col gap-4">
-          <Group>
-            <Row label="メールアドレス">
-              <span className="truncate pr-2 text-sm text-ink-muted">{email}</span>
-            </Row>
-          </Group>
-          <button type="button" onClick={() => setOpen('signOut')} className={cancelBtn}>
-            ログアウト
-          </button>
-          <button
-            type="button"
-            onClick={() => setOpen('delete')}
-            className="min-h-11 self-center rounded-full px-4 text-sm font-bold text-danger transition hover:bg-danger-soft"
-          >
-            退会する
-          </button>
-        </div>
-      </Sheet>
-
-      <Sheet open={open === 'signOut'} title="ログアウトする？" onClose={close}>
+      <Sheet open={confirm === 'signOut'} title="ログアウトする？" onClose={close}>
         <div className="flex flex-col gap-4">
           <p className="text-sm leading-6 text-ink">
             課題はこの端末に残るよ。フレンドの機能は、またログインすると使えるよ。
@@ -347,7 +355,7 @@ function SignedAccountRow() {
         </div>
       </Sheet>
 
-      <Sheet open={open === 'delete'} title="退会する？" onClose={close}>
+      <Sheet open={confirm === 'delete'} title="退会する？" onClose={close}>
         <div className="flex flex-col gap-4">
           <p className="text-sm leading-6 text-ink">
             プロフィールとフレンドが消えて、もとに戻せないよ。課題はこの端末に残るよ。

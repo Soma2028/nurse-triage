@@ -1,4 +1,4 @@
-import { Plus } from 'lucide-react'
+import { ChevronLeft, Plus } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 
 interface Props {
@@ -13,6 +13,10 @@ interface Props {
   onAdd?: () => void
   /** ＋ボタンの名前（読み上げ用） */
   addLabel?: string
+  /** 渡すと見出しの左に「‹」を出す（せっていの中のページ） */
+  onBack?: () => void
+  /** 「‹」の名前（読み上げ用） */
+  backLabel?: string
   /** 中身を真ん中の高さいっぱいに広げる（カレンダーのように、スクロールさせずに収める画面） */
   fill?: boolean
   children: ReactNode
@@ -31,6 +35,8 @@ export function ScreenLayout({
   sub,
   onAdd,
   addLabel = '課題を追加する',
+  onBack,
+  backLabel = 'もどる',
   fill = false,
   children,
 }: Props) {
@@ -48,7 +54,17 @@ export function ScreenLayout({
       >
         <div className="mx-auto max-w-xl">
           <div className="flex min-h-11 items-center justify-between gap-2">
-            <h1 className="flex min-w-0 items-baseline gap-2">
+            {onBack && (
+              <button
+                type="button"
+                onClick={onBack}
+                aria-label={backLabel}
+                className="-ml-3 inline-flex size-11 shrink-0 items-center justify-center rounded-full text-ink transition hover:bg-surface"
+              >
+                <ChevronLeft aria-hidden className="size-6" strokeWidth={2.25} />
+              </button>
+            )}
+            <h1 className="flex min-w-0 flex-1 items-baseline gap-2">
               <span className="ui-page-title truncate">{title}</span>
               {note && <span className="truncate text-xs font-bold text-ink-muted">{note}</span>}
             </h1>
