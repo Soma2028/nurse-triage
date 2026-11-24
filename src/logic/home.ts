@@ -2,22 +2,23 @@ import type { Analysed, Plan, Schedule, Settings } from '../types'
 import { dayKey, hasUpcoming, isPracticeToday } from './schedule'
 
 const URGENT = new Set(['black', 'red'])
+/** つぎにやるに出す色。黄色も赤と同じように出す（緑だけのときは出さない） */
+const NEXT = new Set(['black', 'red', 'yellow'])
 
 export interface HomeView {
-  /** つぎにやる1件。黒・赤の課題があるときだけ（並び順の先頭） */
+  /** つぎにやる1件。黒・赤・黄の課題があるときだけ（並び順の先頭） */
   next: Analysed | undefined
   /** ほかの急ぎ：黒・赤のうち、つぎにやる以外で、今日のプランにも入っていないもの */
   urgent: Analysed[]
 }
 
-/** ホームに出すもの。ホームは「今日のプラン」と「黒・赤の課題」だけ */
+/** ホームに出すもの。ホームは「つぎにやる」「今日のプラン」と「黒・赤の課題」だけ */
 export function homeView(analysed: readonly Analysed[], plan: Plan): HomeView {
-  const urgentAll = analysed.filter((a) => URGENT.has(a.triage))
-  const next = urgentAll[0]
+  const next = analysed.find((a) => NEXT.has(a.triage))
   const inPlan = new Set(plan.items.map((i) => i.task.id))
   return {
     next,
-    urgent: urgentAll.slice(1).filter((a) => !inPlan.has(a.task.id)),
+    urgent: analysed.filter((a) => URGENT.has(a.triage) && a !== next && !inPlan.has(a.task.id)),
   }
 }
 

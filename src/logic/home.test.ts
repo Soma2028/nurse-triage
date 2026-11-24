@@ -38,7 +38,17 @@ describe('homeView', () => {
     expect(homeView(analysed, tight).urgent.map((a) => a.task.id)).toEqual([red1.id, red2.id])
   })
 
-  it('黒・赤がなければ、つぎにやるも急ぎもない（プランだけ）', () => {
+  it('黄色しかなければ、黄色の先頭をつぎにやるに出す（急ぎには入れない）', () => {
+    const yellow = task(2 * DAY_MS, 1) // 黄（3日以内）
+    const green = task(20 * DAY_MS, 1)
+    const analysed = analyse([green, yellow], S, NOW)
+    expect(analysed[0].triage).toBe('yellow')
+    const v = homeView(analysed, buildPlan(analysed, 4))
+    expect(v.next?.task.id).toBe(yellow.id)
+    expect(v.urgent).toEqual([])
+  })
+
+  it('緑だけなら、つぎにやるも急ぎもない（プランだけ）', () => {
     const analysed = analyse([task(10 * DAY_MS, 1), task(20 * DAY_MS, 1)], S, NOW)
     expect(homeView(analysed, buildPlan(analysed, 4))).toEqual({ next: undefined, urgent: [] })
   })

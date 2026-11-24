@@ -77,7 +77,7 @@ export function HomeHelp() {
     <div className="flex flex-col gap-8">
       <Group>
         <Item title="つぎにやる">
-          まずやる1件。黒か赤の課題から選んでいるよ。押すとくわしく見られるよ。
+          まずやる1件。黒・赤・黄色の課題から選んでいるよ。押すとくわしく見られるよ。
         </Item>
         <Item title="今日のプラン">今日の時間を、どの課題に何時間使うか。</Item>
         <Item title="ほかの急ぎ">今日のプランに入りきらなかった、黒と赤の課題。</Item>
