@@ -1,4 +1,10 @@
-import { animate, motion, useMotionValue, type PanInfo } from 'framer-motion'
+import {
+  animate,
+  motion,
+  useMotionValue,
+  type AnimationPlaybackControls,
+  type PanInfo,
+} from 'framer-motion'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import {
   useEffect,
@@ -59,6 +65,8 @@ const KIND_OPTIONS: { value: DayKind; label: string }[] = [
 const PANEL_GAP = 16
 /** 指を離したとき、表の幅のこの割合より動かしていたら月を変える */
 const SWIPE_RATIO = 0.2
+/** タップで指がずれても、なぞったとみなさない幅（px） */
+const TAP_SLOP = 10
 /** これより速く払ったら、動かした距離が短くても月を変える（px/秒） */
 const SWIPE_VELOCITY = 400
 
@@ -220,9 +228,11 @@ export function ScheduleScreen({
   const [trackRef, height] = useHeight()
   /** 表の横の位置。指に合わせて動かし、離したら月の幅ぶん送るか、元に戻す */
   const x = useMotionValue(0)
-  /** 月を送っている途中か（続けて押されたときに二重に送らない） */
-  const sliding = useRef(false)
-  /** いまの指の動きが「なぞり」になったか（なぞったあとのタップで日のシートを開かないため） */
+  /** 月を送るときにずらした月の数（表の位置の付け替えに使う） */
+  const shifted = useRef(0)
+  /** 表を動かしているアニメーション。なぞり始めたら止め、指の動きを優先する */
+  const slide = useRef<AnimationPlaybackControls | null>(null)
+  /** いまの指の動きが、はっきり横になぞったものか（なぞったあとのタップで日のシートを開かないため） */
   const dragged = useRef(false)
 
   // 予定を追加するシート
@@ -243,20 +253,34 @@ export function ScheduleScreen({
   /** となりの月までの距離（表の幅＋間） */
   const pageWidth = () => (trackRef.current?.clientWidth ?? 0) + PANEL_GAP
 
-  /** n = 1 で次の月、-1 で前の月へ、表を横に送ってから切り替える */
-  const moveMonth = (n: 1 | -1) => {
-    if (sliding.current) return
-    sliding.current = true
-    animate(x, -n * pageWidth(), {
-      ...baseTransition,
-      onComplete: () => setMonth((mo) => shiftMonth(mo, n)),
-    })
+  const slideTo = (to: number) => {
+    slide.current?.stop()
+    slide.current = animate(x, to, baseTransition)
   }
 
-  // 月が変わったら、表の位置を真ん中に戻す（描く前に戻すので、ちらつかない）
+  /**
+   * n = 1 で次の月、-1 で前の月へ。先に月を切り替え、見た目が動かないよう表の位置を付け替えてから、
+   * 真ん中へ動かす。途中でまたなぞったり押したりしても、月と表の位置がずれない
+   */
+  const moveMonth = (n: 1 | -1) => {
+    shifted.current += n
+    setMonth((mo) => shiftMonth(mo, n))
+  }
+
+  // 月が変わったら、表の位置を付け替える（描く前に付け替えるので、ちらつかない）。
+  // 矢印・なぞりで送ったときは真ん中へ動かし、予定の追加などで月が飛んだときはそのまま真ん中に置く
   useLayoutEffect(() => {
-    x.set(0)
-    sliding.current = false
+    const n = shifted.current
+    shifted.current = 0
+    if (n === 0) {
+      slide.current?.stop()
+      x.set(0)
+      return
+    }
+    x.set(x.get() + n * pageWidth())
+    slideTo(0)
+    // pageWidth・slideTo は毎回作り直すが、中で使う ref・x は変わらない
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [month, x])
 
   // 表を左右になぞると、指に合わせて動き、となりの月がのぞく。離したら月を変えるか元に戻す
@@ -264,7 +288,7 @@ export function ScheduleScreen({
     const limit = (trackRef.current?.clientWidth ?? 0) * SWIPE_RATIO
     if (info.offset.x < -limit || info.velocity.x < -SWIPE_VELOCITY) moveMonth(1)
     else if (info.offset.x > limit || info.velocity.x > SWIPE_VELOCITY) moveMonth(-1)
-    else animate(x, 0, baseTransition)
+    else slideTo(0)
   }
   const onClickCapture = (e: MouseEvent) => {
     if (!dragged.current) return
@@ -361,7 +385,11 @@ export function ScheduleScreen({
           dragDirectionLock
           dragMomentum={false}
           onPointerDownCapture={() => (dragged.current = false)}
-          onDragStart={() => (dragged.current = true)}
+          onDragStart={() => slide.current?.stop()}
+          onDrag={(_, info) => {
+            // タップで指が少しずれただけなら、なぞったことにしない
+            if (Math.abs(info.offset.x) > TAP_SLOP) dragged.current = true
+          }}
           onDragEnd={onDragEnd}
           onClickCapture={onClickCapture}
           style={{ x }}
