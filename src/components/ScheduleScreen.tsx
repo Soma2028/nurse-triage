@@ -21,6 +21,7 @@ import { addDays, dayKey, keyStart, rangeKeys } from '../logic/schedule'
 import { baseTransition } from '../motion'
 import type { Analysed, DayKind, Schedule } from '../types'
 import { Group, Picker, Row, SwitchRow } from './Group'
+import { TagChip } from './TaskRow'
 import { ScreenLayout } from './ScreenLayout'
 import { Segmented } from './Segmented'
 import { Sheet } from './Sheet'
@@ -95,7 +96,7 @@ const fivePm = (key: string) => keyStart(key) + 17 * 60 * 60 * 1000
 
 const softBtn =
   'inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-primary-soft px-4 text-sm font-bold text-primary-ink transition hover:bg-primary hover:text-on-primary'
-const label = 'text-xs font-bold tracking-wide text-ink-muted'
+const label = 'px-4 text-xs font-bold tracking-wide text-ink-muted'
 
 /** 表の高さ。マスに課題を何件まで並べられるかを、月の行の数ごとに計算するのに使う */
 function useHeight() {
@@ -239,9 +240,6 @@ export function ScheduleScreen({
   const [addError, setAddError] = useState<string | null>(null)
 
   const [y, m] = month.split('-').map(Number)
-  const cells = useMemo(() => monthCells(month), [month])
-  const monthKeys = cells.filter((c): c is string => c !== null)
-  const count = (k: DayKind) => monthKeys.filter((c) => schedule[c] === k).length
   const byDay = useMemo(() => tasksByDay(analysed), [analysed])
   const rank = useMemo(() => new Map(analysed.map((a, i) => [a.task.id, i + 1])), [analysed])
 
@@ -348,19 +346,6 @@ export function ScheduleScreen({
               onClick={(e) => e.currentTarget.showPicker?.()}
             />
           </div>
-          {/* この月の日数。マスの印と同じ1文字で、狭い画面でも1行に収める */}
-          <p className="ml-auto flex gap-2 text-sm whitespace-nowrap text-ink-muted">
-            {KIND_OPTIONS.map((o) => (
-              <span key={o.value} aria-label={`${o.label} ${count(o.value)}日`}>
-                <span aria-hidden className={`font-bold ${KIND_MARK[o.value].className}`}>
-                  {KIND_MARK[o.value].char}
-                </span>{' '}
-                <b aria-hidden className="text-ink tabular-nums">
-                  {count(o.value)}
-                </b>
-              </span>
-            ))}
-          </p>
         </div>
       }
       onAdd={openAdd}
@@ -455,20 +440,18 @@ export function ScheduleScreen({
                           setSelected(null)
                           onEditTask(a.task.id)
                         }}
-                        className="flex min-h-12 w-full items-center gap-2 px-4 py-2 text-left transition hover:bg-paper"
+                        className="flex min-h-16 w-full items-center gap-3 px-4 py-2 text-left transition hover:bg-paper"
                         aria-label={`${rank.get(a.task.id)}番目・${TRIAGE_STYLE[a.triage].name}「${a.label}」 ${a.task.title}を編集`}
                       >
-                        <span
-                          aria-hidden
-                          className={`w-10 shrink-0 rounded-full text-center text-xs leading-6 font-bold ${TRIAGE_STYLE[a.triage].tag}`}
-                        >
-                          {TRIAGE_STYLE[a.triage].name}
-                        </span>
-                        <span className="min-w-0 flex-1 truncate text-sm text-ink">
-                          {a.task.title}
-                        </span>
-                        <span className="shrink-0 text-sm text-ink-muted tabular-nums">
-                          {timeOf(a.task.due)}
+                        {/* 課題の画面と同じタッグ（小さな色の四角に順位） */}
+                        <TagChip a={a} rank={rank.get(a.task.id) ?? 0} />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-base font-bold text-ink">
+                            {a.task.title}
+                          </span>
+                          <span className="block text-xs text-ink-muted">
+                            {a.label} ・ {timeOf(a.task.due)} 締切
+                          </span>
                         </span>
                       </button>
                     </li>

@@ -9,6 +9,7 @@ import { MAX_CHEERS_PER_DAY, STAMP_KEYS, STAMPS, cheerTime } from '../social/sta
 import { dayKey } from '../logic/schedule'
 import { Avatar } from './Avatar'
 import { Group, SwitchRow } from './Group'
+import { Segmented } from './Segmented'
 import { QrCode } from './QrCode'
 
 /** 人の一覧のどこにいる人か */
@@ -110,6 +111,7 @@ export function FriendsPanel({
   const [busy, setBusy] = useState(false)
   const [code, setCode] = useState('')
   const [showQr, setShowQr] = useState(false)
+  const [tab, setTab] = useState<'friends' | 'more'>('friends')
   // 今日の日付（シートを開いたときの。進み具合が今日の分か見分ける）
   const [openedAt] = useState(() => Date.now())
   const today = dayKey(openedAt)
@@ -236,170 +238,192 @@ export function FriendsPanel({
         </p>
       )}
 
-      {data.cheers.length > 0 && (
-        <Group label="届いた応援">
-          {data.cheers.slice(0, 10).map((c) => {
-            const { Icon, label: stampLabel } = STAMPS[c.stamp]
-            return (
-              <div key={c.id} className="flex min-h-14 items-center gap-3 px-4 py-2">
-                <Avatar icon={c.from.icon} photo={c.from.photo} />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-base text-ink">
-                    {c.from.nickname}さん「{stampLabel}」
-                  </span>
-                  <span className="block text-xs text-ink-muted">
-                    {cheerTime(c.createdAt, openedAt)}
-                  </span>
-                </span>
-                <Icon aria-hidden className="size-5 shrink-0 text-primary-ink" />
-              </div>
-            )
-          })}
-        </Group>
+      {/* 長くならないよう、フレンドの一覧と、追加・設定を切り替えて見る */}
+      <Segmented
+        label="フレンドのシートの表示"
+        value={tab}
+        onChange={(t) => {
+          setTab(t)
+          setMessage(null)
+        }}
+        options={[
+          { value: 'friends', label: 'フレンド', count: data.incoming.length || undefined },
+          { value: 'more', label: '追加と設定' },
+        ]}
+      />
+
+      {tab === 'friends' && (
+        <>
+          {data.cheers.length > 0 && (
+            <Group label="届いた応援">
+              {data.cheers.slice(0, 10).map((c) => {
+                const { Icon, label: stampLabel } = STAMPS[c.stamp]
+                return (
+                  <div key={c.id} className="flex min-h-14 items-center gap-3 px-4 py-2">
+                    <Avatar icon={c.from.icon} photo={c.from.photo} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-base text-ink">
+                        {c.from.nickname}さん「{stampLabel}」
+                      </span>
+                      <span className="block text-xs text-ink-muted">
+                        {cheerTime(c.createdAt, openedAt)}
+                      </span>
+                    </span>
+                    <Icon aria-hidden className="size-5 shrink-0 text-primary-ink" />
+                  </div>
+                )
+              })}
+            </Group>
+          )}
+
+          {data.incoming.length > 0 && (
+            <Group label="届いた申請">
+              {data.incoming.map((p) => (
+                <PersonRow
+                  key={p.userId}
+                  person={p}
+                  today={today}
+                  onOpen={open(p, 'incoming')}
+                  aside={
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => run({ action: 'accept', userId: p.userId })}
+                      className="min-h-11 rounded-full bg-primary px-4 text-sm font-bold text-on-primary transition hover:bg-primary-strong disabled:opacity-60"
+                    >
+                      承認
+                    </button>
+                  }
+                />
+              ))}
+            </Group>
+          )}
+
+          <section className="flex flex-col gap-2">
+            <Group label={`フレンド ${data.friends.length}人`}>
+              {data.friends.length === 0 ? (
+                <p className="px-4 py-3 text-sm leading-6 text-ink">
+                  まだフレンドはいないよ。コードを教え合おう。
+                </p>
+              ) : (
+                data.friends.map((p) => (
+                  <PersonRow key={p.userId} person={p} today={today} onOpen={open(p, 'friend')} />
+                ))
+              )}
+            </Group>
+          </section>
+
+          {data.outgoing.length > 0 && (
+            <Group label="送った申請">
+              {data.outgoing.map((p) => (
+                <PersonRow key={p.userId} person={p} today={today} onOpen={open(p, 'outgoing')} />
+              ))}
+            </Group>
+          )}
+        </>
       )}
 
-      {data.incoming.length > 0 && (
-        <Group label="届いた申請">
-          {data.incoming.map((p) => (
-            <PersonRow
-              key={p.userId}
-              person={p}
-              today={today}
-              onOpen={open(p, 'incoming')}
-              aside={
+      {tab === 'more' && (
+        <>
+          <section className="flex flex-col gap-2">
+            <Group label="フレンドを追加">
+              <form onSubmit={submitCode} noValidate className="flex items-center gap-2 pr-2">
+                <input
+                  aria-label="フレンドのコード"
+                  className="min-h-12 w-full min-w-0 flex-1 bg-transparent pl-4 text-base tracking-widest text-ink uppercase placeholder:tracking-normal placeholder:text-ink-muted placeholder:normal-case focus:outline-none"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.toUpperCase())}
+                  placeholder="相手のコード（8文字）"
+                  autoCapitalize="characters"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  maxLength={12}
+                />
+                <button
+                  type="submit"
+                  disabled={busy || code.trim() === ''}
+                  className="min-h-11 shrink-0 rounded-full bg-primary px-4 text-sm font-bold text-on-primary transition hover:bg-primary-strong disabled:opacity-60"
+                >
+                  申請する
+                </button>
+              </form>
+            </Group>
+          </section>
+
+          <section className="flex flex-col gap-2">
+            <Group label="自分のコード">
+              <div className="flex min-h-14 items-center gap-2 pr-2 pl-4">
+                <span className="min-w-0 flex-1 text-title font-bold tracking-widest text-ink tabular-nums select-text">
+                  {data.friendCode}
+                </span>
                 <button
                   type="button"
-                  disabled={busy}
-                  onClick={() => run({ action: 'accept', userId: p.userId })}
-                  className="min-h-11 rounded-full bg-primary px-4 text-sm font-bold text-on-primary transition hover:bg-primary-strong disabled:opacity-60"
+                  onClick={copy}
+                  className="inline-flex min-h-11 shrink-0 items-center gap-1 rounded-full bg-primary-soft px-4 text-sm font-bold text-primary-ink transition hover:bg-primary hover:text-on-primary"
                 >
-                  承認
+                  <Copy aria-hidden className="size-4" />
+                  コピー
                 </button>
-              }
-            />
-          ))}
-        </Group>
-      )}
-
-      <section className="flex flex-col gap-2">
-        <Group label={`フレンド ${data.friends.length}人`}>
-          {data.friends.length === 0 ? (
-            <p className="px-4 py-3 text-sm leading-6 text-ink">
-              まだフレンドはいないよ。コードを教え合おう。
-            </p>
-          ) : (
-            data.friends.map((p) => (
-              <PersonRow key={p.userId} person={p} today={today} onOpen={open(p, 'friend')} />
-            ))
-          )}
-        </Group>
-      </section>
-
-      {data.outgoing.length > 0 && (
-        <Group label="送った申請">
-          {data.outgoing.map((p) => (
-            <PersonRow key={p.userId} person={p} today={today} onOpen={open(p, 'outgoing')} />
-          ))}
-        </Group>
-      )}
-
-      <section className="flex flex-col gap-2">
-        <Group label="フレンドを追加">
-          <form onSubmit={submitCode} noValidate className="flex items-center gap-2 pr-2">
-            <input
-              aria-label="フレンドのコード"
-              className="min-h-12 w-full min-w-0 flex-1 bg-transparent pl-4 text-base tracking-widest text-ink uppercase placeholder:tracking-normal placeholder:text-ink-muted placeholder:normal-case focus:outline-none"
-              value={code}
-              onChange={(e) => setCode(e.target.value.toUpperCase())}
-              placeholder="相手のコード（8文字）"
-              autoCapitalize="characters"
-              autoComplete="off"
-              autoCorrect="off"
-              spellCheck={false}
-              maxLength={12}
-            />
-            <button
-              type="submit"
-              disabled={busy || code.trim() === ''}
-              className="min-h-11 shrink-0 rounded-full bg-primary px-4 text-sm font-bold text-on-primary transition hover:bg-primary-strong disabled:opacity-60"
-            >
-              申請する
-            </button>
-          </form>
-        </Group>
-      </section>
-
-      <section className="flex flex-col gap-2">
-        <Group label="自分のコード">
-          <div className="flex min-h-14 items-center gap-2 pr-2 pl-4">
-            <span className="min-w-0 flex-1 text-title font-bold tracking-widest text-ink tabular-nums select-text">
-              {data.friendCode}
-            </span>
+              </div>
+            </Group>
+            <p className={note}>このコードを教えると、相手から申請できるよ。</p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={share}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-primary-soft px-4 text-sm font-bold text-primary-ink transition hover:bg-primary hover:text-on-primary"
+              >
+                <Share2 aria-hidden className="size-4" />
+                リンクを送る
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowQr((v) => !v)}
+                aria-expanded={showQr}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-primary-soft px-4 text-sm font-bold text-primary-ink transition hover:bg-primary hover:text-on-primary"
+              >
+                <QrIcon aria-hidden className="size-4" />
+                {showQr ? 'QR をしまう' : 'QR を出す'}
+              </button>
+            </div>
+            {showQr && (
+              <div className="ui-card flex flex-col items-center gap-2 rounded-2xl p-4">
+                <QrCode text={link} label="自分の招待リンクの QR コード" />
+                <p className="text-center text-xs leading-5 text-ink-muted">
+                  相手の iPhone のカメラで読み取ってもらってね。
+                </p>
+              </div>
+            )}
             <button
               type="button"
-              onClick={copy}
-              className="inline-flex min-h-11 shrink-0 items-center gap-1 rounded-full bg-primary-soft px-4 text-sm font-bold text-primary-ink transition hover:bg-primary hover:text-on-primary"
+              disabled={busy}
+              onClick={() => run({ action: 'regenerateCode' })}
+              className="self-start rounded-full px-4 py-2 text-sm font-bold text-primary-ink transition hover:bg-primary-soft disabled:opacity-60"
             >
-              <Copy aria-hidden className="size-4" />
-              コピー
+              コードを作り直す
             </button>
-          </div>
-        </Group>
-        <p className={note}>このコードを教えると、相手から申請できるよ。</p>
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={share}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-primary-soft px-4 text-sm font-bold text-primary-ink transition hover:bg-primary hover:text-on-primary"
-          >
-            <Share2 aria-hidden className="size-4" />
-            リンクを送る
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowQr((v) => !v)}
-            aria-expanded={showQr}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-primary-soft px-4 text-sm font-bold text-primary-ink transition hover:bg-primary hover:text-on-primary"
-          >
-            <QrIcon aria-hidden className="size-4" />
-            {showQr ? 'QR をしまう' : 'QR を出す'}
-          </button>
-        </div>
-        {showQr && (
-          <div className="ui-card flex flex-col items-center gap-2 rounded-2xl p-4">
-            <QrCode text={link} label="自分の招待リンクの QR コード" />
-            <p className="text-center text-xs leading-5 text-ink-muted">
-              相手の iPhone のカメラで読み取ってもらってね。
-            </p>
-          </div>
-        )}
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => run({ action: 'regenerateCode' })}
-          className="self-start rounded-full px-4 py-2 text-sm font-bold text-primary-ink transition hover:bg-primary-soft disabled:opacity-60"
-        >
-          コードを作り直す
-        </button>
-      </section>
+          </section>
 
-      <section className="flex flex-col gap-2">
-        <Group label="今日の進み具合">
-          <SwitchRow
-            label="フレンドに見せる"
-            on={sharePending ?? shareProgress}
-            onToggle={toggleShare}
-          />
-        </Group>
-        <p className={note}>見せるのは、今日完了した数と赤の数だけ。課題名は見せないよ。</p>
-      </section>
+          <section className="flex flex-col gap-2">
+            <Group label="今日の進み具合">
+              <SwitchRow
+                label="フレンドに見せる"
+                on={sharePending ?? shareProgress}
+                onToggle={toggleShare}
+              />
+            </Group>
+            <p className={note}>見せるのは、今日完了した数と赤の数だけ。課題名は見せないよ。</p>
+          </section>
 
-      {data.blocked.length > 0 && (
-        <Group label="ブロックした人">
-          {data.blocked.map((p) => (
-            <PersonRow key={p.userId} person={p} today={today} onOpen={open(p, 'blocked')} />
-          ))}
-        </Group>
+          {data.blocked.length > 0 && (
+            <Group label="ブロックした人">
+              {data.blocked.map((p) => (
+                <PersonRow key={p.userId} person={p} today={today} onOpen={open(p, 'blocked')} />
+              ))}
+            </Group>
+          )}
+        </>
       )}
     </div>
   )
