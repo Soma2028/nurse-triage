@@ -19,7 +19,6 @@ iPhone等（ホーム画面のWebアプリ）
 Vercel Functions（/api）
   ├─ /api/subscribe   通知の宛先を登録・解除
   ├─ /api/sync        通知に必要な課題データを丸ごと置き換え
-  ├─ /api/test        テスト通知を1件送る（アプリからは呼ばない。動作確認用）
   ├─ /api/vapid-key   VAPID の公開鍵を返す（アプリはここから取る）
   └─ /api/cron/notify 15分ごとに呼ばれ、送るべき通知を送る
 Neon（Postgres）
@@ -98,12 +97,12 @@ create table sent (
 
 ## 6. API
 
-subscribe・sync・test 共通：deviceId と secret を受け取り、secret_hash と照合する。合わなければ 401。入力は zod で検証する。
+subscribe・sync 共通：deviceId と secret を受け取り、secret_hash と照合する。合わなければ 401。入力は zod で検証する。
 
 - `POST /api/subscribe { deviceId, secret, subscription, settings }`：初回は devices を作成。subscription を upsert
 - `DELETE /api/subscribe { deviceId, secret, endpoint }`
 - `POST /api/sync { deviceId, secret, tasks: [{ id, type, due, done, title? }], settings }`：その端末の reminders を丸ごと置き換える（トランザクション）。上限は200件
-- `POST /api/test { deviceId, secret }`：その端末の全 subscription にテスト通知を送る
+- （`POST /api/test` のテスト通知は、使わない入口を減らすため消した）
 - `GET /api/vapid-key`：`VAPID_PUBLIC_KEY` を `{ publicKey }` で返す（公開してよい値なので照合なし）。アプリは公開鍵をビルドに埋め込まず、常にここから取る
 - `GET /api/cron/notify`：`Authorization: Bearer ${CRON_SECRET}` が合わなければ 401。送った件数・失敗件数を JSON で返す
 
@@ -133,7 +132,7 @@ subscribe・sync・test 共通：deviceId と secret を受け取り、secret_ha
 - 「通知に課題名を出す」スイッチ（初期は OFF）。下に、患者さんの情報を課題名に入れているならオフのままにしてね、と書く
 - 「通知」のスイッチをオフにすると、subscription を解除し、サーバーの端末データ（devices 行ごと）も消す
 - スイッチは押した瞬間に切り替え、登録・解除は裏で進める（読み込み中の表示は出さない）。登録に失敗したら、スイッチをオフに戻して理由を一言出す。終わるまでは、もう一度押しても受け付けない
-- テスト通知のボタンは置かない（`/api/test` は動作確認用にサーバーに残している）
+- テスト通知のボタンは置かない（`/api/test` も消した）
 
 ## 8. テスト
 

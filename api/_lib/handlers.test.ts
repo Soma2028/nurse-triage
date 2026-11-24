@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { hashSecret, secretMatches } from './auth.js'
 import type { Db, Device, PushTarget } from './db.js'
 import { MissingEnvError, readEnv } from './env.js'
-import { sendTest, subscribe, sync, unsubscribe, type Deps } from './handlers.js'
-import type { PushResult, SendPush } from './push.js'
+import { subscribe, sync, unsubscribe, type Deps } from './handlers.js'
+import type { SendPush } from './push.js'
 import { DEFAULT_PREFS, type NotifyPrefs, type Reminder } from './schedule.js'
 import { MAX_TASKS } from './validate.js'
 
@@ -293,40 +293,5 @@ describe('POST /api/sync', () => {
     )
     expect(r2.status).toBe(401)
     expect(store.reminders.has(DEVICE)).toBe(false)
-  })
-})
-
-describe('POST /api/test', () => {
-  it('その端末のすべての宛先に送り、件数を返す', async () => {
-    await register()
-    const r = await sendTest({ deviceId: DEVICE, secret: SECRET }, deps)
-    expect(r).toEqual({ status: 200, body: { ok: true, sent: 1, failed: 0 } })
-    expect(sendPush).toHaveBeenCalledWith(
-      { endpoint: ENDPOINT, p256dh: 'BOr_p256dh_key', auth: 'auth_secret' },
-      expect.objectContaining({ title: 'テスト通知' }),
-      { ttlSeconds: 60 },
-    )
-  })
-
-  it('push サービスに「もうない」と言われた宛先（404・410）は消す', async () => {
-    await register()
-    sendPush.mockResolvedValueOnce('gone' satisfies PushResult)
-    const r = await sendTest({ deviceId: DEVICE, secret: SECRET }, deps)
-    expect(r.body).toMatchObject({ sent: 0, failed: 1 })
-    expect(store.subs.has(ENDPOINT)).toBe(false)
-  })
-
-  it('それ以外の失敗では宛先を残す', async () => {
-    await register()
-    sendPush.mockResolvedValueOnce('error' satisfies PushResult)
-    await sendTest({ deviceId: DEVICE, secret: SECRET }, deps)
-    expect(store.subs.has(ENDPOINT)).toBe(true)
-  })
-
-  it('secret が違えば 401 で、送らない', async () => {
-    await register()
-    const r = await sendTest({ deviceId: DEVICE, secret: 'b'.repeat(43) }, deps)
-    expect(r.status).toBe(401)
-    expect(sendPush).not.toHaveBeenCalled()
   })
 })

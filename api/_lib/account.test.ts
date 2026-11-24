@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { deleteAccount } from './account.js'
-import { bearerToken } from './identity.js'
+import { authorizedParties, bearerToken } from './identity.js'
 import { fakeSocial } from './socialFake.js'
 
 describe('deleteAccount', () => {
@@ -33,5 +33,22 @@ describe('bearerToken', () => {
     expect(bearerToken('Bearer ')).toBeNull()
     expect(bearerToken('abc')).toBeNull()
     expect(bearerToken(null)).toBeNull()
+  })
+})
+
+describe('authorizedParties', () => {
+  it('本番は公開版のアドレスだけ（localhost・プレビューは受け付けない）', () => {
+    expect(
+      authorizedParties({ VERCEL_ENV: 'production', VERCEL_URL: 'nurse-triage-abc.vercel.app' }),
+    ).toEqual(['https://nurse-triage-amber.vercel.app'])
+  })
+
+  it('プレビュー・手元では、その版のアドレスと localhost も受け付ける', () => {
+    const p = authorizedParties({
+      VERCEL_ENV: 'preview',
+      VERCEL_URL: 'nurse-triage-abc.vercel.app',
+    })
+    expect(p).toContain('https://nurse-triage-abc.vercel.app')
+    expect(p).toContain('http://localhost:5173')
   })
 })

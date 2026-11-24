@@ -1,5 +1,5 @@
 /**
- * /api/subscribe・/api/sync・/api/test の中身。
+ * /api/subscribe・/api/sync の中身。
  * 入力の検証 → secret の照合 → DB という順で、Request/Response には触らない（テストしやすくするため）。
  */
 import type { z } from 'zod'
@@ -7,7 +7,7 @@ import { hashSecret, secretMatches } from './auth.js'
 import type { Db, Device } from './db.js'
 import type { SendPush } from './push.js'
 import type { Reminder } from './schedule.js'
-import { subscribeSchema, syncSchema, testSchema, unsubscribeSchema } from './validate.js'
+import { subscribeSchema, syncSchema, unsubscribeSchema } from './validate.js'
 
 export interface Deps {
   db: Db
@@ -94,30 +94,4 @@ export async function sync(input: unknown, { db }: Deps): Promise<Result> {
   }))
   await db.replaceReminders(deviceId, settings, reminders)
   return ok({ count: reminders.length })
-}
-
-/** POST /api/test：その端末のすべての宛先にテスト通知を送る */
-export async function sendTest(input: unknown, { db, sendPush }: Deps): Promise<Result> {
-  const parsed = testSchema.safeParse(input)
-  if (!parsed.success) return invalid(parsed.error)
-  const { deviceId, secret } = parsed.data
-
-  if (!(await authorize(db, deviceId, secret))) return UNAUTHORIZED
-
-  const targets = await db.listSubscriptions(deviceId)
-  const results = await Promise.all(
-    targets.map(async (t) => {
-      const r = await sendPush(
-        t,
-        { title: 'テスト通知', body: '通知はこんなふうに届くよ', tag: 'test' },
-        { ttlSeconds: 60 },
-      )
-      if (r === 'gone') await db.deleteSubscriptionByEndpoint(t.endpoint)
-      return r
-    }),
-  )
-  return ok({
-    sent: results.filter((r) => r === 'ok').length,
-    failed: results.filter((r) => r !== 'ok').length,
-  })
 }

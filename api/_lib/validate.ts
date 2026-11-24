@@ -86,9 +86,6 @@ export const syncSchema = z.strictObject({
   settings: prefsSchema,
 })
 
-export const testSchema = z.strictObject(auth)
-
 export type SubscribeInput = z.infer<typeof subscribeSchema>
 export type UnsubscribeInput = z.infer<typeof unsubscribeSchema>
 export type SyncInput = z.infer<typeof syncSchema>
-export type TestInput = z.infer<typeof testSchema>

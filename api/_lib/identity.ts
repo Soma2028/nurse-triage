@@ -10,13 +10,14 @@ export interface Identity {
   deleteUser(userId: string): Promise<void>
 }
 
-/** トークンを受け付けるアプリの場所（本番・この版のプレビュー・手元） */
-function authorizedParties(env: Record<string, string | undefined>): string[] {
-  const parties = [
-    'https://nurse-triage-amber.vercel.app',
-    'http://localhost:5173',
-    'http://localhost:4173',
-  ]
+/**
+ * トークンを受け付けるアプリの場所。本番は公開版のアドレスだけ。
+ * プレビュー・手元では、その版のアドレスと localhost も受け付ける
+ */
+export function authorizedParties(env: Record<string, string | undefined>): string[] {
+  const parties = ['https://nurse-triage-amber.vercel.app']
+  if (env.VERCEL_ENV === 'production') return parties
+  parties.push('http://localhost:5173', 'http://localhost:4173')
   for (const host of [env.VERCEL_URL, env.VERCEL_BRANCH_URL]) {
     if (host) parties.push(`https://${host}`)
   }
