@@ -5,7 +5,7 @@ import {
   type AnimationPlaybackControls,
   type PanInfo,
 } from 'framer-motion'
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ChevronsUpDown, Plus } from 'lucide-react'
 import {
   useEffect,
   useLayoutEffect,
@@ -344,12 +344,24 @@ export function ScheduleScreen({
           >
             <ChevronLeft aria-hidden className="size-5" />
           </button>
-          <h2
-            className="w-28 text-center text-base font-bold whitespace-nowrap tabular-nums"
-            aria-live="polite"
-          >
-            {y}年{m}月
-          </h2>
+          {/* 押すと年と月を回して選べる（端末の月の選び方を、見えない input で重ねる） */}
+          <div className="relative flex min-h-11 w-32 items-center justify-center gap-1 rounded-2xl has-focus-visible:ring-2 has-focus-visible:ring-primary/25">
+            <h2 className="text-base font-bold whitespace-nowrap tabular-nums" aria-live="polite">
+              {y}年{m}月
+            </h2>
+            <ChevronsUpDown aria-hidden className="size-4 shrink-0 text-ink-muted" />
+            <input
+              type="month"
+              aria-label="年と月を選ぶ"
+              className="ui-picker"
+              value={month}
+              onChange={(e) => {
+                // 空にされたとき（iPhone の「消去」）は何もしない
+                if (/^\d{4}-\d{2}$/.test(e.target.value)) setMonth(e.target.value)
+              }}
+              onClick={(e) => e.currentTarget.showPicker?.()}
+            />
+          </div>
           <button type="button" className={navBtn} onClick={() => moveMonth(1)} aria-label="次の月">
             <ChevronRight aria-hidden className="size-5" />
           </button>
