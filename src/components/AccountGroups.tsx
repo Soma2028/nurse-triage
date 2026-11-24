@@ -268,10 +268,9 @@ export function AccountRow({ onOpen }: { onOpen: () => void }) {
 
 function SignedAccountRow({ onOpen }: { onOpen: () => void }) {
   const { isSignedIn } = useAuth()
-  const { user } = useUser()
   if (!isSignedIn) return null
-  const email = user?.primaryEmailAddress?.emailAddress ?? ''
-  return <LinkRow icon={Mail} label="アカウント" value={email} onClick={onOpen} />
+  // メールアドレスは一覧には出さず、アカウントのページで見せる
+  return <LinkRow icon={Mail} label="アカウント" onClick={onOpen} />
 }
 
 type Confirm = 'signOut' | 'delete' | null
