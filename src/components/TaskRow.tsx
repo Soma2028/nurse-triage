@@ -96,7 +96,7 @@ export function ProgressBar({ a, label = '進捗' }: { a: Analysed; label?: stri
   )
 }
 
-/** 課題の1行（白い面の一覧の中に並べる）。押すと、くわしいことと操作のシートを開く */
+/** 課題の1行（白い面の一覧の中に並べる）。押すと、くわしいことと操作のページを開く */
 export function TaskRow({ a, rank, onOpen }: { a: Analysed; rank: number; onOpen: () => void }) {
   return (
     <button

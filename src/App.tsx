@@ -91,10 +91,10 @@ export default function App() {
   const editing =
     sheet.open && sheet.editingId ? state.tasks.find((t) => t.id === sheet.editingId) : undefined
 
-  /** せっていの中のページにいるとき、下のタブの「せってい」をもう一度押すと一覧に戻す */
-  const [settingsKey, setSettingsKey] = useState(0)
+  /** 中のページ（課題のくわしいページ・せっていのページ）にいるとき、同じタブをもう一度押すと一覧に戻す */
+  const [resetKey, setResetKey] = useState(0)
   const navigate = (s: Screen) => {
-    if (s === 'settings' && screen === 'settings') setSettingsKey((k) => k + 1)
+    if (s === screen) setResetKey((k) => k + 1)
     setScreen(s)
   }
   /** 課題を追加する。カレンダーの日付から開いたときは、その日を締切の初期値にする */
@@ -130,6 +130,7 @@ export default function App() {
           >
             {screen === 'home' && (
               <HomeScreen
+                key={resetKey}
                 date={formatDay(now)}
                 dayNote={dayNote(settings, schedule, now)}
                 analysed={analysed}
@@ -148,6 +149,7 @@ export default function App() {
             )}
             {screen === 'tasks' && (
               <TasksScreen
+                key={resetKey}
                 analysed={analysed}
                 done={state.done}
                 shortage={shortage}
@@ -171,7 +173,7 @@ export default function App() {
             )}
             {screen === 'settings' && (
               <SettingsScreen
-                key={settingsKey}
+                key={resetKey}
                 settings={settings}
                 practice={practice}
                 practiceNote={practiceNote}

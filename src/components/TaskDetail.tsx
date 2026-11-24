@@ -2,15 +2,15 @@ import { Check, Gauge, GraduationCap, Pencil, Tag, Trash2 } from 'lucide-react'
 import { IMPORTANCE_LABEL, TASK_TYPES } from '../constants'
 import { PROGRESS_STEP } from '../store/reducer'
 import type { Analysed } from '../types'
-import { Group, IconTile, Row } from './Group'
+import { Group, IconTile, LinkRow, Row } from './Group'
 import { ProgressBar, Reason, TagChip, TaskMeta } from './TaskRow'
 
 const primaryBtn =
   'inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-primary text-base font-bold text-on-primary transition hover:bg-primary-strong'
 const plainBtn =
-  'inline-flex min-h-11 items-center justify-center gap-1 rounded-full border border-line bg-surface px-4 text-sm font-bold text-ink transition hover:bg-paper'
+  'inline-flex min-h-12 items-center justify-center gap-1 rounded-full border border-line bg-surface px-4 text-base font-bold text-ink transition hover:bg-paper'
 
-/** 課題のくわしいことと操作（シートの中身）。課題の一覧・ホームの行を押すと開く */
+/** 課題のくわしいことと操作（TaskDetailPage の中身）。課題の一覧・ホームの行を押すと開く */
 export function TaskDetail({
   a,
   rank,
@@ -67,24 +67,20 @@ export function TaskDetail({
         <Check aria-hidden className="size-5" strokeWidth={2.5} />
         完了にする
       </button>
-      <div className="grid grid-cols-3 gap-2">
-        <button
-          type="button"
-          onClick={onAdvance}
-          className={plainBtn}
-          aria-label={`進捗を${PROGRESS_STEP}%進める`}
-        >
-          +{PROGRESS_STEP}%
-        </button>
-        <button type="button" onClick={onEdit} className={plainBtn}>
-          <Pencil aria-hidden className="size-4" />
-          編集
-        </button>
-        <button type="button" onClick={onRemove} className={plainBtn}>
-          <Trash2 aria-hidden className="size-4" />
-          削除
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={onAdvance}
+        className={plainBtn}
+        aria-label={`進捗を${PROGRESS_STEP}%進める`}
+      >
+        +{PROGRESS_STEP}%
+      </button>
+
+      {/* せっていのアカウントのページと同じ、行の一覧 */}
+      <Group>
+        <LinkRow icon={Pencil} label="編集する" onClick={onEdit} />
+        <LinkRow icon={Trash2} label="削除する" danger onClick={onRemove} />
+      </Group>
     </div>
   )
 }

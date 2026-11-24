@@ -1,5 +1,4 @@
 import { motion } from 'framer-motion'
-import { useState } from 'react'
 import type { HomeView } from '../logic/home'
 import { enter } from '../motion'
 import type { Analysed, Plan } from '../types'
@@ -10,7 +9,9 @@ import { ScreenLayout } from './ScreenLayout'
 import { Check } from 'lucide-react'
 import { PROGRESS_STEP } from '../store/reducer'
 import { Group } from './Group'
-import { TaskDetailSheet } from './TaskDetailSheet'
+import { PageStack } from './PageStack'
+import { TaskDetailPage } from './TaskDetailPage'
+import { usePageNav } from './pageNav'
 import { ProgressBar, Reason, TagChip, TaskMeta, TaskRow } from './TaskRow'
 import { todayProgress, type TodayProgress } from '../logic/today'
 import { TodayPlan } from './TodayPlan'
@@ -37,7 +38,7 @@ interface Props {
 }
 
 /**
- * 「つぎにやる」の1件。上を押すとくわしいシート、下の2つのボタンでその場で進められる。
+ * 「つぎにやる」の1件。上を押すとくわしいページ、下の2つのボタンでその場で進められる。
  * 主役は課題名と進み具合のバー（タッグは課題名の上の小さな札）
  */
 function NextCard({
@@ -193,75 +194,81 @@ export function HomeScreen({
   onRemove,
   onAdd,
 }: Props) {
-  // くわしいシートを開いている課題
-  const [openId, setOpenId] = useState<string | null>(null)
+  // くわしいページを開いている課題（null なら一覧）
+  const { page: openId, dir, go: setOpenId, back, isTop } = usePageNav<string | null>(null)
   const { next, urgent } = view
 
   return (
-    <ScreenLayout title={date} note={dayNote} onAdd={onAdd}>
-      <div className="flex flex-col gap-6">
-        {analysed.length > 0 && (
-          <TodayHeader
-            progress={todayProgress(worked, plan)}
-            hours={plan.hours}
-            urgent={redCount + blackCount > 0}
-          />
-        )}
-
-        <OverloadWarning a={shortage} onOpen={setOpenId} />
-
-        {analysed.length === 0 ? (
-          <Empty
-            mood="happy"
-            lines={['課題はぜんぶ片づいたよ。', '新しい課題は右下の＋から追加してね。']}
-          />
-        ) : next ? (
-          <motion.section
-            aria-labelledby="next-heading"
-            className="flex flex-col gap-2"
-            {...enter(0)}
-          >
-            <h2 id="next-heading" className={label}>
-              つぎにやる
-            </h2>
-            <NextCard
-              a={next}
-              rank={analysed.indexOf(next) + 1}
-              onOpen={() => setOpenId(next.task.id)}
-              onAdvance={() => onAdvance(next.task.id)}
-              onComplete={() => onComplete(next.task.id)}
-            />
-          </motion.section>
-        ) : null}
-
-        {analysed.length > 0 && (
-          <motion.div {...enter(0.08)}>
-            <TodayPlan plan={plan} onOpen={setOpenId} />
-          </motion.div>
-        )}
-
-        {urgent.length > 0 && (
-          <Group label="ほかの急ぎ">
-            {urgent.map((a) => (
-              <TaskRow
-                key={a.task.id}
-                a={a}
-                rank={analysed.indexOf(a) + 1}
-                onOpen={() => setOpenId(a.task.id)}
+    <PageStack pageKey={openId ?? 'list'} dir={dir} isTop={isTop} onBack={back}>
+      {openId ? (
+        <TaskDetailPage
+          analysed={analysed}
+          id={openId}
+          backLabel="ホームにもどる"
+          onBack={back}
+          onAdvance={onAdvance}
+          onComplete={onComplete}
+          onEdit={onEdit}
+          onRemove={onRemove}
+        />
+      ) : (
+        <ScreenLayout title={date} note={dayNote} onAdd={onAdd}>
+          <div className="flex flex-col gap-6">
+            {analysed.length > 0 && (
+              <TodayHeader
+                progress={todayProgress(worked, plan)}
+                hours={plan.hours}
+                urgent={redCount + blackCount > 0}
               />
-            ))}
-          </Group>
-        )}
-      </div>
-      <TaskDetailSheet
-        analysed={analysed}
-        openId={openId}
-        onClose={() => setOpenId(null)}
-        onAdvance={onAdvance}
-        onComplete={onComplete}
-        onEdit={onEdit}
-        onRemove={onRemove}
-      />
-    </ScreenLayout>
+            )}
+
+            <OverloadWarning a={shortage} onOpen={setOpenId} />
+
+            {analysed.length === 0 ? (
+              <Empty
+                mood="happy"
+                lines={['課題はぜんぶ片づいたよ。', '新しい課題は右下の＋から追加してね。']}
+              />
+            ) : next ? (
+              <motion.section
+                aria-labelledby="next-heading"
+                className="flex flex-col gap-2"
+                {...enter(0)}
+              >
+                <h2 id="next-heading" className={label}>
+                  つぎにやる
+                </h2>
+                <NextCard
+                  a={next}
+                  rank={analysed.indexOf(next) + 1}
+                  onOpen={() => setOpenId(next.task.id)}
+                  onAdvance={() => onAdvance(next.task.id)}
+                  onComplete={() => onComplete(next.task.id)}
+                />
+              </motion.section>
+            ) : null}
+
+            {analysed.length > 0 && (
+              <motion.div {...enter(0.08)}>
+                <TodayPlan plan={plan} onOpen={setOpenId} />
+              </motion.div>
+            )}
+
+            {urgent.length > 0 && (
+              <Group label="ほかの急ぎ">
+                {urgent.map((a) => (
+                  <TaskRow
+                    key={a.task.id}
+                    a={a}
+                    rank={analysed.indexOf(a) + 1}
+                    onOpen={() => setOpenId(a.task.id)}
+                  />
+                ))}
+              </Group>
+            )}
+          </div>
+        </ScreenLayout>
+      )}
+    </PageStack>
   )
 }

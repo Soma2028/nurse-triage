@@ -1,7 +1,5 @@
-import { AnimatePresence, motion, useDragControls, type PanInfo } from 'framer-motion'
 import { Bell, CircleHelp, Clock, House, Stethoscope } from 'lucide-react'
-import { Suspense, useCallback, useState, type PointerEvent, type ReactNode } from 'react'
-import { pageSlide } from '../motion'
+import { Suspense, useState, type ReactNode } from 'react'
 import { useNotifyStatus } from '../sync/useNotifyStatus'
 import type { Settings } from '../types'
 import { formatHours } from '../utils/format'
@@ -9,6 +7,8 @@ import { lazyAccountPart } from './accountGroupsLoader'
 import { Group, HoursStepper, LinkRow, Row, SwitchRow } from './Group'
 import { CalendarHelp, HomeHelp, PriorityHelp } from './Help'
 import { NotifyPanel } from './NotifyPanel'
+import { PageStack } from './PageStack'
+import { usePageNav } from './pageNav'
 import { ScreenLayout } from './ScreenLayout'
 import { Segmented } from './Segmented'
 
@@ -43,12 +43,6 @@ const TITLES: Record<Page, string> = {
 
 type HelpTab = 'home' | 'priority' | 'calendar'
 
-/** 画面の左端からこの幅の中で触り始めたら、右へのスワイプで一覧に戻る（iPhone の戻る操作と同じ） */
-const EDGE = 24
-/** これだけ右に引いたら（または速く引いたら）戻る。足りなければ元の位置に戻る */
-const BACK_OFFSET = 96
-const BACK_VELOCITY = 500
-
 /** 今日の分に「今日」の印を付けた名前 */
 function TodayLabel({ label, today }: { label: string; today: boolean }) {
   return (
@@ -74,21 +68,9 @@ export function SettingsScreen({
   onTogglePractice,
   onChangeSettings,
 }: Props) {
-  const [page, setPage] = useState<Page>('top')
-  /** 進むときは 1、戻るときは -1（すべり込む向き） */
-  const [dir, setDir] = useState(1)
+  const { page, dir, go, back, isTop } = usePageNav<Page>('top')
   const [helpTab, setHelpTab] = useState<HelpTab>('home')
   const notifyStatus = useNotifyStatus()
-  const drag = useDragControls()
-
-  const go = (p: Page) => {
-    setDir(1)
-    setPage(p)
-  }
-  const back = useCallback(() => {
-    setDir(-1)
-    setPage('top')
-  }, [])
 
   const hoursValue = `今日 ${formatHours(practice ? settings.hoursPractice : settings.hoursNormal)}`
 
@@ -206,39 +188,9 @@ export function SettingsScreen({
       break
   }
 
-  /** 左端で指を置いたら、ページを指に合わせて右へ動かす。シートが開いているときは動かさない */
-  const onPointerDown = (e: PointerEvent) => {
-    if (page === 'top' || e.pointerType !== 'touch' || e.clientX > EDGE) return
-    if (document.querySelector('[role="dialog"]')) return
-    drag.start(e)
-  }
-  const onDragEnd = (_: unknown, info: PanInfo) => {
-    if (info.offset.x > BACK_OFFSET || info.velocity.x > BACK_VELOCITY) back()
-  }
-
   return (
-    <AnimatePresence mode="wait" initial={false} custom={dir}>
-      <motion.div
-        key={page}
-        className="h-full"
-        custom={dir}
-        variants={pageSlide}
-        initial="enter"
-        animate="show"
-        exit="exit"
-        // 横へのスワイプはこちらで受け取り、縦のスクロールはそのまま中身に任せる
-        style={page === 'top' ? undefined : { touchAction: 'pan-y' }}
-        onPointerDown={onPointerDown}
-        drag={page === 'top' ? false : 'x'}
-        dragListener={false}
-        dragControls={drag}
-        dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={{ left: 0, right: 1 }}
-        dragMomentum={false}
-        onDragEnd={onDragEnd}
-      >
-        {content}
-      </motion.div>
-    </AnimatePresence>
+    <PageStack pageKey={page} dir={dir} isTop={isTop} onBack={back}>
+      {content}
+    </PageStack>
   )
 }
