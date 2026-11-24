@@ -7,6 +7,7 @@ import { loadClerkKey } from './social/config.ts'
 import { takeInviteFromUrl } from './social/invite.ts'
 import { StoreProvider } from './store/StoreProvider.tsx'
 import { registerServiceWorker } from './sync/registerSW.ts'
+import { watchForUpdate } from './sync/updateCheck.ts'
 import { fixViewportOnRotate } from './viewportFix.ts'
 
 // 招待リンク（/f/コード）から開いたら、そのコードを覚えてアドレスを / に戻す
@@ -38,5 +39,7 @@ createRoot(document.getElementById('root')!).render(
 )
 
 registerServiceWorker()
+// 新しい版を公開したら、開いたままのホーム画面のアプリも、戻ってきたときに切り替える
+watchForUpdate()
 // iPhone で横から縦に戻したとき、ページ全体がずれたまま残らないように
 fixViewportOnRotate()
