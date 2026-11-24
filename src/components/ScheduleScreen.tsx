@@ -5,7 +5,7 @@ import {
   type AnimationPlaybackControls,
   type PanInfo,
 } from 'framer-motion'
-import { ChevronsUpDown, Plus } from 'lucide-react'
+import { CalendarCheck, CalendarOff, CalendarPlus, ChevronsUpDown, Plus } from 'lucide-react'
 import {
   useEffect,
   useLayoutEffect,
@@ -486,7 +486,7 @@ export function ScheduleScreen({
           />
           {/* 課題の追加と同じ形：左に名前・右に日付。行のどこを押しても日付を選ぶ画面が開く */}
           <Group>
-            <Row label="開始日">
+            <Row icon={CalendarPlus} label="開始日">
               <Picker text={start ? shortDate(start) : '選んでね'}>
                 <input
                   type="date"
@@ -502,7 +502,7 @@ export function ScheduleScreen({
                 />
               </Picker>
             </Row>
-            <Row label="終了日">
+            <Row icon={CalendarCheck} label="終了日">
               <Picker text={end ? shortDate(end) : '選んでね'}>
                 <input
                   type="date"
@@ -515,6 +515,7 @@ export function ScheduleScreen({
               </Picker>
             </Row>
             <SwitchRow
+              icon={CalendarOff}
               label="土日を除く"
               on={skipWeekends}
               onToggle={() => setSkipWeekends((v) => !v)}

@@ -1,8 +1,8 @@
-import { Check, Pencil, Trash2 } from 'lucide-react'
+import { Check, Gauge, GraduationCap, Pencil, Tag, Trash2 } from 'lucide-react'
 import { IMPORTANCE_LABEL, TASK_TYPES } from '../constants'
 import { PROGRESS_STEP } from '../store/reducer'
 import type { Analysed } from '../types'
-import { Group, Row } from './Group'
+import { Group, IconTile, Row } from './Group'
 import { ProgressBar, Reason, TagChip, TaskMeta } from './TaskRow'
 
 const primaryBtn =
@@ -40,16 +40,17 @@ export function TaskDetail({
       </div>
 
       <Group>
-        <Row label="種類">
+        <Row icon={Tag} label="種類">
           <span className="truncate pr-2 text-sm text-ink">{TASK_TYPES[task.type].short}</span>
         </Row>
-        <Row label="成績・単位への影響">
+        <Row icon={GraduationCap} label="成績・単位への影響">
           <span className="pr-2 text-sm text-ink">{IMPORTANCE_LABEL[task.importance]}</span>
         </Row>
         <div className="flex flex-col gap-2 px-4 py-3">
-          <div className="flex justify-between text-base text-ink">
-            進捗
-            <span className="font-bold tabular-nums">{task.progress}%</span>
+          <div className="flex items-center gap-3 text-base text-ink">
+            <IconTile icon={Gauge} />
+            <span className="flex-1">進捗</span>
+            <span className="pr-2 font-bold tabular-nums">{task.progress}%</span>
           </div>
           <ProgressBar a={a} />
         </div>

@@ -70,12 +70,15 @@ export function LinkRow({
   )
 }
 
-/** Group の中の1行。左に名前、右に値や操作 */
+/** Group の中の1行。左に（アイコンと）名前、右に値や操作 */
 export function Row({
+  icon,
   label,
   htmlFor,
   children,
 }: {
+  /** 名前の左に置くアイコン（せっていの行と同じ色なしの枠） */
+  icon?: LucideIcon
   label: ReactNode
   /** 右の入力欄の id。名前を押してもその欄に移るようにする */
   htmlFor?: string
@@ -84,13 +87,16 @@ export function Row({
   const name = 'flex min-w-0 items-center gap-2 text-base text-ink'
   return (
     <div className="relative flex min-h-12 items-center justify-between gap-2 py-1 pr-2 pl-4 has-focus-visible:ring-2 has-focus-visible:ring-primary/25 has-focus-visible:ring-inset">
-      {htmlFor ? (
-        <label htmlFor={htmlFor} className={`${name} shrink-0`}>
-          {label}
-        </label>
-      ) : (
-        <p className={name}>{label}</p>
-      )}
+      <span className={`flex min-w-0 items-center gap-3 ${htmlFor ? 'shrink-0' : ''}`}>
+        {icon && <IconTile icon={icon} />}
+        {htmlFor ? (
+          <label htmlFor={htmlFor} className={name}>
+            {label}
+          </label>
+        ) : (
+          <p className={name}>{label}</p>
+        )}
+      </span>
       <div className="flex min-w-0 flex-1 items-center justify-end">{children}</div>
     </div>
   )

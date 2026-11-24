@@ -1,4 +1,4 @@
-import { Share, SquarePlus } from 'lucide-react'
+import { BellRing, Share, SquarePlus, Type } from 'lucide-react'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { disableNotifications, enableNotifications } from '../sync/notify'
 import {
@@ -172,7 +172,7 @@ export function NotifyPanel() {
         )}
         <section className="flex flex-col gap-2">
           <Group>
-            <SwitchRow label="通知" on={on} onToggle={toggle} />
+            <SwitchRow icon={BellRing} label="通知" on={on} onToggle={toggle} />
           </Group>
           <p className={note}>
             {on
@@ -222,6 +222,7 @@ export function NotifyPanel() {
             <section className="flex flex-col gap-2">
               <Group>
                 <SwitchRow
+                  icon={Type}
                   label="通知に課題名を出す"
                   on={push.prefs.showTitle}
                   onToggle={() => setPref('showTitle', !push.prefs.showTitle)}

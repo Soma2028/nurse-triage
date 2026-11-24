@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Copy, QrCode as QrIcon, Share2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Copy, Eye, QrCode as QrIcon, Share2 } from 'lucide-react'
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import type { ActResult, FriendAction, FriendState, Person } from '../social/friends'
 import { gradeLabel } from '../social/profile'
@@ -408,6 +408,7 @@ export function FriendsPanel({
           <section className="flex flex-col gap-2">
             <Group label="今日の進み具合">
               <SwitchRow
+                icon={Eye}
                 label="フレンドに見せる"
                 on={sharePending ?? shareProgress}
                 onToggle={toggleShare}

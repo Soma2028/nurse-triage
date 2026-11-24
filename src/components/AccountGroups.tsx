@@ -321,7 +321,7 @@ export function AccountPage({ onGone }: { onGone: () => void }) {
     <>
       <div className="flex flex-col gap-6">
         <Group>
-          <Row label="メールアドレス">
+          <Row icon={Mail} label="メールアドレス">
             <span className="truncate pr-2 text-sm text-ink-muted">{email}</span>
           </Row>
         </Group>

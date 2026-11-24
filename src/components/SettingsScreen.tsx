@@ -1,5 +1,5 @@
 import { AnimatePresence, motion, useDragControls, type PanInfo } from 'framer-motion'
-import { Bell, CircleHelp, Clock, Stethoscope } from 'lucide-react'
+import { Bell, CircleHelp, Clock, House, Stethoscope } from 'lucide-react'
 import { Suspense, useCallback, useState, type PointerEvent, type ReactNode } from 'react'
 import { pageSlide } from '../motion'
 import { useNotifyStatus } from '../sync/useNotifyStatus'
@@ -138,7 +138,7 @@ export function SettingsScreen({
       content = sub(
         <section className="flex flex-col gap-2">
           <Group label="1日に使える時間">
-            <Row label={<TodayLabel label="実習の日" today={practice} />}>
+            <Row icon={Stethoscope} label={<TodayLabel label="実習の日" today={practice} />}>
               <HoursStepper
                 label="実習の日に使える時間"
                 value={settings.hoursPractice}
@@ -147,7 +147,7 @@ export function SettingsScreen({
                 onChange={(h) => onChangeSettings({ hoursPractice: h })}
               />
             </Row>
-            <Row label={<TodayLabel label="ふだんの日" today={!practice} />}>
+            <Row icon={House} label={<TodayLabel label="ふだんの日" today={!practice} />}>
               <HoursStepper
                 label="ふだんの日に使える時間"
                 value={settings.hoursNormal}
