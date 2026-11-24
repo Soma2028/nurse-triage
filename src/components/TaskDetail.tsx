@@ -1,8 +1,8 @@
-import { Check, Gauge, GraduationCap, Pencil, Tag, Trash2 } from 'lucide-react'
+import { Check, Pencil, Trash2 } from 'lucide-react'
 import { IMPORTANCE_LABEL, TASK_TYPES } from '../constants'
 import { PROGRESS_STEP } from '../store/reducer'
 import type { Analysed } from '../types'
-import { Group, IconTile, LinkRow, Row } from './Group'
+import { Group, LinkRow, Row } from './Group'
 import { ProgressBar, Reason, TagChip, TaskMeta } from './TaskRow'
 
 const primaryBtn =
@@ -32,7 +32,7 @@ export function TaskDetail({
       <div className="flex items-start gap-3">
         <TagChip a={a} rank={rank} size="lg" />
         <div className="min-w-0">
-          <p className="text-base font-bold break-words text-ink">{task.title}</p>
+          <p className="text-title font-bold break-words text-ink">{task.title}</p>
           <p className="text-sm text-ink-muted">
             <TaskMeta a={a} />
           </p>
@@ -40,15 +40,14 @@ export function TaskDetail({
       </div>
 
       <Group>
-        <Row icon={Tag} label="種類">
+        <Row label="種類">
           <span className="truncate pr-2 text-sm text-ink">{TASK_TYPES[task.type].short}</span>
         </Row>
-        <Row icon={GraduationCap} label="成績・単位への影響">
+        <Row label="成績・単位への影響">
           <span className="pr-2 text-sm text-ink">{IMPORTANCE_LABEL[task.importance]}</span>
         </Row>
         <div className="flex flex-col gap-2 px-4 py-3">
           <div className="flex items-center gap-3 text-base text-ink">
-            <IconTile icon={Gauge} />
             <span className="flex-1">進捗</span>
             <span className="pr-2 font-bold tabular-nums">{task.progress}%</span>
           </div>

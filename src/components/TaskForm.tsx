@@ -1,10 +1,9 @@
-import { CalendarClock, Gauge, Hourglass, Tag } from 'lucide-react'
 import { useId, useState, type FormEvent } from 'react'
 import { IMPORTANCE_LABEL, TASK_TYPE_KEYS, TASK_TYPES } from '../constants'
 import { daysFromToday } from '../store/sample'
 import type { Importance, Task, TaskType } from '../types'
 import { formatDue, fromDatetimeLocal, toDatetimeLocal } from '../utils/format'
-import { Group, HoursStepper, IconTile, Picker, Row } from './Group'
+import { Group, HoursStepper, Picker, Row } from './Group'
 import { Segmented } from './Segmented'
 
 interface Props {
@@ -82,7 +81,7 @@ export function TaskForm({ editing, now, defaultDue, onSubmit }: Props) {
       </Group>
 
       <Group>
-        <Row icon={Tag} label="種類" htmlFor={`${id}-type`}>
+        <Row label="種類" htmlFor={`${id}-type`}>
           <Picker text={TASK_TYPES[type].short}>
             <select
               id={`${id}-type`}
@@ -98,7 +97,7 @@ export function TaskForm({ editing, now, defaultDue, onSubmit }: Props) {
             </select>
           </Picker>
         </Row>
-        <Row icon={CalendarClock} label="締切" htmlFor={`${id}-due`}>
+        <Row label="締切" htmlFor={`${id}-due`}>
           <Picker text={Number.isNaN(dueMs) ? '選んでね' : formatDue(dueMs)}>
             <input
               id={`${id}-due`}
@@ -111,7 +110,7 @@ export function TaskForm({ editing, now, defaultDue, onSubmit }: Props) {
             />
           </Picker>
         </Row>
-        <Row icon={Hourglass} label="見込み時間">
+        <Row label="見込み時間">
           <HoursStepper
             label="見込み時間"
             value={estHours}
@@ -126,7 +125,6 @@ export function TaskForm({ editing, now, defaultDue, onSubmit }: Props) {
               htmlFor={`${id}-progress`}
               className="flex items-center gap-3 text-base text-ink"
             >
-              <IconTile icon={Gauge} />
               <span className="flex-1">進捗</span>
               <span className="pr-2 font-bold tabular-nums">{progress}%</span>
             </label>
