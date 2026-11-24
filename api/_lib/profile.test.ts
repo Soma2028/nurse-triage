@@ -17,7 +17,7 @@ describe('profile', () => {
     const r = await putProfile('good', input, deps)
     expect(r.status).toBe(200)
     const profile = r.body.profile as { friendCode: string }
-    expect(profile).toMatchObject(input)
+    expect(profile).toMatchObject({ ...input, shareProgress: true })
     expect(profile.friendCode).toMatch(/^[A-HJ-NP-Z2-9]{8}$/)
     expect((await getProfile('good', deps)).body).toEqual({ profile })
   })
@@ -36,6 +36,7 @@ describe('profile', () => {
       grade: null,
       bio: '',
       friendCode: first.friendCode,
+      shareProgress: true,
     })
   })
 

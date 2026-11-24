@@ -6,7 +6,14 @@ import { fakeSocial } from './socialFake.js'
 function setup() {
   const s = fakeSocial({ ta: 'a', tb: 'b', tc: 'c', tn: 'nobody' })
   const make = (id: string, nickname: string, code: string) =>
-    s.profiles.set(id, { nickname, icon: 'cat', grade: null, bio: '', friendCode: code })
+    s.profiles.set(id, {
+      nickname,
+      icon: 'cat',
+      grade: null,
+      bio: '',
+      friendCode: code,
+      shareProgress: true,
+    })
   make('a', 'あおい', 'AAAA2222')
   make('b', 'ベニ', 'BBBB3333')
   make('c', 'ちか', 'CCCC4444')

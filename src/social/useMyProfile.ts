@@ -103,11 +103,26 @@ export function useMyProfile() {
     [userId],
   )
 
+  /** 今日の進み具合をフレンドに見せるか切り替える */
+  const setShare = useCallback(
+    async (share: boolean): Promise<boolean> => {
+      if (!userId) return false
+      const r = await authedCall(() => tokenRef.current(), 'PATCH', '/api/progress', { share })
+      if (r.ok && isProfile(r.data?.profile)) {
+        set({ userId, status: 'ready', profile: r.data.profile })
+        return true
+      }
+      return false
+    },
+    [userId],
+  )
+
   const mine = current.userId === userId && !!userId
   return {
     status: mine ? current.status : ('loading' as Status),
     profile: mine ? current.profile : null,
     reload: () => userId && load(userId),
     save,
+    setShare,
   }
 }

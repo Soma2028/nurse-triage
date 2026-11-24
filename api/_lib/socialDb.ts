@@ -36,6 +36,22 @@ export interface SocialDb {
   unblock(blocker: string, blocked: string): Promise<void>
   /** フレンドコードを作り直す。ほかの人と重なったら false */
   setFriendCode(userId: string, code: string): Promise<boolean>
+
+  // ---- 今日の進み具合 ----
+  saveProgress(userId: string, p: ProgressInput): Promise<void>
+  /** 見せるのをやめたら、置いてある進み具合も消す */
+  setShareProgress(userId: string, share: boolean): Promise<void>
+}
+
+/** 今日の進み具合（課題名・種類・締切は含まない。数だけ） */
+export interface ProgressInput {
+  day: string // 端末の日付 YYYY-MM-DD
+  doneCount: number // その日に完了にした課題の数
+  redCount: number // いまの赤の課題の数
+}
+
+export interface Progress extends ProgressInput {
+  updatedAt: number // epoch ms
 }
 
 /** フレンドの一覧などに出す人（課題のことは何も含まない） */
@@ -45,6 +61,8 @@ export interface Person {
   icon: ProfileIcon
   grade: number | null
   bio: string
+  /** フレンドの一覧でだけ入る。見せない設定・まだ送っていなければ null */
+  progress?: Progress | null
 }
 
 export interface FriendLists {
@@ -70,7 +88,7 @@ export function neonSocialDb(databaseUrl: string): SocialDb {
   return {
     async getProfile(userId) {
       const rows = await sql`
-        select nickname, icon, grade, bio, friend_code from profiles where user_id = ${userId}`
+        select nickname, icon, grade, bio, friend_code, share_progress from profiles where user_id = ${userId}`
       return rows[0] ? toProfile(rows[0]) : null
     },
 
@@ -82,7 +100,7 @@ export function neonSocialDb(databaseUrl: string): SocialDb {
           on conflict (user_id) do update
             set nickname = excluded.nickname, icon = excluded.icon,
                 grade = excluded.grade, bio = excluded.bio
-          returning nickname, icon, grade, bio, friend_code`
+          returning nickname, icon, grade, bio, friend_code, share_progress`
         return toProfile(rows[0])
       } catch (e) {
         // フレンドコードがほかの人と重なった
@@ -99,8 +117,11 @@ export function neonSocialDb(databaseUrl: string): SocialDb {
     async friendLists(userId) {
       const [friends, incoming, outgoing, blocked] = await sql.transaction(
         [
-          sql`select p.user_id, p.nickname, p.icon, p.grade, p.bio from friendships f
+          sql`select p.user_id, p.nickname, p.icon, p.grade, p.bio,
+                pr.day::text as day, pr.done_count, pr.red_count, pr.updated_at
+              from friendships f
               join profiles p on p.user_id = case when f.user_a = ${userId} then f.user_b else f.user_a end
+              left join progress pr on pr.user_id = p.user_id and p.share_progress
               where f.user_a = ${userId} or f.user_b = ${userId}
               order by p.nickname`,
           sql`select p.user_id, p.nickname, p.icon, p.grade, p.bio from friend_requests r
@@ -116,7 +137,7 @@ export function neonSocialDb(databaseUrl: string): SocialDb {
         { readOnly: true },
       )
       return {
-        friends: friends.map(toPerson),
+        friends: friends.map((r) => ({ ...toPerson(r), progress: toProgress(r) })),
         incoming: incoming.map(toPerson),
         outgoing: outgoing.map(toPerson),
         blocked: blocked.map(toPerson),
@@ -197,6 +218,22 @@ export function neonSocialDb(databaseUrl: string): SocialDb {
       }
     },
 
+    async saveProgress(userId, p) {
+      await sql`
+        insert into progress (user_id, day, done_count, red_count, updated_at)
+        values (${userId}, ${p.day}::date, ${p.doneCount}, ${p.redCount}, now())
+        on conflict (user_id) do update
+          set day = excluded.day, done_count = excluded.done_count,
+              red_count = excluded.red_count, updated_at = now()`
+    },
+
+    async setShareProgress(userId, share) {
+      await sql.transaction([
+        sql`update profiles set share_progress = ${share} where user_id = ${userId}`,
+        ...(share ? [] : [sql`delete from progress where user_id = ${userId}`]),
+      ])
+    },
+
     async deleteUserData(userId) {
       await sql.transaction([
         sql`delete from profiles where user_id = ${userId}`,
@@ -213,6 +250,7 @@ function toProfile(row: Record<string, unknown>): Profile {
     grade: row.grade === null ? null : Number(row.grade),
     bio: row.bio as string,
     friendCode: row.friend_code as string,
+    shareProgress: row.share_progress !== false,
   }
 }
 
@@ -223,5 +261,15 @@ function toPerson(row: Record<string, unknown>): Person {
     icon: row.icon as ProfileIcon,
     grade: row.grade === null ? null : Number(row.grade),
     bio: row.bio as string,
+  }
+}
+
+function toProgress(row: Record<string, unknown>): Progress | null {
+  if (row.day === null || row.day === undefined) return null
+  return {
+    day: String(row.day),
+    doneCount: Number(row.done_count),
+    redCount: Number(row.red_count),
+    updatedAt: new Date(row.updated_at as string | Date).getTime(),
   }
 }

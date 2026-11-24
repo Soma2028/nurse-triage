@@ -14,6 +14,16 @@ export interface Person {
   icon: ProfileIcon
   grade: number | null
   bio: string
+  /** フレンドの一覧でだけ入る。見せない設定・まだ送っていなければ null */
+  progress?: FriendProgress | null
+}
+
+/** フレンドの今日の進み具合（数だけ） */
+export interface FriendProgress {
+  day: string // YYYY-MM-DD
+  doneCount: number
+  redCount: number
+  updatedAt: number
 }
 
 export interface FriendState {

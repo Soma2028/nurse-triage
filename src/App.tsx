@@ -19,6 +19,8 @@ import {
 import { dayNote, homeView } from './logic/home'
 import { baseTransition } from './motion'
 import { usePendingInvite } from './social/invite'
+import { computeProgress } from './social/progress'
+import { useSocialAvailable } from './social/SocialContext'
 import { useStore } from './store/context'
 import { useNotifySync } from './sync/useNotifySync'
 import type { Task } from './types'
@@ -29,6 +31,11 @@ const InviteSheet = lazy(() =>
   import('./components/InviteSheet').then((m) => ({ default: m.InviteSheet })),
 )
 
+// 今日の進み具合をフレンドに送る部品も Clerk を使うので、ログインの機能が使えるときだけ読み込む
+const ProgressSync = lazy(() =>
+  import('./components/ProgressSync').then((m) => ({ default: m.ProgressSync })),
+)
+
 /** 追加・編集パネルの状態。editingId が null なら新規追加 */
 type Sheet = { open: false } | { open: true; editingId: string | null; defaultDue?: number }
 
@@ -37,6 +44,7 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>('home')
   const [sheet, setSheet] = useState<Sheet>({ open: false })
   const invite = usePendingInvite()
+  const socialAvailable = useSocialAvailable()
 
   const { settings, schedule } = state
   // 通知をオンにしている端末だけ、課題の締切などを裏でサーバーに送る
@@ -59,6 +67,11 @@ export default function App() {
             ? '今日は実習の日（スケジュールより）'
             : '今日はふだんの日（スケジュールより）'
   const plan = useMemo(() => buildPlan(analysed, hours), [analysed, hours])
+  // フレンドに見せる今日の進み具合（数だけ）
+  const progress = useMemo(
+    () => computeProgress(state.done, analysed, now),
+    [state.done, analysed, now],
+  )
   const counts = countByTriage(analysed)
   const shortage = firstShortage(analysed)
   const view = useMemo(() => homeView(analysed, plan), [analysed, plan])
@@ -159,6 +172,12 @@ export default function App() {
         onSubmit={submit}
         onClose={closeSheet}
       />
+
+      {socialAvailable && (
+        <Suspense fallback={null}>
+          <ProgressSync progress={progress} />
+        </Suspense>
+      )}
 
       {invite && (
         <Suspense fallback={null}>

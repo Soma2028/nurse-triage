@@ -4,13 +4,14 @@
 import { vi } from 'vitest'
 import type { SocialDeps } from './account.js'
 import type { Profile } from './profile.js'
-import { pair, type Person, type SocialDb } from './socialDb.js'
+import { pair, type Person, type Progress, type SocialDb } from './socialDb.js'
 
 export function fakeSocial(tokens: Record<string, string> = { good: 'user_1' }) {
   const profiles = new Map<string, Profile>()
   const requests = new Set<string>() // `${from}>${to}`
   const friendships = new Set<string>() // `${a}|${b}`（a < b）
   const blocks = new Set<string>() // `${blocker}>${blocked}`
+  const progress = new Map<string, Progress>()
   const calls: string[] = []
 
   const person = (userId: string): Person => {
@@ -28,7 +29,11 @@ export function fakeSocial(tokens: Record<string, string> = { good: 'user_1' }) 
     saveProfile: async (userId, input, friendCode) => {
       const current = profiles.get(userId)
       if (!current && [...profiles.values()].some((p) => p.friendCode === friendCode)) return null
-      const saved = { ...input, friendCode: current?.friendCode ?? friendCode }
+      const saved = {
+        ...input,
+        friendCode: current?.friendCode ?? friendCode,
+        shareProgress: current?.shareProgress ?? true,
+      }
       profiles.set(userId, saved)
       return saved
     },
@@ -42,7 +47,11 @@ export function fakeSocial(tokens: Record<string, string> = { good: 'user_1' }) 
       friends: [...friendships]
         .map((f) => f.split('|'))
         .filter((f) => f.includes(me))
-        .map((f) => person(f[0] === me ? f[1] : f[0])),
+        .map((f) => (f[0] === me ? f[1] : f[0]))
+        .map((id) => ({
+          ...person(id),
+          progress: profiles.get(id)!.shareProgress ? (progress.get(id) ?? null) : null,
+        })),
       incoming: [...requests]
         .map((r) => r.split('>'))
         .filter(([, to]) => to === me)
@@ -85,6 +94,13 @@ export function fakeSocial(tokens: Record<string, string> = { good: 'user_1' }) 
     unblock: async (blocker, blocked) => {
       blocks.delete(`${blocker}>${blocked}`)
     },
+    saveProgress: async (userId, p) => {
+      progress.set(userId, { ...p, updatedAt: 1 })
+    },
+    setShareProgress: async (userId, share) => {
+      profiles.set(userId, { ...profiles.get(userId)!, shareProgress: share })
+      if (!share) progress.delete(userId)
+    },
     setFriendCode: async (userId, code) => {
       if ([...profiles].some(([id, p]) => id !== userId && p.friendCode === code)) return false
       profiles.set(userId, { ...profiles.get(userId)!, friendCode: code })
@@ -100,5 +116,5 @@ export function fakeSocial(tokens: Record<string, string> = { good: 'user_1' }) 
       }),
     },
   }
-  return { deps, db, profiles, friendships, calls }
+  return { deps, db, profiles, friendships, progress, calls }
 }

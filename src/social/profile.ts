@@ -55,9 +55,11 @@ export interface Profile {
   grade: number | null // 1〜4。null は「ひみつ」
   bio: string
   friendCode: string
+  /** 今日の進み具合をフレンドに見せるか（前の版の保存データにはないので、ないときは見せる） */
+  shareProgress?: boolean
 }
 
-export type ProfileInput = Omit<Profile, 'friendCode'>
+export type ProfileInput = Omit<Profile, 'friendCode' | 'shareProgress'>
 
 export const NICKNAME_MAX = 12
 export const BIO_MAX = 40
@@ -76,6 +78,7 @@ export function isProfile(v: unknown): v is Profile {
     (PROFILE_ICONS as readonly string[]).includes(p.icon) &&
     (p.grade === null || typeof p.grade === 'number') &&
     typeof p.bio === 'string' &&
-    typeof p.friendCode === 'string'
+    typeof p.friendCode === 'string' &&
+    (p.shareProgress === undefined || typeof p.shareProgress === 'boolean')
   )
 }

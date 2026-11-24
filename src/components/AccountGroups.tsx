@@ -147,6 +147,8 @@ function SignedProfileGroup() {
           error={friends.error}
           act={friends.act}
           reload={friends.load}
+          shareProgress={me.profile?.shareProgress !== false}
+          onShareProgress={me.setShare}
         />
       </Sheet>
       <Sheet open={loginOpen && !isSignedIn} title="ログイン" onClose={() => setLoginOpen(false)}>

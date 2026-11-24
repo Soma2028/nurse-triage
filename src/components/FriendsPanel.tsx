@@ -3,8 +3,10 @@ import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import type { ActResult, FriendAction, FriendState, Person } from '../social/friends'
 import { gradeLabel } from '../social/profile'
 import { inviteLink } from '../social/invite'
+import { progressText } from '../social/progress'
+import { dayKey } from '../logic/schedule'
 import { Avatar } from './Avatar'
-import { Group } from './Group'
+import { Group, SwitchRow } from './Group'
 import { QrCode } from './QrCode'
 
 /** 人の一覧のどこにいる人か */
@@ -49,14 +51,18 @@ const personSub = (p: Person) => [gradeLabel(p.grade), p.bio].filter(Boolean).jo
 /** 一覧の1人（押すとくわしい画面） */
 function PersonRow({
   person,
+  today,
   onOpen,
   aside,
 }: {
   person: Person
+  /** 今日の日付 YYYY-MM-DD（進み具合が今日の分か見分ける） */
+  today: string
   onOpen: () => void
   aside?: ReactNode
 }) {
-  const sub = personSub(person)
+  // フレンドは今日の進み具合を、それ以外の人は学年・ひとことを出す
+  const sub = progressText(person.progress, today) ?? personSub(person)
   return (
     <div className="flex items-center">
       <button type="button" onClick={onOpen} className={`${rowBtn} min-w-0 flex-1`}>
@@ -81,18 +87,37 @@ export function FriendsPanel({
   error,
   act,
   reload,
+  shareProgress,
+  onShareProgress,
 }: {
   data: FriendState | null
   /** 読み込みに失敗した理由（なければ null） */
   error: string | null
   act: (a: FriendAction) => Promise<ActResult>
   reload: () => Promise<void>
+  /** 今日の進み具合をフレンドに見せているか */
+  shareProgress: boolean
+  onShareProgress: (share: boolean) => Promise<boolean>
 }) {
   const [detail, setDetail] = useState<{ person: Person; kind: Kind } | null>(null)
   const [message, setMessage] = useState<Message>(null)
   const [busy, setBusy] = useState(false)
   const [code, setCode] = useState('')
   const [showQr, setShowQr] = useState(false)
+  // 今日の日付（シートを開いたときの。進み具合が今日の分か見分ける）
+  const [today] = useState(() => dayKey(Date.now()))
+  /** 見せるスイッチを押したあと、サーバーが返事をするまでの値（押した瞬間に切り替えて見せる） */
+  const [sharePending, setSharePending] = useState<boolean | null>(null)
+
+  const toggleShare = async () => {
+    if (sharePending !== null) return
+    const next = !shareProgress
+    setSharePending(next)
+    setMessage(null)
+    const ok = await onShareProgress(next)
+    setSharePending(null)
+    if (!ok) setMessage({ tone: 'error', text: NETWORK_ERROR })
+  }
 
   // 開いたら最新にする（申請が届いているかもしれない）
   useEffect(() => {
@@ -133,6 +158,7 @@ export function FriendsPanel({
       <PersonDetail
         person={detail.person}
         kind={detail.kind}
+        today={today}
         busy={busy}
         onBack={() => setDetail(null)}
         onAction={async (a) => {
@@ -203,6 +229,7 @@ export function FriendsPanel({
             <PersonRow
               key={p.userId}
               person={p}
+              today={today}
               onOpen={open(p, 'incoming')}
               aside={
                 <button
@@ -227,7 +254,7 @@ export function FriendsPanel({
             </p>
           ) : (
             data.friends.map((p) => (
-              <PersonRow key={p.userId} person={p} onOpen={open(p, 'friend')} />
+              <PersonRow key={p.userId} person={p} today={today} onOpen={open(p, 'friend')} />
             ))
           )}
         </Group>
@@ -236,7 +263,7 @@ export function FriendsPanel({
       {data.outgoing.length > 0 && (
         <Group label="送った申請">
           {data.outgoing.map((p) => (
-            <PersonRow key={p.userId} person={p} onOpen={open(p, 'outgoing')} />
+            <PersonRow key={p.userId} person={p} today={today} onOpen={open(p, 'outgoing')} />
           ))}
         </Group>
       )}
@@ -321,10 +348,21 @@ export function FriendsPanel({
         </button>
       </section>
 
+      <section className="flex flex-col gap-2">
+        <Group label="今日の進み具合">
+          <SwitchRow
+            label="フレンドに見せる"
+            on={sharePending ?? shareProgress}
+            onToggle={toggleShare}
+          />
+        </Group>
+        <p className={note}>見せるのは、今日完了した数と赤の数だけ。課題名は見せないよ。</p>
+      </section>
+
       {data.blocked.length > 0 && (
         <Group label="ブロックした人">
           {data.blocked.map((p) => (
-            <PersonRow key={p.userId} person={p} onOpen={open(p, 'blocked')} />
+            <PersonRow key={p.userId} person={p} today={today} onOpen={open(p, 'blocked')} />
           ))}
         </Group>
       )}
@@ -336,12 +374,14 @@ export function FriendsPanel({
 function PersonDetail({
   person,
   kind,
+  today,
   busy,
   onBack,
   onAction,
 }: {
   person: Person
   kind: Kind
+  today: string
   busy: boolean
   onBack: () => void
   onAction: (a: FriendAction) => void
@@ -349,6 +389,7 @@ function PersonDetail({
   const [confirm, setConfirm] = useState<'remove' | 'block' | null>(null)
   const id = person.userId
   const sub = personSub(person)
+  const progress = progressText(person.progress, today)
 
   return (
     <div className="flex flex-col gap-6">
@@ -366,6 +407,7 @@ function PersonDetail({
         <div className="min-w-0">
           <p className="truncate text-base font-bold text-ink">{person.nickname}</p>
           {sub && <p className="text-sm text-ink-muted">{sub}</p>}
+          {progress && <p className="text-sm text-ink">{progress}</p>}
         </div>
       </div>
 
