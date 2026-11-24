@@ -12,6 +12,7 @@ function setup() {
     icon: 'cat',
     grade: null,
     bio: '',
+    photo: null,
     friendCode: 'AAAA2222',
     shareProgress: true,
   })

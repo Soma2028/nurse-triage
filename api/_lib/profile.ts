@@ -30,6 +30,8 @@ export interface Profile {
   icon: ProfileIcon
   grade: number | null // 1〜4。null は「ひみつ」
   bio: string
+  /** 写真のアイコン（128px の正方形の JPEG の data URL）。なければ null で、絵のアイコンを使う */
+  photo: string | null
   friendCode: string
   shareProgress: boolean // 今日の進み具合をフレンドに見せるか
 }
@@ -49,11 +51,31 @@ const text = (min: number, max: number) =>
     .refine((s) => !CONTROL.test(s), '使えない文字が入っている')
     .refine((s) => length(s) >= min && length(s) <= max, `${min}〜${max}文字`)
 
+/** 写真の data URL の長さの上限（128px の JPEG は数KB。余裕を見て 40,000 文字＝約30KB） */
+export const PHOTO_MAX_LENGTH = 40_000
+const PHOTO_PREFIX = 'data:image/jpeg;base64,'
+
+/** 本当に JPEG か（先頭が FF D8 FF）。ほかの形式や中身の違うものは受け取らない */
+function isJpegDataUrl(s: string): boolean {
+  if (!s.startsWith(PHOTO_PREFIX)) return false
+  const b64 = s.slice(PHOTO_PREFIX.length)
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(b64)) return false
+  const head = Buffer.from(b64.slice(0, 8), 'base64')
+  return head[0] === 0xff && head[1] === 0xd8 && head[2] === 0xff
+}
+
 export const profileSchema = z.strictObject({
   nickname: text(1, 12),
   icon: z.enum(PROFILE_ICONS),
   grade: z.number().int().min(1).max(4).nullable(),
   bio: text(0, 40),
+  // 写真を選べるようになる前のアプリは送ってこないので、なければ null
+  photo: z
+    .string()
+    .max(PHOTO_MAX_LENGTH)
+    .refine(isJpegDataUrl, 'JPEG の画像だけ')
+    .nullable()
+    .default(null),
 })
 
 /** フレンドコードに使う文字。0/O・1/I/L のような見分けにくい文字は使わない */

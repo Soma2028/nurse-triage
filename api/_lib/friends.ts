@@ -113,6 +113,7 @@ export async function postFriends(
         icon: p.icon,
         grade: p.grade,
         bio: p.bio,
+        photo: p.photo,
       }
       const relation = rel.friends
         ? 'friends'

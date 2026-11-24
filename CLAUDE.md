@@ -76,6 +76,7 @@
 - 応援はフレンドにだけ、同じ相手に1日（日本時間）3回まで。相手の端末に通知で届けるため、`DeviceLink` が通知の端末（devices.user_id）にログインした人を付け、ログアウトの前に外す。通知の文面に課題のことは書かない
 - QR は `qrcode-generator` で SVG を作る（白地に炭色・まわりに4マスの余白）
 - Clerk の公開キーは `/api/config` から取り、localStorage に置いて次の起動からすぐ使う。Clerk は大きいので、`SocialRoot` と `AccountGroups` を別のファイルに分けて必要なときだけ読み込む（main の JS を 500kB 未満に保つ）
+- プロフィールはログインしなくても作れる（`localProfile.ts`、端末の中だけ）。ログイン中は `useMyProfile`（`/api/profile`）がもとで、端末の分をそろえる。写真は端末で 128px の JPEG に縮めた data URL（`photo.ts`）を profiles.photo に置く。`Avatar` は写真があれば写真、なければ絵
 - 自分のプロフィールは `useMyProfile`（`/api/profile`）。localStorage にも置き、次に開いたときに読み込みを待たずに出す。ログインした直後でプロフィールがなければ、作るシートを開く
 - サーバーは `Authorization: Bearer <Clerk のセッショントークン>` を `api/_lib/identity.ts` で確かめる。退会は DB のデータを先に消してから Clerk のアカウントを消す
 - ログインは Clerk のメールの6桁コード。画面は Clerk の既製の部品を使わず自前のシートで作る

@@ -35,6 +35,7 @@ describe('profile', () => {
       nickname: 'さく',
       grade: null,
       bio: '',
+      photo: null,
       friendCode: first.friendCode,
       shareProgress: true,
     })
@@ -76,5 +77,37 @@ describe('profile', () => {
       expect(code).toHaveLength(FRIEND_CODE_LENGTH)
       expect(code).not.toMatch(/[01OIL]/)
     }
+  })
+})
+
+describe('プロフィールの写真', () => {
+  const input = { nickname: 'さくら', icon: 'cat', grade: 2, bio: '' }
+  /** 先頭が FF D8 FF の、JPEG らしい data URL */
+  const jpeg = `data:image/jpeg;base64,${Buffer.from([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 4]).toString('base64')}`
+
+  it('JPEG の data URL なら保存でき、外す（null）こともできる', async () => {
+    const { deps } = fakeSocial()
+    const r = await putProfile('good', { ...input, photo: jpeg }, deps)
+    expect(r.body.profile).toMatchObject({ photo: jpeg })
+    const cleared = await putProfile('good', { ...input, photo: null }, deps)
+    expect(cleared.body.profile).toMatchObject({ photo: null })
+  })
+
+  it('写真を送ってこない前のアプリでも保存でき、写真は null になる', async () => {
+    const { deps } = fakeSocial()
+    expect((await putProfile('good', input, deps)).body.profile).toMatchObject({ photo: null })
+  })
+
+  it.each([
+    ['PNG', `data:image/png;base64,${Buffer.from([0x89, 0x50, 0x4e, 0x47]).toString('base64')}`],
+    [
+      'JPEG と名乗る別もの',
+      `data:image/jpeg;base64,${Buffer.from('<svg onload=1>').toString('base64')}`,
+    ],
+    ['外のアドレス', 'https://evil.example/a.jpg'],
+    ['大きすぎる', `data:image/jpeg;base64,/9j/${'A'.repeat(40_000)}`],
+  ])('%s は 400', async (_, photo) => {
+    const { deps } = fakeSocial()
+    expect((await putProfile('good', { ...input, photo }, deps)).status).toBe(400)
   })
 })

@@ -90,6 +90,7 @@ export interface Person {
   icon: ProfileIcon
   grade: number | null
   bio: string
+  photo: string | null // 写真のアイコン（なければ絵のアイコン）
   /** フレンドの一覧でだけ入る。見せない設定・まだ送っていなければ null */
   progress?: Progress | null
 }
@@ -118,19 +119,19 @@ export function neonSocialDb(databaseUrl: string): SocialDb {
   return {
     async getProfile(userId) {
       const rows = await sql`
-        select nickname, icon, grade, bio, friend_code, share_progress from profiles where user_id = ${userId}`
+        select nickname, icon, grade, bio, photo, friend_code, share_progress from profiles where user_id = ${userId}`
       return rows[0] ? toProfile(rows[0]) : null
     },
 
     async saveProfile(userId, p, friendCode) {
       try {
         const rows = await sql`
-          insert into profiles (user_id, nickname, icon, grade, bio, friend_code)
-          values (${userId}, ${p.nickname}, ${p.icon}, ${p.grade}, ${p.bio}, ${friendCode})
+          insert into profiles (user_id, nickname, icon, grade, bio, photo, friend_code)
+          values (${userId}, ${p.nickname}, ${p.icon}, ${p.grade}, ${p.bio}, ${p.photo}, ${friendCode})
           on conflict (user_id) do update
             set nickname = excluded.nickname, icon = excluded.icon,
-                grade = excluded.grade, bio = excluded.bio
-          returning nickname, icon, grade, bio, friend_code, share_progress`
+                grade = excluded.grade, bio = excluded.bio, photo = excluded.photo
+          returning nickname, icon, grade, bio, photo, friend_code, share_progress`
         return toProfile(rows[0])
       } catch (e) {
         // フレンドコードがほかの人と重なった
@@ -148,26 +149,26 @@ export function neonSocialDb(databaseUrl: string): SocialDb {
       const [cheers, friends, incoming, outgoing, blocked] = await sql.transaction(
         [
           // 届いた応援：14日以内の30件。ブロックした人からのものは出さない
-          sql`select c.id, c.stamp, c.created_at, p.user_id, p.nickname, p.icon, p.grade, p.bio
+          sql`select c.id, c.stamp, c.created_at, p.user_id, p.nickname, p.icon, p.grade, p.bio, p.photo
               from cheers c join profiles p on p.user_id = c.from_user
               where c.to_user = ${userId}
                 and c.created_at > now() - interval '14 days'
                 and not exists (select 1 from blocks b where b.blocker = ${userId} and b.blocked = c.from_user)
               order by c.created_at desc limit 30`,
-          sql`select p.user_id, p.nickname, p.icon, p.grade, p.bio,
+          sql`select p.user_id, p.nickname, p.icon, p.grade, p.bio, p.photo,
                 pr.day::text as day, pr.done_count, pr.red_count, pr.updated_at
               from friendships f
               join profiles p on p.user_id = case when f.user_a = ${userId} then f.user_b else f.user_a end
               left join progress pr on pr.user_id = p.user_id and p.share_progress
               where f.user_a = ${userId} or f.user_b = ${userId}
               order by p.nickname`,
-          sql`select p.user_id, p.nickname, p.icon, p.grade, p.bio from friend_requests r
+          sql`select p.user_id, p.nickname, p.icon, p.grade, p.bio, p.photo from friend_requests r
               join profiles p on p.user_id = r.from_user
               where r.to_user = ${userId} order by r.created_at desc`,
-          sql`select p.user_id, p.nickname, p.icon, p.grade, p.bio from friend_requests r
+          sql`select p.user_id, p.nickname, p.icon, p.grade, p.bio, p.photo from friend_requests r
               join profiles p on p.user_id = r.to_user
               where r.from_user = ${userId} order by r.created_at desc`,
-          sql`select p.user_id, p.nickname, p.icon, p.grade, p.bio from blocks b
+          sql`select p.user_id, p.nickname, p.icon, p.grade, p.bio, p.photo from blocks b
               join profiles p on p.user_id = b.blocked
               where b.blocker = ${userId} order by b.created_at desc`,
         ],
@@ -329,6 +330,7 @@ function toProfile(row: Record<string, unknown>): Profile {
     icon: row.icon as ProfileIcon,
     grade: row.grade === null ? null : Number(row.grade),
     bio: row.bio as string,
+    photo: (row.photo as string | null) ?? null,
     friendCode: row.friend_code as string,
     shareProgress: row.share_progress !== false,
   }
@@ -341,6 +343,7 @@ function toPerson(row: Record<string, unknown>): Person {
     icon: row.icon as ProfileIcon,
     grade: row.grade === null ? null : Number(row.grade),
     bio: row.bio as string,
+    photo: (row.photo as string | null) ?? null,
   }
 }
 

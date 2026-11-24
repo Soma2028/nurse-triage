@@ -71,7 +71,7 @@ function PersonRow({
   return (
     <div className="flex items-center">
       <button type="button" onClick={onOpen} className={`${rowBtn} min-w-0 flex-1`}>
-        <Avatar icon={person.icon} />
+        <Avatar icon={person.icon} photo={person.photo} />
         <span className="min-w-0 flex-1">
           <span className="block truncate">{person.nickname}</span>
           {sub && <span className="block truncate text-xs text-ink-muted">{sub}</span>}
@@ -241,7 +241,7 @@ export function FriendsPanel({
             const { Icon, label: stampLabel } = STAMPS[c.stamp]
             return (
               <div key={c.id} className="flex min-h-14 items-center gap-3 px-4 py-2">
-                <Avatar icon={c.from.icon} />
+                <Avatar icon={c.from.icon} photo={c.from.photo} />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-base text-ink">
                     {c.from.nickname}さん「{stampLabel}」
@@ -437,7 +437,7 @@ function PersonDetail({
       </button>
 
       <div className="flex items-center gap-4 px-4">
-        <Avatar icon={person.icon} size="lg" />
+        <Avatar icon={person.icon} photo={person.photo} size="lg" />
         <div className="min-w-0">
           <p className="truncate text-base font-bold text-ink">{person.nickname}</p>
           {sub && <p className="text-sm text-ink-muted">{sub}</p>}

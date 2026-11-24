@@ -17,6 +17,7 @@ async function setup(pushResult: PushResult = 'ok') {
       icon: 'cat',
       grade: null,
       bio: '',
+      photo: null,
       friendCode: code,
       shareProgress: true,
     })

@@ -21,8 +21,8 @@ export function fakeSocial(tokens: Record<string, string> = { good: 'user_1' }) 
   const calls: string[] = []
 
   const person = (userId: string): Person => {
-    const { nickname, icon, grade, bio } = profiles.get(userId)!
-    return { userId, nickname, icon, grade, bio }
+    const { nickname, icon, grade, bio, photo } = profiles.get(userId)!
+    return { userId, nickname, icon, grade, bio, photo }
   }
   const key = (a: string, b: string) => pair(a, b).join('|')
   const dropRequests = (a: string, b: string) => {

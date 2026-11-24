@@ -12,6 +12,7 @@ async function setup() {
       icon: 'cat',
       grade: null,
       bio: '',
+      photo: null,
       friendCode: code,
       shareProgress: true,
     })

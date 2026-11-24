@@ -5,7 +5,7 @@
 import { useAuth } from '@clerk/react'
 import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react'
 import { authedCall } from './api'
-import { PROFILE_ICONS, type ProfileIcon } from './profile'
+import { PROFILE_ICONS, isPhoto, type ProfileIcon } from './profile'
 import { STAMP_KEYS, type Stamp } from './stamps'
 
 /** フレンドの一覧などに出す人（課題のことは何も含まない） */
@@ -15,6 +15,7 @@ export interface Person {
   icon: ProfileIcon
   grade: number | null
   bio: string
+  photo?: string | null // 写真のアイコン（なければ絵のアイコン）
   /** フレンドの一覧でだけ入る。見せない設定・まだ送っていなければ null */
   progress?: FriendProgress | null
 }
@@ -58,7 +59,8 @@ const isPerson = (v: unknown): v is Person => {
     typeof p.nickname === 'string' &&
     (PROFILE_ICONS as readonly unknown[]).includes(p.icon) &&
     (p.grade === null || typeof p.grade === 'number') &&
-    typeof p.bio === 'string'
+    typeof p.bio === 'string' &&
+    (p.photo === undefined || p.photo === null || isPhoto(p.photo))
   )
 }
 

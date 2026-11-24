@@ -1,14 +1,17 @@
-import { useState, type FormEvent } from 'react'
+import { ImagePlus } from 'lucide-react'
+import { useState, type ChangeEvent, type FormEvent } from 'react'
 import {
   BIO_MAX,
   ICONS,
   NICKNAME_MAX,
   PROFILE_ICONS,
   textLength,
-  type Profile,
   type ProfileIcon,
+  type ProfileInput,
 } from '../social/profile'
+import { photoToIcon } from '../social/photo'
 import type { SaveResult } from '../social/useMyProfile'
+import { Avatar } from './Avatar'
 import { Group } from './Group'
 import { Segmented } from './Segmented'
 
@@ -44,16 +47,35 @@ export function ProfileForm({
   onSave,
   onDone,
 }: {
-  current: Profile | null
-  onSave: (input: Omit<Profile, 'friendCode'>) => Promise<SaveResult>
+  current: ProfileInput | null
+  onSave: (input: ProfileInput) => Promise<SaveResult>
   onDone: () => void
 }) {
   const [nickname, setNickname] = useState(current?.nickname ?? '')
   const [icon, setIcon] = useState<ProfileIcon>(current?.icon ?? 'cat')
+  /** 写真のアイコン（あれば絵のアイコンより先に使う） */
+  const [photo, setPhoto] = useState<string | null>(current?.photo ?? null)
+  const [reading, setReading] = useState(false)
   const [grade, setGrade] = useState<Grade>(current?.grade ?? 'secret')
   const [bio, setBio] = useState(current?.bio ?? '')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  /** 写真を選んだら、端末の中で 128px に縮めてから使う */
+  const pickPhoto = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = '' // 同じ写真をもう一度選んでも動くように
+    if (!file) return
+    setReading(true)
+    setError(null)
+    try {
+      setPhoto(await photoToIcon(file))
+    } catch {
+      setError('写真を読み込めなかったよ。ほかの写真で試してね。')
+    } finally {
+      setReading(false)
+    }
+  }
 
   const nicknameLength = textLength(nickname.trim())
   const bioLength = textLength(bio.trim())
@@ -69,6 +91,7 @@ export function ProfileForm({
     const result = await onSave({
       nickname: nickname.trim(),
       icon,
+      photo,
       grade: grade === 'secret' ? null : grade,
       bio: bio.trim(),
     })
@@ -106,6 +129,34 @@ export function ProfileForm({
         <h3 className={label} id="profile-icon">
           アイコン
         </h3>
+        <div className="ui-card flex items-center gap-3 rounded-2xl p-2 pl-3">
+          <Avatar icon={icon} photo={photo} size="lg" />
+          <div className="flex min-w-0 flex-1 flex-wrap justify-end gap-2">
+            {/* iPhone では、写真を撮る・写真ライブラリから選ぶ、が出る */}
+            <label
+              className={`inline-flex min-h-11 cursor-pointer items-center gap-1 rounded-full bg-primary-soft px-4 text-sm font-bold text-primary-ink transition hover:bg-primary hover:text-on-primary ${reading ? 'opacity-60' : ''}`}
+            >
+              <ImagePlus aria-hidden className="size-4" />
+              {photo ? '写真を変える' : '写真を選ぶ'}
+              <input
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                disabled={reading}
+                onChange={pickPhoto}
+              />
+            </label>
+            {photo && (
+              <button
+                type="button"
+                onClick={() => setPhoto(null)}
+                className="min-h-11 rounded-full px-3 text-sm font-bold text-ink-muted transition hover:bg-paper"
+              >
+                外す
+              </button>
+            )}
+          </div>
+        </div>
         <div
           role="radiogroup"
           aria-labelledby="profile-icon"
@@ -113,7 +164,8 @@ export function ProfileForm({
         >
           {PROFILE_ICONS.map((key) => {
             const { Icon, label: name } = ICONS[key]
-            const active = key === icon
+            // 写真を使っているときは、どの絵も選んでいない見た目にする
+            const active = !photo && key === icon
             return (
               <button
                 key={key}
@@ -121,7 +173,10 @@ export function ProfileForm({
                 role="radio"
                 aria-checked={active}
                 aria-label={name}
-                onClick={() => setIcon(key)}
+                onClick={() => {
+                  setIcon(key)
+                  setPhoto(null)
+                }}
                 className={`inline-flex size-11 items-center justify-center rounded-full transition ${
                   active
                     ? 'bg-primary text-on-primary'

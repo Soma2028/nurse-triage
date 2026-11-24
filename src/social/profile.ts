@@ -54,6 +54,8 @@ export interface Profile {
   icon: ProfileIcon
   grade: number | null // 1〜4。null は「ひみつ」
   bio: string
+  /** 写真のアイコン（128px の正方形の JPEG の data URL）。なければ絵のアイコン */
+  photo?: string | null
   friendCode: string
   /** 今日の進み具合をフレンドに見せるか（前の版の保存データにはないので、ないときは見せる） */
   shareProgress?: boolean
@@ -67,6 +69,10 @@ export const BIO_MAX = 40
 /** 文字数は見た目の1文字ずつで数える（サーバーと同じ） */
 export const textLength = (s: string) => [...s].length
 
+/** 写真の data URL として受け取ってよいか（JPEG の data URL だけ） */
+export const isPhoto = (v: unknown): v is string =>
+  typeof v === 'string' && v.startsWith('data:image/jpeg;base64,') && v.length <= 40_000
+
 export const gradeLabel = (g: number | null) => (g === null ? '' : `${g}年生`)
 
 export function isProfile(v: unknown): v is Profile {
@@ -78,6 +84,7 @@ export function isProfile(v: unknown): v is Profile {
     (PROFILE_ICONS as readonly string[]).includes(p.icon) &&
     (p.grade === null || typeof p.grade === 'number') &&
     typeof p.bio === 'string' &&
+    (p.photo === undefined || p.photo === null || isPhoto(p.photo)) &&
     typeof p.friendCode === 'string' &&
     (p.shareProgress === undefined || typeof p.shareProgress === 'boolean')
   )

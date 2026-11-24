@@ -11,6 +11,7 @@ function setup() {
       icon: 'cat',
       grade: null,
       bio: '',
+      photo: null,
       friendCode: code,
       shareProgress: true,
     })
@@ -159,7 +160,7 @@ describe('フレンド', () => {
   it('lookup：招待した人と、いまの関係を返す（申請はしない）', async () => {
     const { post, names } = setup()
     expect((await post('ta', { action: 'lookup', code: 'bbbb3333' })).body).toEqual({
-      person: { userId: 'b', nickname: 'ベニ', icon: 'cat', grade: null, bio: '' },
+      person: { userId: 'b', nickname: 'ベニ', icon: 'cat', grade: null, bio: '', photo: null },
       relation: 'none',
     })
     expect(await names('tb')).toMatchObject({ incoming: [] })
