@@ -3,7 +3,7 @@
  * （次に開いたとき、読み込みを待たずにすぐ出すため）。ClerkProvider の中でだけ使う。
  */
 import { useAuth } from '@clerk/react'
-import { useCallback, useEffect, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react'
 import { authedCall } from './api'
 import { isProfile, type Profile, type ProfileInput } from './profile'
 
@@ -62,13 +62,18 @@ export type SaveResult = 'ok' | 'invalid' | 'failed'
 
 export function useMyProfile() {
   const { isLoaded, isSignedIn, userId, getToken } = useAuth()
+  // getToken が描くたびに変わっても、読み込みが何度も走らないよう ref に入れておく
+  const tokenRef = useRef(getToken)
+  useEffect(() => {
+    tokenRef.current = getToken
+  })
   const current = useSyncExternalStore(subscribe, getState, getState)
 
   const load = useCallback(
     async (id: string) => {
       // 前の人のプロフィールが見えないよう、人が変わったら読み込み中にする
       if (state.userId !== id) set({ userId: id, status: 'loading', profile: null })
-      const r = await authedCall(() => getToken(), 'GET', '/api/profile')
+      const r = await authedCall(() => tokenRef.current(), 'GET', '/api/profile')
       if (state.userId !== id) return // 読み込みの間にログアウトした
       if (r.ok && (r.data?.profile === null || isProfile(r.data?.profile))) {
         set({ userId: id, status: 'ready', profile: r.data.profile as Profile | null })
@@ -76,7 +81,7 @@ export function useMyProfile() {
         set({ ...state, status: 'error' })
       }
     },
-    [getToken],
+    [],
   )
 
   useEffect(() => {
@@ -91,14 +96,14 @@ export function useMyProfile() {
   const save = useCallback(
     async (input: ProfileInput): Promise<SaveResult> => {
       if (!userId) return 'failed'
-      const r = await authedCall(() => getToken(), 'PUT', '/api/profile', input)
+      const r = await authedCall(() => tokenRef.current(), 'PUT', '/api/profile', input)
       if (r.ok && isProfile(r.data?.profile)) {
         set({ userId, status: 'ready', profile: r.data.profile })
         return 'ok'
       }
       return r.status === 400 ? 'invalid' : 'failed'
     },
-    [userId, getToken],
+    [userId],
   )
 
   const mine = current.userId === userId && !!userId

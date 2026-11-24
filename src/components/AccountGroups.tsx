@@ -3,9 +3,11 @@ import { ChevronRight } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { authedCall } from '../social/api'
 import { useSocialAvailable } from '../social/SocialContext'
+import { useFriends } from '../social/friends'
 import { gradeLabel } from '../social/profile'
 import { useMyProfile } from '../social/useMyProfile'
 import { Avatar } from './Avatar'
+import { FriendsPanel } from './FriendsPanel'
 import { Group, Row } from './Group'
 import { ProfileForm } from './ProfileForm'
 import { LoginForm } from './LoginForm'
@@ -39,7 +41,9 @@ const LOAD_TIMEOUT_MS = 10_000
 function SignedProfileGroup() {
   const { isLoaded, isSignedIn } = useAuth()
   const me = useMyProfile()
+  const friends = useFriends(!!me.profile)
   const [loginOpen, setLoginOpen] = useState(false)
+  const [friendsOpen, setFriendsOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   /** ログインした直後か。プロフィールがまだなければ、作るシートをそのまま開く */
   const [justSignedIn, setJustSignedIn] = useState(false)
@@ -115,7 +119,31 @@ function SignedProfileGroup() {
 
   return (
     <>
-      <Group label="プロフィール">{row}</Group>
+      <Group label="プロフィール">
+        {row}
+        {isSignedIn && me.profile && (
+          <button type="button" onClick={() => setFriendsOpen(true)} className={rowBtn}>
+            <span className="min-w-0 flex-1">フレンド</span>
+            {friends.data && friends.data.incoming.length > 0 ? (
+              <span className="text-sm font-bold text-ink">
+                申請 {friends.data.incoming.length}
+              </span>
+            ) : (
+              friends.data && (
+                <span className="text-sm text-ink-muted">{friends.data.friends.length}人</span>
+              )
+            )}
+            <ChevronRight aria-hidden className="size-4 shrink-0 text-ink-muted" />
+          </button>
+        )}
+      </Group>
+      <Sheet
+        open={friendsOpen && !!isSignedIn && !!me.profile}
+        title="フレンド"
+        onClose={() => setFriendsOpen(false)}
+      >
+        <FriendsPanel data={friends.data} act={friends.act} reload={friends.load} />
+      </Sheet>
       <Sheet open={loginOpen && !isSignedIn} title="ログイン" onClose={() => setLoginOpen(false)}>
         <LoginForm
           onDone={() => {

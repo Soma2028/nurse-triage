@@ -1,0 +1,380 @@
+import { ChevronLeft, ChevronRight, Copy } from 'lucide-react'
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import type { ActResult, FriendAction, FriendState, Person } from '../social/friends'
+import { gradeLabel } from '../social/profile'
+import { Avatar } from './Avatar'
+import { Group } from './Group'
+
+/** 人の一覧のどこにいる人か */
+type Kind = 'friend' | 'incoming' | 'outgoing' | 'blocked'
+
+type Message = { tone: 'info' | 'error'; text: string } | null
+
+const RESULT_TEXT: Record<string, string> = {
+  requested: '申請したよ。相手が承認するとフレンドになるよ。',
+  friends: 'フレンドになったよ。',
+  declined: '申請を断ったよ。',
+  canceled: '申請を取り消したよ。',
+  removed: 'フレンドをやめたよ。',
+  blocked: 'ブロックしたよ。',
+  unblocked: 'ブロックを外したよ。',
+  regenerated: '新しいコードにしたよ。前のコードはもう使えないよ。',
+}
+
+const ERROR_TEXT: Record<string, string> = {
+  not_found: 'そのコードの人が見つからなかったよ。コードを確かめてね。',
+  self: 'それは自分のコードだよ。',
+  already_friends: 'もうフレンドだよ。',
+  blocked: 'ブロックしている人だよ。先にブロックを外してね。',
+  limit: 'フレンドは100人までだよ。',
+  no_profile: '先にプロフィールを作ってね。',
+  'invalid input': 'コードは8文字だよ。',
+}
+const NETWORK_ERROR = 'うまくいかなかったよ。電波のいいところで、もう一度試してね。'
+
+const note = 'px-4 text-xs leading-5 text-ink-muted'
+const rowBtn =
+  'flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left text-base text-ink transition hover:bg-paper'
+const primaryBtn =
+  'min-h-12 rounded-full bg-primary text-base font-bold text-on-primary transition hover:bg-primary-strong disabled:opacity-60'
+const plainBtn =
+  'min-h-12 rounded-full border border-line bg-surface text-base font-bold text-ink transition hover:bg-paper disabled:opacity-60'
+const dangerTextBtn =
+  'min-h-11 rounded-full px-4 text-sm font-bold text-danger transition hover:bg-danger-soft disabled:opacity-60'
+
+const personSub = (p: Person) => [gradeLabel(p.grade), p.bio].filter(Boolean).join(' ・ ')
+
+/** 一覧の1人（押すとくわしい画面） */
+function PersonRow({
+  person,
+  onOpen,
+  aside,
+}: {
+  person: Person
+  onOpen: () => void
+  aside?: ReactNode
+}) {
+  const sub = personSub(person)
+  return (
+    <div className="flex items-center">
+      <button type="button" onClick={onOpen} className={`${rowBtn} min-w-0 flex-1`}>
+        <Avatar icon={person.icon} />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate">{person.nickname}</span>
+          {sub && <span className="block truncate text-xs text-ink-muted">{sub}</span>}
+        </span>
+        {!aside && <ChevronRight aria-hidden className="size-4 shrink-0 text-ink-muted" />}
+      </button>
+      {aside && <div className="shrink-0 pr-2">{aside}</div>}
+    </div>
+  )
+}
+
+/**
+ * せっていの「フレンド」のシートの中身：一覧 → 押すと1人のくわしい画面。
+ * data は useFriends から、act で申請などをする
+ */
+export function FriendsPanel({
+  data,
+  act,
+  reload,
+}: {
+  data: FriendState | null
+  act: (a: FriendAction) => Promise<ActResult>
+  reload: () => Promise<void>
+}) {
+  const [detail, setDetail] = useState<{ person: Person; kind: Kind } | null>(null)
+  const [message, setMessage] = useState<Message>(null)
+  const [busy, setBusy] = useState(false)
+  const [code, setCode] = useState('')
+
+  // 開いたら最新にする（申請が届いているかもしれない）
+  useEffect(() => {
+    void reload()
+  }, [reload])
+
+  const run = async (a: FriendAction): Promise<boolean> => {
+    setBusy(true)
+    setMessage(null)
+    const r = await act(a)
+    setBusy(false)
+    if (r.error) {
+      setMessage({ tone: 'error', text: ERROR_TEXT[r.error] ?? NETWORK_ERROR })
+      return false
+    }
+    setMessage({ tone: 'info', text: RESULT_TEXT[r.result ?? ''] ?? '' })
+    return true
+  }
+
+  if (!data) {
+    return <p className="text-sm text-ink-muted">読み込んでいるよ</p>
+  }
+
+  if (detail) {
+    return (
+      <PersonDetail
+        person={detail.person}
+        kind={detail.kind}
+        busy={busy}
+        onBack={() => setDetail(null)}
+        onAction={async (a) => {
+          if (await run(a)) setDetail(null)
+        }}
+      />
+    )
+  }
+
+  const submitCode = async (e: FormEvent) => {
+    e.preventDefault()
+    if (await run({ action: 'request', code })) setCode('')
+  }
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(data.friendCode)
+      setMessage({ tone: 'info', text: 'コードをコピーしたよ。' })
+    } catch {
+      setMessage({ tone: 'error', text: 'コピーできなかったよ。コードを長押しして選んでね。' })
+    }
+  }
+
+  const open = (person: Person, kind: Kind) => () => {
+    setMessage(null)
+    setDetail({ person, kind })
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      {message?.text && (
+        <p
+          aria-live="polite"
+          className={`px-4 text-sm ${message.tone === 'error' ? 'font-bold text-danger' : 'text-ink-muted'}`}
+        >
+          {message.text}
+        </p>
+      )}
+
+      {data.incoming.length > 0 && (
+        <Group label="届いた申請">
+          {data.incoming.map((p) => (
+            <PersonRow
+              key={p.userId}
+              person={p}
+              onOpen={open(p, 'incoming')}
+              aside={
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => run({ action: 'accept', userId: p.userId })}
+                  className="min-h-11 rounded-full bg-primary px-4 text-sm font-bold text-on-primary transition hover:bg-primary-strong disabled:opacity-60"
+                >
+                  承認
+                </button>
+              }
+            />
+          ))}
+        </Group>
+      )}
+
+      <section className="flex flex-col gap-2">
+        <Group label={`フレンド ${data.friends.length}人`}>
+          {data.friends.length === 0 ? (
+            <p className="px-4 py-3 text-sm leading-6 text-ink">
+              まだフレンドはいないよ。コードを教え合おう。
+            </p>
+          ) : (
+            data.friends.map((p) => (
+              <PersonRow key={p.userId} person={p} onOpen={open(p, 'friend')} />
+            ))
+          )}
+        </Group>
+      </section>
+
+      {data.outgoing.length > 0 && (
+        <Group label="送った申請">
+          {data.outgoing.map((p) => (
+            <PersonRow key={p.userId} person={p} onOpen={open(p, 'outgoing')} />
+          ))}
+        </Group>
+      )}
+
+      <section className="flex flex-col gap-2">
+        <Group label="フレンドを追加">
+          <form onSubmit={submitCode} noValidate className="flex items-center gap-2 pr-2">
+            <input
+              aria-label="フレンドのコード"
+              className="min-h-12 w-full min-w-0 flex-1 bg-transparent pl-4 text-base tracking-widest text-ink uppercase placeholder:tracking-normal placeholder:text-ink-muted placeholder:normal-case focus:outline-none"
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              placeholder="相手のコード（8文字）"
+              autoCapitalize="characters"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
+              maxLength={12}
+            />
+            <button
+              type="submit"
+              disabled={busy || code.trim() === ''}
+              className="min-h-11 shrink-0 rounded-full bg-primary px-4 text-sm font-bold text-on-primary transition hover:bg-primary-strong disabled:opacity-60"
+            >
+              申請する
+            </button>
+          </form>
+        </Group>
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <Group label="自分のコード">
+          <div className="flex min-h-14 items-center gap-2 pr-2 pl-4">
+            <span className="min-w-0 flex-1 text-title font-bold tracking-widest text-ink tabular-nums select-text">
+              {data.friendCode}
+            </span>
+            <button
+              type="button"
+              onClick={copy}
+              className="inline-flex min-h-11 shrink-0 items-center gap-1 rounded-full bg-primary-soft px-4 text-sm font-bold text-primary-ink transition hover:bg-primary hover:text-on-primary"
+            >
+              <Copy aria-hidden className="size-4" />
+              コピー
+            </button>
+          </div>
+        </Group>
+        <p className={note}>このコードを教えると、相手から申請できるよ。</p>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => run({ action: 'regenerateCode' })}
+          className="self-start rounded-full px-4 py-2 text-sm font-bold text-primary-ink transition hover:bg-primary-soft disabled:opacity-60"
+        >
+          コードを作り直す
+        </button>
+      </section>
+
+      {data.blocked.length > 0 && (
+        <Group label="ブロックした人">
+          {data.blocked.map((p) => (
+            <PersonRow key={p.userId} person={p} onOpen={open(p, 'blocked')} />
+          ))}
+        </Group>
+      )}
+    </div>
+  )
+}
+
+/** 1人のくわしい画面と、その人への操作。フレンドをやめる・ブロックは、もう一度たずねる */
+function PersonDetail({
+  person,
+  kind,
+  busy,
+  onBack,
+  onAction,
+}: {
+  person: Person
+  kind: Kind
+  busy: boolean
+  onBack: () => void
+  onAction: (a: FriendAction) => void
+}) {
+  const [confirm, setConfirm] = useState<'remove' | 'block' | null>(null)
+  const id = person.userId
+  const sub = personSub(person)
+
+  return (
+    <div className="flex flex-col gap-6">
+      <button
+        type="button"
+        onClick={onBack}
+        className="-ml-2 inline-flex min-h-11 items-center gap-1 self-start rounded-full pr-4 pl-2 text-sm font-bold text-primary-ink transition hover:bg-primary-soft"
+      >
+        <ChevronLeft aria-hidden className="size-4" />
+        もどる
+      </button>
+
+      <div className="flex items-center gap-4 px-4">
+        <Avatar icon={person.icon} size="lg" />
+        <div className="min-w-0">
+          <p className="truncate text-base font-bold text-ink">{person.nickname}</p>
+          {sub && <p className="text-sm text-ink-muted">{sub}</p>}
+        </div>
+      </div>
+
+      {confirm ? (
+        <div className="flex flex-col gap-4">
+          <p className="text-sm leading-6 text-ink">
+            {confirm === 'remove'
+              ? `${person.nickname}さんとのフレンドをやめる？相手には知らせないよ。`
+              : `${person.nickname}さんをブロックする？フレンドと申請が消えて、この人から申請や応援が届かなくなるよ。相手には知らせないよ。`}
+          </p>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => onAction({ action: confirm, userId: id })}
+            className="min-h-12 rounded-full bg-danger text-base font-bold text-on-primary transition hover:opacity-90 disabled:opacity-60"
+          >
+            {confirm === 'remove' ? 'フレンドをやめる' : 'ブロックする'}
+          </button>
+          <button type="button" onClick={() => setConfirm(null)} className={plainBtn}>
+            やめる
+          </button>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-4">
+          {kind === 'incoming' && (
+            <>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => onAction({ action: 'accept', userId: id })}
+                className={primaryBtn}
+              >
+                承認する
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => onAction({ action: 'decline', userId: id })}
+                className={plainBtn}
+              >
+                断る
+              </button>
+            </>
+          )}
+          {kind === 'outgoing' && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => onAction({ action: 'cancel', userId: id })}
+              className={plainBtn}
+            >
+              申請を取り消す
+            </button>
+          )}
+          {kind === 'friend' && (
+            <button type="button" onClick={() => setConfirm('remove')} className={plainBtn}>
+              フレンドをやめる
+            </button>
+          )}
+          {kind === 'blocked' ? (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => onAction({ action: 'unblock', userId: id })}
+              className={plainBtn}
+            >
+              ブロックを外す
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setConfirm('block')}
+              className={`${dangerTextBtn} self-center`}
+            >
+              ブロックする
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
