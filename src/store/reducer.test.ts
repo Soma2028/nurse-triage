@@ -60,20 +60,6 @@ describe('reducer', () => {
     expect(reducer(s, { type: 'undo' })).toEqual(before)
   })
 
-  it('すべて消すは元に戻せる。保持するのは直前の1つだけ', () => {
-    let s = reducer(base(), { type: 'complete', id: 'a', now: NOW })
-    const afterComplete = s
-    s = reducer(s, { type: 'clearAll', now: NOW })
-    expect(s.tasks).toEqual([])
-    expect(s.done).toEqual([])
-    s = reducer(s, { type: 'undo' })
-    expect(s.tasks).toEqual(afterComplete.tasks)
-    expect(s.done).toEqual(afterComplete.done)
-    expect(s.undo).toBeNull()
-    // 2回目の undo では何も起きない
-    expect(reducer(s, { type: 'undo' })).toBe(s)
-  })
-
   it('「戻す」で未完了に戻る（doneAt を外す。100%なら90%に）', () => {
     let s = reducer(base(), { type: 'advance', id: 'b', now: NOW })
     s = reducer(s, { type: 'restore', id: 'b' })
@@ -166,12 +152,6 @@ describe('reducer: 実習スケジュール', () => {
     expect(s.tasks.map((x) => x.id)).toEqual(['a', 'b'])
     expect(s.schedule).toEqual({ '2026-11-24': 'off' })
     expect(s.settings.hoursNormal).toBe(6)
-  })
-
-  it('すべて消すはスケジュールを消さない', () => {
-    let s: State = { ...base(), schedule: { '2026-11-24': 'off' } }
-    s = reducer(s, { type: 'clearAll', now: NOW })
-    expect(s.schedule).toEqual({ '2026-11-24': 'off' })
   })
 
   it('起動時に60日より前の印を消す', () => {

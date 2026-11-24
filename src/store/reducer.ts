@@ -10,7 +10,7 @@ import type { DayKind, Settings, Task } from '../types'
 import { sampleTasks } from './sample'
 import { load, type Persisted } from './storage'
 
-export type UndoKind = 'complete' | 'remove' | 'clear'
+export type UndoKind = 'complete' | 'remove'
 
 /** 元に戻す対象（設定やスケジュールは戻さない） */
 type TaskLists = Pick<Persisted, 'tasks' | 'done'>
@@ -33,7 +33,6 @@ export type Action =
   | { type: 'complete'; id: string; now: number }
   | { type: 'advance'; id: string; now: number; step?: number }
   | { type: 'restore'; id: string }
-  | { type: 'clearAll'; now: number }
   | { type: 'setSettings'; patch: Partial<Settings> }
   | { type: 'setDays'; dates: string[]; kind: DayKind | null }
   | { type: 'togglePracticeToday'; now: number }
@@ -128,10 +127,6 @@ export function reducer(state: State, action: Action): State {
         done: state.done.filter((t) => t.id !== action.id),
       }
     }
-
-    case 'clearAll':
-      if (state.tasks.length === 0 && state.done.length === 0) return state
-      return withUndo(state, { tasks: [], done: [] }, 'clear', '課題をぜんぶ消したよ', action.now)
 
     case 'setSettings':
       return { ...state, settings: { ...state.settings, ...action.patch } }

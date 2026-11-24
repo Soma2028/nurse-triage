@@ -1,5 +1,5 @@
 import { AnimatePresence, motion, useDragControls, type PanInfo } from 'framer-motion'
-import { Bell, CircleHelp, Clock, Stethoscope, Trash2 } from 'lucide-react'
+import { Bell, CircleHelp, Clock, Stethoscope } from 'lucide-react'
 import { lazy, Suspense, useCallback, useState, type PointerEvent, type ReactNode } from 'react'
 import { pageSlide } from '../motion'
 import { useNotifyStatus } from '../sync/useNotifyStatus'
@@ -10,7 +10,6 @@ import { CalendarHelp, HomeHelp, PriorityHelp } from './Help'
 import { NotifyPanel } from './NotifyPanel'
 import { ScreenLayout } from './ScreenLayout'
 import { Segmented } from './Segmented'
-import { Sheet } from './Sheet'
 
 // ログインまわりは Clerk を使うので、別のファイルに分けて必要なときだけ読み込む
 const accountGroups = () => import('./AccountGroups')
@@ -25,7 +24,6 @@ interface Props {
   practiceNote: string | null
   onTogglePractice: () => void
   onChangeSettings: (patch: Partial<Settings>) => void
-  onClearAll: () => void
 }
 
 const MIN_H = 0.5
@@ -67,7 +65,7 @@ function TodayLabel({ label, today }: { label: string; today: boolean }) {
 
 /**
  * せってい。一覧（top）には行だけを並べ、押すとページが横からすべり込む。
- * 入力のフォーム（プロフィール・ログイン）と、もう一度たずねる確認はシートのまま
+ * 入力のフォーム（プロフィール・ログイン）はシートのまま
  */
 export function SettingsScreen({
   settings,
@@ -75,12 +73,10 @@ export function SettingsScreen({
   practiceNote,
   onTogglePractice,
   onChangeSettings,
-  onClearAll,
 }: Props) {
   const [page, setPage] = useState<Page>('top')
   /** 進むときは 1、戻るときは -1（すべり込む向き） */
   const [dir, setDir] = useState(1)
-  const [clearOpen, setClearOpen] = useState(false)
   const [helpTab, setHelpTab] = useState<HelpTab>('home')
   const notifyStatus = useNotifyStatus()
   const drag = useDragControls()
@@ -117,41 +113,12 @@ export function SettingsScreen({
         <Group>
           <LinkRow icon={Bell} label="通知" value={notifyStatus} onClick={() => go('notify')} />
           <LinkRow icon={CircleHelp} label="ヘルプ" onClick={() => go('help')} />
-        </Group>
-
-        <Group>
+          {/* ログインしているときだけ出る */}
           <Suspense fallback={null}>
             <AccountRow onOpen={() => go('account')} />
           </Suspense>
-          <LinkRow icon={Trash2} label="すべて消す" danger onClick={() => setClearOpen(true)} />
         </Group>
       </div>
-
-      {/* すべて消す前に、もう一度たずねる */}
-      <Sheet open={clearOpen} title="課題をぜんぶ消す？" onClose={() => setClearOpen(false)}>
-        <div className="flex flex-col gap-4">
-          <p className="text-sm leading-6 text-ink">
-            終わった課題も、まだの課題も、ぜんぶ消えるよ。消したあと5秒だけ、元に戻せるよ。
-          </p>
-          <button
-            type="button"
-            onClick={() => {
-              setClearOpen(false)
-              onClearAll()
-            }}
-            className="min-h-12 rounded-full bg-danger text-base font-bold text-on-primary transition hover:opacity-90"
-          >
-            ぜんぶ消す
-          </button>
-          <button
-            type="button"
-            onClick={() => setClearOpen(false)}
-            className="min-h-12 rounded-full border border-line bg-surface text-base font-bold text-ink transition hover:bg-paper"
-          >
-            やめる
-          </button>
-        </div>
-      </Sheet>
     </ScreenLayout>
   )
 

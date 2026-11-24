@@ -164,7 +164,6 @@ export default function App() {
                 practiceNote={practiceNote}
                 onTogglePractice={togglePractice}
                 onChangeSettings={(patch) => dispatch({ type: 'setSettings', patch })}
-                onClearAll={() => dispatch({ type: 'clearAll', now: Date.now() })}
               />
             )}
           </motion.div>

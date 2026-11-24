@@ -42,7 +42,7 @@ export function LinkRow({
   value?: ReactNode
   /** 右の値を太字にする（届いた申請など、見てほしいとき） */
   strong?: boolean
-  /** 「すべて消す」のような、取り消しにくい操作 */
+  /** 退会のような、取り消しにくい操作 */
   danger?: boolean
   disabled?: boolean
   chevron?: boolean
