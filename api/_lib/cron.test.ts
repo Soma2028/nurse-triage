@@ -229,12 +229,23 @@ describe('ttlFor', () => {
 })
 
 describe('toPrefs', () => {
+  it('時刻のない古い設定は、時刻だけ初期値で補う', () => {
+    expect(toPrefs({ eve: false, h3: true, morning: true, showTitle: false })).toEqual({
+      ...DEFAULT_PREFS,
+      eve: false,
+    })
+    const custom = { ...DEFAULT_PREFS, eveTime: 21 * 60 + 45, h3Lead: 60, morningTime: 5 * 60 }
+    expect(toPrefs(custom)).toEqual(custom)
+  })
+
   it('DB の設定が壊れていたら初期値（課題名は出さない）', () => {
     expect(toPrefs({ eve: false, h3: true, morning: true, showTitle: true })).toMatchObject({
       eve: false,
       showTitle: true,
     })
     expect(toPrefs({})).toEqual(DEFAULT_PREFS)
+    expect(toPrefs({ ...DEFAULT_PREFS, eveTime: 20 * 60 + 5 })).toEqual(DEFAULT_PREFS)
+    expect(toPrefs({ ...DEFAULT_PREFS, h3Lead: 45 })).toEqual(DEFAULT_PREFS)
     expect(toPrefs(null)).toEqual(DEFAULT_PREFS)
   })
 })

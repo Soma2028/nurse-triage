@@ -1,7 +1,13 @@
 import { Bell, BellRing, Send, Share, SquarePlus } from 'lucide-react'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { disableNotifications, enableNotifications, sendTestNotification } from '../sync/notify'
-import { setPushState, usePushState, type NotifyPrefs } from '../sync/pushState'
+import {
+  H3_LEADS,
+  TIME_STEP,
+  setPushState,
+  usePushState,
+  type NotifyPrefs,
+} from '../sync/pushState'
 import { currentEnv, detectSupport, isIOS } from '../sync/support'
 
 type Busy = 'enable' | 'disable' | 'test' | null
@@ -22,10 +28,38 @@ function usePermission(): [NotificationPermission, () => void] {
   return [permission, () => setPermission(readPermission())]
 }
 
-const TIMINGS: { key: keyof Omit<NotifyPrefs, 'showTitle'>; label: string; hint?: string }[] = [
-  { key: 'eve', label: '締切の前の日 20:00' },
-  { key: 'h3', label: '締切の3時間前' },
-  { key: 'morning', label: '朝 7:00 のまとめ', hint: '赤の課題がある日だけ届くよ。' },
+type Choice = { value: number; label: string }
+
+const clock = (m: number) => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`
+/** 0:00〜23:45 の15分刻み */
+const TIMES: Choice[] = Array.from({ length: (24 * 60) / TIME_STEP }, (_, i) => ({
+  value: i * TIME_STEP,
+  label: clock(i * TIME_STEP),
+}))
+const LEADS: Choice[] = H3_LEADS.map((m) => ({
+  value: m,
+  label: m < 60 ? `${m}分前` : `${m / 60}時間前`,
+}))
+
+type OnOffKey = 'eve' | 'h3' | 'morning'
+type ValueKey = 'eveTime' | 'h3Lead' | 'morningTime'
+
+const TIMINGS: {
+  key: OnOffKey
+  valueKey: ValueKey
+  label: string
+  choices: Choice[]
+  hint?: string
+}[] = [
+  { key: 'eve', valueKey: 'eveTime', label: '締切の前の日', choices: TIMES },
+  { key: 'h3', valueKey: 'h3Lead', label: '締切の少し前', choices: LEADS },
+  {
+    key: 'morning',
+    valueKey: 'morningTime',
+    label: '赤の課題のまとめ',
+    choices: TIMES,
+    hint: '赤の課題がある日だけ、毎日届くよ。',
+  },
 ]
 
 function Check({
@@ -33,25 +67,31 @@ function Check({
   onChange,
   children,
   hint,
+  aside,
 }: {
   checked: boolean
   onChange: (v: boolean) => void
   children: ReactNode
   hint?: ReactNode
+  /** 右に置くもの（時刻を選ぶ欄）。label の外に置き、押してもチェックが切り替わらないようにする */
+  aside?: ReactNode
 }) {
   return (
-    <label className="flex min-h-11 cursor-pointer items-start gap-3 py-3">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        className="mt-0 size-5 shrink-0 accent-primary"
-      />
-      <span className="min-w-0">
-        <span className="block">{children}</span>
-        {hint && <span className="mt-1 block text-sm text-ink-muted">{hint}</span>}
-      </span>
-    </label>
+    <div className="flex items-start gap-3">
+      <label className="flex min-h-11 min-w-0 flex-1 cursor-pointer items-start gap-3 py-3">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={(e) => onChange(e.target.checked)}
+          className="mt-0 size-5 shrink-0 accent-primary"
+        />
+        <span className="min-w-0">
+          <span className="block">{children}</span>
+          {hint && <span className="mt-1 block text-sm text-ink-muted">{hint}</span>}
+        </span>
+      </label>
+      {aside && <div className="shrink-0 py-2">{aside}</div>}
+    </div>
   )
 }
 
@@ -117,7 +157,7 @@ export function NotifyPanel() {
     )
   }
 
-  const setPref = (key: keyof NotifyPrefs, value: boolean) =>
+  const setPref = <K extends keyof NotifyPrefs>(key: K, value: NotifyPrefs[K]) =>
     setPushState({ prefs: { ...push.prefs, [key]: value } })
 
   /** 表示中の状態の名前（確認用に data-state へ出す） */
@@ -187,7 +227,7 @@ export function NotifyPanel() {
             通知の登録が切れていたよ。もう一度オンにしてね。
           </p>
         )}
-        <p className={text}>締切の前の日の夜と、3時間前に知らせるよ。</p>
+        <p className={text}>締切の前の日と、締切の少し前に知らせるよ。</p>
         <p className={note}>サーバーに送るのは締切と種類だけ。課題名は送らないよ。</p>
         <button
           type="button"
@@ -216,6 +256,21 @@ export function NotifyPanel() {
                 checked={push.prefs[t.key]}
                 onChange={(v) => setPref(t.key, v)}
                 hint={t.hint}
+                aside={
+                  <select
+                    aria-label={`${t.label}の時刻`}
+                    value={push.prefs[t.valueKey]}
+                    onChange={(e) => setPref(t.valueKey, Number(e.target.value))}
+                    disabled={!push.prefs[t.key]}
+                    className="ui-input mt-0 w-auto disabled:opacity-60"
+                  >
+                    {t.choices.map((c) => (
+                      <option key={c.value} value={c.value}>
+                        {c.label}
+                      </option>
+                    ))}
+                  </select>
+                }
               >
                 {t.label}
               </Check>

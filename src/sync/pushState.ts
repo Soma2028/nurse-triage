@@ -6,19 +6,39 @@ import { useSyncExternalStore } from 'react'
 
 export const PUSH_STORAGE_KEY = 'nurse-triage-push-v1'
 
+/** 時刻は 0:00 からの分（15分刻み。サーバーの cron が15分おきのため）。api/_lib/schedule.ts と同じ形 */
 export interface NotifyPrefs {
-  eve: boolean // 前日 20:00
-  h3: boolean // 3時間前
-  morning: boolean // 朝 7:00 のまとめ
+  eve: boolean // 締切の前の日
+  eveTime: number // 前の日の何時に送るか
+  h3: boolean // 締切の直前（はじめ3時間前で固定だった名残りの名前）
+  h3Lead: number // 締切の何分前に送るか
+  morning: boolean // 毎日のまとめ
+  morningTime: number // 何時に送るか
   showTitle: boolean // 通知に課題名を出す
 }
 
+export const TIME_STEP = 15
+/** 直前の通知で選べる「締切の何分前」。api/_lib/schedule.ts の H3_LEADS と同じ */
+export const H3_LEADS = [30, 60, 120, 180, 240, 360, 720] as const
+
 export const DEFAULT_PREFS: NotifyPrefs = {
   eve: true,
+  eveTime: 20 * 60,
   h3: true,
+  h3Lead: 180,
   morning: true,
+  morningTime: 7 * 60,
   showTitle: false, // 課題名に患者さんの情報が入りやすいので、初期はオフ
 }
+
+const isTimeOfDay = (v: unknown): v is number =>
+  Number.isInteger(v) &&
+  (v as number) >= 0 &&
+  (v as number) < 24 * 60 &&
+  (v as number) % TIME_STEP === 0
+const time = (v: unknown, fallback: number) => (isTimeOfDay(v) ? v : fallback)
+const lead = (v: unknown, fallback: number) =>
+  (H3_LEADS as readonly unknown[]).includes(v) ? (v as number) : fallback
 
 /** サーバーから消しきれなかった端末（次に開いたときにもう一度消す） */
 export interface PendingDelete {
@@ -82,8 +102,11 @@ export function loadPushState(storage = defaultStorage()): PushState {
       endpoint: str(d.endpoint),
       prefs: {
         eve: bool(p.eve, DEFAULT_PREFS.eve),
+        eveTime: time(p.eveTime, DEFAULT_PREFS.eveTime),
         h3: bool(p.h3, DEFAULT_PREFS.h3),
+        h3Lead: lead(p.h3Lead, DEFAULT_PREFS.h3Lead),
         morning: bool(p.morning, DEFAULT_PREFS.morning),
+        morningTime: time(p.morningTime, DEFAULT_PREFS.morningTime),
         showTitle: bool(p.showTitle, DEFAULT_PREFS.showTitle),
       },
       synced: str(d.synced),

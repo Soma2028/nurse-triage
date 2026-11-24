@@ -146,8 +146,9 @@ export function neonDb(databaseUrl: string): Db {
 
     async listCronTargets(now) {
       const nowIso = new Date(now).toISOString()
-      // 朝のまとめの送信記録（その朝 7:00）も入るよう、1日前からの記録を読む
-      const since = new Date(now - 24 * 60 * 60 * 1000).toISOString()
+      // まとめの送信記録（その日の 0:00）も入るよう、2日前からの記録を読む。
+      // 夜おそい時刻のまとめは、日付をまたいだあとも前の日の記録と照らし合わせるため
+      const since = new Date(now - 2 * 24 * 60 * 60 * 1000).toISOString()
       const [devices, subs, rems, sent] = await sql.transaction(
         [
           sql`select id, settings from devices

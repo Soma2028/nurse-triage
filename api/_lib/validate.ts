@@ -3,6 +3,7 @@
  */
 import { z } from 'zod'
 import type { TaskType } from '../../src/types.js'
+import { DEFAULT_PREFS, H3_LEADS, TIME_STEP } from './schedule.js'
 
 const TASK_TYPES = [
   'rec',
@@ -25,10 +26,25 @@ const auth = {
   secret: z.string().min(32).max(128),
 }
 
+/** 0:00〜23:45 を15分刻みで（0:00 からの分） */
+const timeOfDay = z
+  .number()
+  .int()
+  .min(0)
+  .max(24 * 60 - TIME_STEP)
+  .multipleOf(TIME_STEP)
+
+/** 時刻の項目は、時刻を選べるようになる前のアプリ・DB の設定にはないので、なければ初期値 */
 export const prefsSchema = z.strictObject({
   eve: z.boolean(),
+  eveTime: timeOfDay.default(DEFAULT_PREFS.eveTime),
   h3: z.boolean(),
+  h3Lead: z
+    .number()
+    .refine((v) => (H3_LEADS as readonly number[]).includes(v))
+    .default(DEFAULT_PREFS.h3Lead),
   morning: z.boolean(),
+  morningTime: timeOfDay.default(DEFAULT_PREFS.morningTime),
   showTitle: z.boolean(),
 })
 

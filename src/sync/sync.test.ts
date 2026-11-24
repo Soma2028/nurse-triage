@@ -99,10 +99,30 @@ describe('pushState の保存', () => {
       secret: 's',
       enabled: true,
       endpoint: 'https://e',
-      prefs: { ...DEFAULT_PREFS, morning: false },
+      prefs: {
+        ...DEFAULT_PREFS,
+        morning: false,
+        eveTime: 21 * 60 + 15,
+        h3Lead: 60,
+        morningTime: 0,
+      },
     }
     savePushState(state, s)
     expect(loadPushState(s)).toEqual(state)
+  })
+
+  it('時刻のない古い保存データ・おかしな時刻は、初期の時刻で読む', () => {
+    const s = mem()
+    s.setItem(
+      PUSH_STORAGE_KEY,
+      JSON.stringify({ prefs: { eve: false, h3: true, morning: true, showTitle: false } }),
+    )
+    expect(loadPushState(s).prefs).toEqual({ ...DEFAULT_PREFS, eve: false })
+    s.setItem(
+      PUSH_STORAGE_KEY,
+      JSON.stringify({ prefs: { ...DEFAULT_PREFS, eveTime: 1201, h3Lead: 45, morningTime: 1440 } }),
+    )
+    expect(loadPushState(s).prefs).toEqual(DEFAULT_PREFS)
   })
 
   it('名札がないのに「オン」になっていたらオフとして読む', () => {

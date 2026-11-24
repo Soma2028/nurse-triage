@@ -7,7 +7,9 @@ import {
   h3At,
   isInWindow,
   isMorningRed,
+  jstDayStart,
   morningAt,
+  morningDueAt,
   pendingNotices,
   sentKey,
   type NotifyPrefs,
@@ -56,6 +58,22 @@ describe('eveAt: 締切の前日 20:00', () => {
   it('UTC ではまだ前日の時間帯（日本時間 0:00〜8:59）の締切でも、日本の日付で前日になる', () => {
     // 11/25 8:59 JST は UTC で 11/24 23:59。UTC の日付で計算すると 11/23 になってしまう
     expect(eveAt(jst(2026, 11, 25, 8, 59))).toBe(jst(2026, 11, 24, 20))
+  })
+
+  it('選んだ時刻（前の日の 18:45・0:00・23:45）', () => {
+    const due = jst(2026, 12, 1, 8, 30)
+    expect(eveAt(due, 18 * 60 + 45)).toBe(jst(2026, 11, 30, 18, 45))
+    expect(eveAt(due, 0)).toBe(jst(2026, 11, 30, 0, 0))
+    expect(eveAt(due, 23 * 60 + 45)).toBe(jst(2026, 11, 30, 23, 45))
+  })
+
+  it('選んだ時刻で送る', () => {
+    const prefs: NotifyPrefs = { ...DEFAULT_PREFS, eveTime: 21 * 60 + 30 }
+    const r = rem()
+    expect(pendingNotices([r], prefs, jst(2026, 11, 24, 20), NONE)).toEqual([])
+    expect(pendingNotices([r], prefs, jst(2026, 11, 24, 21, 30), NONE)).toMatchObject([
+      { kind: 'eve' },
+    ])
   })
 })
 
@@ -177,6 +195,15 @@ describe('pendingNotices: 3時間前', () => {
     expect(h3.tag).toBe(eve.tag)
   })
 
+  it('選んだ「何時間前」で送り、文面もそれに合わせる', () => {
+    const prefs: NotifyPrefs = { ...DEFAULT_PREFS, h3Lead: 30 }
+    expect(pendingNotices([r], prefs, at, NONE)).toEqual([])
+    const [n] = pendingNotices([r], prefs, jst(2026, 11, 25, 12, 30), NONE)
+    expect(n.title).toBe('あと30分：看護過程')
+    const [m] = pendingNotices([r], { ...DEFAULT_PREFS, h3Lead: 720 }, jst(2026, 11, 25, 1), NONE)
+    expect(m.title).toBe('あと12時間：看護過程')
+  })
+
   it('締切 0:00 は、前日 20:00 に前日の通知、21:00 に3時間前の通知（別々に1回ずつ）', () => {
     const midnight = rem({ due: jst(2026, 11, 25, 0, 0) })
     const kinds = (now: number) =>
@@ -202,7 +229,7 @@ describe('pendingNotices: 朝 7:00 のまとめ', () => {
       {
         kind: 'morning',
         taskId: MORNING_TASK_ID,
-        due: now,
+        due: jst(2026, 11, 24), // 送信記録はその日の 0:00
         title: '今日の赤タッグ 2件',
         body: 'まずレポートから',
         tag: 'morning',
@@ -216,11 +243,35 @@ describe('pendingNotices: 朝 7:00 のまとめ', () => {
   })
 
   it('1日1回（その朝の分を送ったら、もう送らない）', () => {
-    const sent = new Set([sentKey(MORNING_TASK_ID, 'morning', now)])
+    const sent = new Set([sentKey(MORNING_TASK_ID, 'morning', jst(2026, 11, 24))])
     expect(pendingNotices(tasks, DEFAULT_PREFS, now + 15 * MIN, sent)).toEqual([])
     // 次の日の朝は送る
     const next = jst(2026, 11, 25, 7, 0)
     expect(pendingNotices(tasks, DEFAULT_PREFS, next, sent)).toMatchObject([{ kind: 'morning' }])
+  })
+
+  it('時刻をあとにずらしても、同じ日に二度は送らない', () => {
+    const sent = new Set([sentKey(MORNING_TASK_ID, 'morning', jst(2026, 11, 24))])
+    const later: NotifyPrefs = { ...DEFAULT_PREFS, morningTime: 12 * 60 }
+    expect(pendingNotices(tasks, later, jst(2026, 11, 24, 12, 0), sent)).toEqual([])
+  })
+
+  it('選んだ時刻に送る', () => {
+    const prefs: NotifyPrefs = { ...DEFAULT_PREFS, morningTime: 6 * 60 + 30 }
+    expect(pendingNotices(tasks, prefs, jst(2026, 11, 24, 6, 15), NONE)).toEqual([])
+    expect(pendingNotices(tasks, prefs, jst(2026, 11, 24, 6, 30), NONE)).toHaveLength(1)
+    expect(pendingNotices(tasks, prefs, now, NONE)).toHaveLength(1)
+    expect(pendingNotices(tasks, prefs, now + 30 * MIN, NONE)).toEqual([])
+  })
+
+  it('夜おそい時刻は、日付をまたいでもその日の分として送る', () => {
+    expect(morningDueAt(jst(2026, 11, 25, 0, 15), 23 * 60 + 30)).toBe(jst(2026, 11, 24, 23, 30))
+    expect(morningDueAt(jst(2026, 11, 25, 0, 30), 23 * 60 + 30)).toBeNull()
+    expect(morningDueAt(jst(2026, 11, 24, 23, 15), 23 * 60 + 30)).toBeNull()
+    const prefs: NotifyPrefs = { ...DEFAULT_PREFS, morningTime: 23 * 60 + 30 }
+    const late = [rem({ taskId: 'x', type: 'proc', due: jst(2026, 11, 28) })]
+    const [n] = pendingNotices(late, prefs, jst(2026, 11, 25, 0, 15), NONE)
+    expect(n.due).toBe(jstDayStart(jst(2026, 11, 24, 23, 30)))
   })
 
   it('赤がなければ送らない', () => {
@@ -266,6 +317,15 @@ describe('サーバーのタイムゾーンに左右されない', () => {
       time: dues.map(formatJstTime),
       morning: nows.map(morningAt),
       pending: nows.map((now) => pendingNotices(reminders, DEFAULT_PREFS, now, NONE)),
+      custom: nows.map((now) =>
+        pendingNotices(
+          reminders,
+          { ...DEFAULT_PREFS, eveTime: 23 * 60 + 45, h3Lead: 720, morningTime: 0 },
+          now,
+          NONE,
+        ),
+      ),
+      late: nows.map((now) => morningDueAt(now + 30 * MIN, 23 * 60 + 45)),
     })
   }
 
