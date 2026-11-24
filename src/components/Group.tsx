@@ -2,11 +2,27 @@ import { ChevronRight, ChevronsUpDown, Minus, Plus, type LucideIcon } from 'luci
 import type { ReactNode } from 'react'
 import { formatHours } from '../utils/format'
 
-/** 行をまとめる白い面（iPhone の設定アプリのような一覧）。せってい・通知・課題の追加で共通 */
-export function Group({ label, children }: { label?: string; children: ReactNode }) {
+/**
+ * 行をまとめる白い面（iPhone の設定アプリのような一覧）。アプリ全体で共通。
+ * label は上の小見出し、aside は小見出しの右に置く値（今日のプランの合計など）
+ */
+export function Group({
+  label,
+  aside,
+  children,
+}: {
+  label?: string
+  aside?: ReactNode
+  children: ReactNode
+}) {
   return (
     <section className="flex flex-col gap-2">
-      {label && <h2 className="px-4 text-xs font-bold tracking-wide text-ink-muted">{label}</h2>}
+      {label && (
+        <div className="flex items-baseline justify-between gap-2 px-4">
+          <h2 className="text-xs font-bold tracking-wide text-ink-muted">{label}</h2>
+          {aside && <span className="text-xs font-bold text-ink-muted tabular-nums">{aside}</span>}
+        </div>
+      )}
       <div className="ui-card divide-y divide-line overflow-hidden rounded-2xl">{children}</div>
     </section>
   )
