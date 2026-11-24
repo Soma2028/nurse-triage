@@ -1,18 +1,18 @@
-import { motion } from 'framer-motion'
+import { animate, motion, useMotionValue, type PanInfo } from 'framer-motion'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import {
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
   type FormEvent,
   type MouseEvent,
-  type PointerEvent,
 } from 'react'
 import { TRIAGE_STYLE } from '../constants'
 import { markRun, monthCells, tasksByDay } from '../logic/calendar'
 import { addDays, dayKey, keyStart, rangeKeys } from '../logic/schedule'
-import { ENTER_DISTANCE, baseTransition } from '../motion'
+import { baseTransition } from '../motion'
 import type { Analysed, DayKind, Schedule, Settings } from '../types'
 import { CalendarHelp } from './Help'
 import { HelpButton, ScreenLayout } from './ScreenLayout'
@@ -55,8 +55,18 @@ const KIND_OPTIONS: { value: DayKind; label: string }[] = [
   { value: 'test', label: 'テスト' },
 ]
 
-/** 横にこれだけ動かしたら、月を変えるスワイプとみなす（px） */
-const SWIPE_MIN = 48
+/** となりの月の表との間（px） */
+const PANEL_GAP = 16
+/** 指を離したとき、表の幅のこの割合より動かしていたら月を変える */
+const SWIPE_RATIO = 0.2
+/** これより速く払ったら、動かした距離が短くても月を変える（px/秒） */
+const SWIPE_VELOCITY = 400
+
+/** 'YYYY-MM' を n か月ずらす */
+const shiftMonth = (month: string, n: number) => {
+  const [y, m] = month.split('-').map(Number)
+  return dayKey(new Date(y, m - 1 + n, 1).getTime()).slice(0, 7)
+}
 
 /** マスの中の大きさ（px）：上下の余白 4+4、日付の行 16、課題1件ごとに 4+16 */
 const CELL_PAD = 8
@@ -82,25 +92,109 @@ const softBtn =
   'inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-primary-soft px-4 text-sm font-bold text-primary-ink transition hover:bg-primary hover:text-on-primary'
 const label = 'text-xs font-bold tracking-wide text-ink-muted'
 
-/** マスの高さから、課題を何件まで並べられるか。月で行の数が変わるので、月が変わったら測り直す */
-function useChipCapacity(month: string) {
+/** 表の高さ。マスに課題を何件まで並べられるかを、月の行の数ごとに計算するのに使う */
+function useHeight() {
   const ref = useRef<HTMLDivElement>(null)
-  const [cap, setCap] = useState(1)
+  const [height, setHeight] = useState(0)
   useEffect(() => {
     const el = ref.current
     if (!el) return
-    const measure = () => {
-      const cell = el.querySelector<HTMLElement>('[data-cell]')
-      if (!cell) return
-      const h = cell.getBoundingClientRect().height
-      setCap(Math.max(1, Math.floor((h - CELL_PAD - DATE_ROW) / CHIP_ROW)))
-    }
-    measure()
-    const ro = new ResizeObserver(measure)
+    const ro = new ResizeObserver(() => setHeight(el.clientHeight))
     ro.observe(el)
     return () => ro.disconnect()
-  }, [month])
-  return [ref, cap] as const
+  }, [])
+  return [ref, height] as const
+}
+
+/** 行の数が rows の月で、1マスに並べられる課題の数（マスの間は gap-1 = 4px） */
+function chipCapacity(height: number, rows: number): number {
+  const cell = (height - 4 * (rows - 1)) / rows
+  return Math.max(1, Math.floor((cell - CELL_PAD - DATE_ROW) / CHIP_ROW))
+}
+
+/** 1か月の表。なぞっている間はとなりの月も並べるので、部品にしておく */
+function MonthGrid({
+  month,
+  schedule,
+  byDay,
+  today,
+  height,
+  current,
+  onSelect,
+}: {
+  month: string
+  schedule: Schedule
+  byDay: Map<string, Analysed[]>
+  today: string
+  height: number
+  /** いま見ている月か。となりの月は読み上げ・フォーカスの対象にしない */
+  current: boolean
+  onSelect: (key: string) => void
+}) {
+  const [y, m] = month.split('-').map(Number)
+  const cells = useMemo(() => monthCells(month), [month])
+  const rows = cells.length / 7
+  const capacity = chipCapacity(height, rows)
+  return (
+    <div
+      role="grid"
+      aria-label={`${y}年${m}月のカレンダー`}
+      aria-hidden={!current || undefined}
+      inert={!current}
+      className="grid size-full grid-cols-7 gap-1"
+      style={{ gridTemplateRows: `repeat(${rows}, minmax(44px, 1fr))` }}
+    >
+      {cells.map((key, i) => {
+        if (key === null) return <span key={`blank-${i}`} aria-hidden />
+        const kind = schedule[key]
+        const tasks = byDay.get(key) ?? []
+        const shown = tasks.length > capacity ? tasks.slice(0, capacity - 1) : tasks
+        const more = tasks.length - shown.length
+        const isToday = key === today
+        const past = key < today
+        return (
+          <button
+            key={key}
+            type="button"
+            data-cell
+            onClick={() => onSelect(key)}
+            aria-label={`${shortDate(key)}${kind ? ` ${KIND_NAME[kind]}` : ''}${tasks.length ? ` 締切${tasks.length}件` : ''}${isToday ? '（今日）' : ''}`}
+            className={`flex min-h-0 min-w-0 flex-col gap-1 overflow-hidden rounded-xl p-1 text-left focus-visible:outline-2 focus-visible:outline-primary-ink ${
+              kind ? KIND_CELL[kind] : 'bg-surface'
+            } ${isToday ? 'ring-2 ring-ink ring-inset' : ''}`}
+          >
+            <span className="flex h-4 shrink-0 items-center justify-between gap-1 px-1 text-xs leading-4">
+              <span
+                className={`tabular-nums ${isToday ? 'font-bold text-ink' : past ? 'text-ink-muted' : 'text-ink'}`}
+              >
+                {Number(key.slice(8))}
+              </span>
+              {kind && (
+                <span aria-hidden className={`font-bold ${KIND_MARK[kind].className}`}>
+                  {KIND_MARK[kind].char}
+                </span>
+              )}
+            </span>
+            {shown.map((a) => (
+              <span
+                key={a.task.id}
+                className="flex h-4 min-w-0 shrink-0 items-center gap-1 text-xs leading-4"
+              >
+                <span
+                  aria-hidden
+                  className={`size-2 shrink-0 rounded-full ${TRIAGE_STYLE[a.triage].dot}`}
+                />
+                <span className="truncate text-ink">{a.task.title}</span>
+              </span>
+            ))}
+            {more > 0 && (
+              <span className="h-4 shrink-0 px-1 text-xs leading-4 text-ink-muted">+{more}</span>
+            )}
+          </button>
+        )
+      })}
+    </div>
+  )
 }
 
 type AddKind = DayKind | 'task'
@@ -123,12 +217,13 @@ export function ScheduleScreen({
   const [month, setMonth] = useState(() => today.slice(0, 7)) // YYYY-MM
   const [selected, setSelected] = useState<string | null>(null) // 開いている日のシート
   const [help, setHelp] = useState(false)
-  const [gridRef, capacity] = useChipCapacity(month)
-  /** 月を動かした向き（1：次の月、-1：前の月）。表が入ってくる向きに使う */
-  const [dir, setDir] = useState(0)
-  const swipe = useRef<{ x: number; y: number } | null>(null)
-  /** 最後に月を変えるスワイプをした時刻（直後のタップを無視するため） */
-  const swipedAt = useRef(-Infinity)
+  const [trackRef, height] = useHeight()
+  /** 表の横の位置。指に合わせて動かし、離したら月の幅ぶん送るか、元に戻す */
+  const x = useMotionValue(0)
+  /** 月を送っている途中か（続けて押されたときに二重に送らない） */
+  const sliding = useRef(false)
+  /** いまの指の動きが「なぞり」になったか（なぞったあとのタップで日のシートを開かないため） */
+  const dragged = useRef(false)
 
   // 予定を追加するシート
   const [addOpen, setAddOpen] = useState(false)
@@ -145,29 +240,34 @@ export function ScheduleScreen({
   const byDay = useMemo(() => tasksByDay(analysed), [analysed])
   const rank = useMemo(() => new Map(analysed.map((a, i) => [a.task.id, i + 1])), [analysed])
 
-  const moveMonth = (n: number) => {
-    const d = new Date(y, m - 1 + n, 1)
-    setDir(Math.sign(n))
-    setMonth(dayKey(d.getTime()).slice(0, 7))
+  /** となりの月までの距離（表の幅＋間） */
+  const pageWidth = () => (trackRef.current?.clientWidth ?? 0) + PANEL_GAP
+
+  /** n = 1 で次の月、-1 で前の月へ、表を横に送ってから切り替える */
+  const moveMonth = (n: 1 | -1) => {
+    if (sliding.current) return
+    sliding.current = true
+    animate(x, -n * pageWidth(), {
+      ...baseTransition,
+      onComplete: () => setMonth((mo) => shiftMonth(mo, n)),
+    })
   }
 
-  // 表を左右になぞると月を変える（左へなぞると次の月）。縦の動きが大きいときは何もしない
-  const onPointerDown = (e: PointerEvent) => {
-    swipe.current = { x: e.clientX, y: e.clientY }
-  }
-  const onPointerUp = (e: PointerEvent) => {
-    const from = swipe.current
-    swipe.current = null
-    if (!from) return
-    const dx = e.clientX - from.x
-    const dy = e.clientY - from.y
-    if (Math.abs(dx) < SWIPE_MIN || Math.abs(dx) < Math.abs(dy) * 1.5) return
-    // なぞったあとに来るタップで、日のシートが開かないようにする
-    swipedAt.current = e.timeStamp
-    moveMonth(dx < 0 ? 1 : -1)
+  // 月が変わったら、表の位置を真ん中に戻す（描く前に戻すので、ちらつかない）
+  useLayoutEffect(() => {
+    x.set(0)
+    sliding.current = false
+  }, [month, x])
+
+  // 表を左右になぞると、指に合わせて動き、となりの月がのぞく。離したら月を変えるか元に戻す
+  const onDragEnd = (_: unknown, info: PanInfo) => {
+    const limit = (trackRef.current?.clientWidth ?? 0) * SWIPE_RATIO
+    if (info.offset.x < -limit || info.velocity.x < -SWIPE_VELOCITY) moveMonth(1)
+    else if (info.offset.x > limit || info.velocity.x > SWIPE_VELOCITY) moveMonth(-1)
+    else animate(x, 0, baseTransition)
   }
   const onClickCapture = (e: MouseEvent) => {
-    if (e.timeStamp - swipedAt.current > 500) return
+    if (!dragged.current) return
     e.stopPropagation()
     e.preventDefault()
   }
@@ -248,83 +348,47 @@ export function ScheduleScreen({
       addLabel="予定を追加する"
       fill
     >
-      <motion.div
-        key={month}
-        initial={dir === 0 ? false : { opacity: 0, x: dir * ENTER_DISTANCE }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={baseTransition}
-        onPointerDown={onPointerDown}
-        onPointerUp={onPointerUp}
-        onPointerCancel={() => (swipe.current = null)}
-        onClickCapture={onClickCapture}
-        className="flex min-h-0 flex-1 touch-pan-y flex-col"
-      >
-        <div aria-hidden className="grid grid-cols-7 gap-1 pb-1 text-center text-xs text-ink-muted">
-          {WEEK_HEAD.map((w) => (
-            <span key={w}>{w}</span>
-          ))}
-        </div>
+      <div aria-hidden className="grid grid-cols-7 gap-1 pb-1 text-center text-xs text-ink-muted">
+        {WEEK_HEAD.map((w) => (
+          <span key={w}>{w}</span>
+        ))}
+      </div>
 
-        <div
-          ref={gridRef}
-          role="grid"
-          aria-label={`${y}年${m}月のカレンダー`}
-          className="grid min-h-0 flex-1 grid-cols-7 gap-1"
-          style={{ gridTemplateRows: `repeat(${cells.length / 7}, minmax(44px, 1fr))` }}
+      {/* 前・今・次の月を横に並べ、x で動かす。見えるのは真ん中の月だけ */}
+      <div ref={trackRef} className="relative min-h-0 flex-1 overflow-hidden">
+        <motion.div
+          drag="x"
+          dragDirectionLock
+          dragMomentum={false}
+          onPointerDownCapture={() => (dragged.current = false)}
+          onDragStart={() => (dragged.current = true)}
+          onDragEnd={onDragEnd}
+          onClickCapture={onClickCapture}
+          style={{ x }}
+          className="absolute inset-0"
         >
-          {cells.map((key, i) => {
-            if (key === null) return <span key={`blank-${i}`} aria-hidden />
-            const kind = schedule[key]
-            const tasks = byDay.get(key) ?? []
-            const shown = tasks.length > capacity ? tasks.slice(0, capacity - 1) : tasks
-            const more = tasks.length - shown.length
-            const isToday = key === today
-            const past = key < today
+          {([-1, 0, 1] as const).map((n) => {
+            const mo = shiftMonth(month, n)
             return (
-              <button
-                key={key}
-                type="button"
-                data-cell
-                onClick={() => setSelected(key)}
-                aria-label={`${shortDate(key)}${kind ? ` ${KIND_NAME[kind]}` : ''}${tasks.length ? ` 締切${tasks.length}件` : ''}${isToday ? '（今日）' : ''}`}
-                className={`flex min-h-0 min-w-0 flex-col gap-1 overflow-hidden rounded-xl p-1 text-left focus-visible:outline-2 focus-visible:outline-primary-ink ${
-                  kind ? KIND_CELL[kind] : 'bg-surface'
-                } ${isToday ? 'ring-2 ring-ink ring-inset' : ''}`}
+              <div
+                key={mo}
+                className="absolute inset-y-0 w-full"
+                style={{ left: `calc(${n * 100}% + ${n * PANEL_GAP}px)` }}
               >
-                <span className="flex h-4 shrink-0 items-center justify-between gap-1 px-1 text-xs leading-4">
-                  <span
-                    className={`tabular-nums ${isToday ? 'font-bold text-ink' : past ? 'text-ink-muted' : 'text-ink'}`}
-                  >
-                    {Number(key.slice(8))}
-                  </span>
-                  {kind && (
-                    <span aria-hidden className={`font-bold ${KIND_MARK[kind].className}`}>
-                      {KIND_MARK[kind].char}
-                    </span>
-                  )}
-                </span>
-                {shown.map((a) => (
-                  <span
-                    key={a.task.id}
-                    className="flex h-4 min-w-0 shrink-0 items-center gap-1 text-xs leading-4"
-                  >
-                    <span
-                      aria-hidden
-                      className={`size-2 shrink-0 rounded-full ${TRIAGE_STYLE[a.triage].dot}`}
-                    />
-                    <span className="truncate text-ink">{a.task.title}</span>
-                  </span>
-                ))}
-                {more > 0 && (
-                  <span className="h-4 shrink-0 px-1 text-xs leading-4 text-ink-muted">
-                    +{more}
-                  </span>
-                )}
-              </button>
+                <MonthGrid
+                  month={mo}
+                  schedule={schedule}
+                  byDay={byDay}
+                  today={today}
+                  height={height}
+                  current={n === 0}
+                  onSelect={setSelected}
+                />
+              </div>
             )
           })}
-        </div>
-      </motion.div>
+        </motion.div>
+      </div>
 
       {/* 日のシート：その日の予定と、締切の課題 */}
       <Sheet
