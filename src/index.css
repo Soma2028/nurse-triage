@@ -81,6 +81,13 @@
   .ui-range:focus-visible::-webkit-slider-thumb {
     @apply ring-2 ring-primary/40;
   }
+  /* 横にスクロールする列（ホームのつぎにやる）。スクロールバーを出さない */
+  .ui-no-scrollbar {
+    scrollbar-width: none;
+  }
+  .ui-no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
   .ui-page-title {
     @apply text-title font-bold tracking-tight;
   }

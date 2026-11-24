@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { DAY_MS, HOUR_MS } from '../constants'
 import type { Schedule, Settings, Task } from '../types'
-import { dayNote, homeView } from './home'
+import { dayNote, homeView, NEXT_MAX } from './home'
 import { buildPlan } from './plan'
 import { analyse } from './priority'
 import { addDays, dayKey } from './schedule'
@@ -22,39 +22,42 @@ const task = (dueIn: number, estHours: number, over: Partial<Task> = {}): Task =
 })
 
 describe('homeView', () => {
-  it('つぎにやるは黒・赤の先頭。ほかの急ぎは、今日のプランに入らなかった黒・赤だけ', () => {
+  it('つぎにやるは黒・赤・黄を並び順に。ほかの急ぎは、つぎにやるにも今日のプランにも入らなかった黒・赤', () => {
     const late = task(-HOUR_MS, 1) // 黒
     const red1 = task(5 * HOUR_MS, 2) // 赤（24時間以内）
-    const red2 = task(10 * HOUR_MS, 3) // 赤。H=4 なので、プランには入らない
+    const red2 = task(10 * HOUR_MS, 3) // 赤
     const green = task(20 * DAY_MS, 1)
     const analysed = analyse([green, red2, red1, late], S, NOW)
-    const plan = buildPlan(analysed, 4)
-    const v = homeView(analysed, plan)
-    expect(v.next?.task.id).toBe(late.id)
-    expect(plan.items.map((i) => i.task.id)).toEqual([late.id, red1.id, red2.id])
+    const v = homeView(analysed, buildPlan(analysed, 4))
+    expect(v.next.map((a) => a.task.id)).toEqual([late.id, red1.id, red2.id])
     expect(v.urgent).toEqual([])
-
-    const tight = buildPlan(analysed, 1)
-    expect(homeView(analysed, tight).urgent.map((a) => a.task.id)).toEqual([red1.id, red2.id])
   })
 
-  it('黄色しかなければ、黄色の先頭をつぎにやるに出す（急ぎには入れない）', () => {
+  it('つぎにやるは5件まで。あふれた黒・赤で、今日のプランにもないものはほかの急ぎに', () => {
+    const reds = Array.from({ length: 7 }, (_, i) => task((2 + i) * HOUR_MS, 3))
+    const analysed = analyse(reds, S, NOW)
+    const v = homeView(analysed, buildPlan(analysed, 1))
+    expect(v.next).toHaveLength(NEXT_MAX)
+    expect(v.urgent.map((a) => a.task.id)).toEqual(analysed.slice(5).map((a) => a.task.id))
+  })
+
+  it('黄色しかなければ、黄色をつぎにやるに出す（急ぎには入れない）', () => {
     const yellow = task(2 * DAY_MS, 1) // 黄（3日以内）
     const green = task(20 * DAY_MS, 1)
     const analysed = analyse([green, yellow], S, NOW)
     expect(analysed[0].triage).toBe('yellow')
     const v = homeView(analysed, buildPlan(analysed, 4))
-    expect(v.next?.task.id).toBe(yellow.id)
+    expect(v.next.map((a) => a.task.id)).toEqual([yellow.id])
     expect(v.urgent).toEqual([])
   })
 
   it('緑だけなら、つぎにやるも急ぎもない（プランだけ）', () => {
     const analysed = analyse([task(10 * DAY_MS, 1), task(20 * DAY_MS, 1)], S, NOW)
-    expect(homeView(analysed, buildPlan(analysed, 4))).toEqual({ next: undefined, urgent: [] })
+    expect(homeView(analysed, buildPlan(analysed, 4))).toEqual({ next: [], urgent: [] })
   })
 
   it('課題がなければ空', () => {
-    expect(homeView([], buildPlan([], 4))).toEqual({ next: undefined, urgent: [] })
+    expect(homeView([], buildPlan([], 4))).toEqual({ next: [], urgent: [] })
   })
 })
 

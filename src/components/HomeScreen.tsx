@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion'
+import { useState, type UIEvent } from 'react'
 import type { HomeView } from '../logic/home'
 import { enter } from '../motion'
 import type { Analysed, Plan } from '../types'
@@ -56,7 +57,7 @@ function NextCard({
   onAdvance: () => void
 }) {
   return (
-    <div className="ui-card flex flex-col gap-4 p-4">
+    <div className="ui-card flex h-full flex-col gap-4 p-4">
       <button
         type="button"
         onClick={onOpen}
@@ -82,7 +83,7 @@ function NextCard({
           <Reason a={a} />
         </span>
       </button>
-      <div className="flex gap-2">
+      <div className="mt-auto flex gap-2">
         <button
           type="button"
           onClick={onComplete}
@@ -160,6 +161,82 @@ function TodayHeader({
   )
 }
 
+/**
+ * つぎにやるのカルーセル。カードを横に並べ、指でなぞると1枚ずつ止まる（scroll-snap）。
+ * 2枚以上のときは、となりのカードが少しのぞくように幅を 85% にし、画面の端まで広げる。
+ * 下の点で、いま何枚目かを出す
+ */
+function NextCarousel({
+  items,
+  rankOf,
+  onOpen,
+  onAdvance,
+  onComplete,
+}: {
+  items: Analysed[]
+  rankOf: (a: Analysed) => number
+  onOpen: (id: string) => void
+  onAdvance: (a: Analysed) => void
+  onComplete: (id: string) => void
+}) {
+  const [index, setIndex] = useState(0)
+  const many = items.length > 1
+  const current = Math.min(index, items.length - 1)
+
+  const onScroll = (e: UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget
+    const card = el.firstElementChild as HTMLElement | null
+    if (!card) return
+    // カード1枚ぶん（幅＋すき間 12px）で割って、いちばん近いカードを今の1枚とする
+    setIndex(Math.round(el.scrollLeft / (card.offsetWidth + 12)))
+  }
+
+  return (
+    <>
+      <div
+        onScroll={onScroll}
+        aria-roledescription="カルーセル"
+        aria-label="つぎにやる課題"
+        className={`ui-no-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain ${
+          many
+            ? '-mx-[max(16px,env(safe-area-inset-left))] scroll-px-[max(16px,env(safe-area-inset-left))] px-[max(16px,env(safe-area-inset-left))] wide:mx-0 wide:scroll-px-0 wide:px-0'
+            : ''
+        } -my-2 py-2`}
+      >
+        {items.map((a, i) => (
+          <div
+            key={a.task.id}
+            role="group"
+            aria-roledescription="カード"
+            aria-label={`${i + 1}枚目 / ${items.length}枚`}
+            className={`shrink-0 snap-start ${many ? 'w-[85%]' : 'w-full'}`}
+          >
+            <NextCard
+              a={a}
+              rank={rankOf(a)}
+              onOpen={() => onOpen(a.task.id)}
+              onAdvance={() => onAdvance(a)}
+              onComplete={() => onComplete(a.task.id)}
+            />
+          </div>
+        ))}
+      </div>
+      {many && (
+        <div aria-hidden className="flex justify-center gap-2 pt-1">
+          {items.map((a, i) => (
+            <span
+              key={a.task.id}
+              className={`h-2 rounded-full transition-all duration-300 ${
+                i === current ? 'w-4 bg-ink' : 'w-2 bg-line-strong'
+              }`}
+            />
+          ))}
+        </div>
+      )}
+    </>
+  )
+}
+
 /** 空いたところに出すキャラクターとひとこと */
 function Empty({ mood, lines }: { mood: 'happy' | 'normal'; lines: [string, string] }) {
   return (
@@ -230,23 +307,24 @@ export function HomeScreen({
                 mood="happy"
                 lines={['課題はぜんぶ片づいたよ。', '新しい課題は右下の＋から追加してね。']}
               />
-            ) : next ? (
+            ) : next.length > 0 ? (
               <motion.section
                 aria-labelledby="next-heading"
                 className="flex flex-col gap-2"
                 {...enter(0)}
               >
-                <h2 id="next-heading" className={label}>
+                <h2 id="next-heading" className={`${label} flex items-baseline justify-between`}>
                   つぎにやる
+                  {next.length > 1 && <span className="tabular-nums">{next.length}件</span>}
                 </h2>
-                <NextCard
-                  a={next}
-                  rank={analysed.indexOf(next) + 1}
-                  onOpen={() => setOpenId(next.task.id)}
-                  onAdvance={() =>
-                    onSetProgress(next.task.id, Math.min(100, next.task.progress + PROGRESS_STEP))
+                <NextCarousel
+                  items={next}
+                  rankOf={(a) => analysed.indexOf(a) + 1}
+                  onOpen={setOpenId}
+                  onAdvance={(a) =>
+                    onSetProgress(a.task.id, Math.min(100, a.task.progress + PROGRESS_STEP))
                   }
-                  onComplete={() => onComplete(next.task.id)}
+                  onComplete={onComplete}
                 />
               </motion.section>
             ) : null}

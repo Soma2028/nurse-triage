@@ -5,20 +5,23 @@ const URGENT = new Set(['black', 'red'])
 /** つぎにやるに出す色。黄色も赤と同じように出す（緑だけのときは出さない） */
 const NEXT = new Set(['black', 'red', 'yellow'])
 
+/** つぎにやるのカルーセルに並べる最大の枚数 */
+export const NEXT_MAX = 5
+
 export interface HomeView {
-  /** つぎにやる1件。黒・赤・黄の課題があるときだけ（並び順の先頭） */
-  next: Analysed | undefined
-  /** ほかの急ぎ：黒・赤のうち、つぎにやる以外で、今日のプランにも入っていないもの */
+  /** つぎにやる（カルーセル）。黒・赤・黄の課題を並び順に最大 NEXT_MAX 件 */
+  next: Analysed[]
+  /** ほかの急ぎ：黒・赤のうち、つぎにやるにも今日のプランにも入っていないもの */
   urgent: Analysed[]
 }
 
 /** ホームに出すもの。ホームは「つぎにやる」「今日のプラン」と「黒・赤の課題」だけ */
 export function homeView(analysed: readonly Analysed[], plan: Plan): HomeView {
-  const next = analysed.find((a) => NEXT.has(a.triage))
-  const inPlan = new Set(plan.items.map((i) => i.task.id))
+  const next = analysed.filter((a) => NEXT.has(a.triage)).slice(0, NEXT_MAX)
+  const shown = new Set([...next, ...plan.items].map((x) => x.task.id))
   return {
     next,
-    urgent: analysed.filter((a) => URGENT.has(a.triage) && a !== next && !inPlan.has(a.task.id)),
+    urgent: analysed.filter((a) => URGENT.has(a.triage) && !shown.has(a.task.id)),
   }
 }
 
