@@ -73,8 +73,8 @@ export function TasksScreen({
           onAdd={onAdd}
         >
           {tab === 'open' ? (
-            <div className="flex flex-col gap-4">
-              <OverloadWarning a={shortage} onOpen={setOpenId} />
+            <div className="flex flex-col gap-2">
+              <OverloadWarning a={shortage} />
               {analysed.length === 0 ? (
                 <div className="flex items-center gap-4 px-2 py-4">
                   <Chara mood="happy" size={64} />

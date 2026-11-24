@@ -173,7 +173,7 @@ function Empty({ mood, lines }: { mood: 'happy' | 'normal'; lines: [string, stri
   )
 }
 
-const label = 'px-4 text-xs font-bold tracking-wide text-ink-muted'
+const label = 'text-xs font-bold tracking-wide text-ink-muted'
 
 /**
  * ホーム。今日やることだけ（つぎにやる1件・今日のプラン・ほかの急ぎ）。
@@ -214,7 +214,7 @@ export function HomeScreen({
         />
       ) : (
         <ScreenLayout title={date} note={dayNote} onAdd={onAdd}>
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-4">
             {analysed.length > 0 && (
               <TodayHeader
                 progress={todayProgress(worked, plan)}
@@ -223,7 +223,7 @@ export function HomeScreen({
               />
             )}
 
-            <OverloadWarning a={shortage} onOpen={setOpenId} />
+            <OverloadWarning a={shortage} />
 
             {analysed.length === 0 ? (
               <Empty
@@ -253,7 +253,7 @@ export function HomeScreen({
 
             {analysed.length > 0 && (
               <motion.div {...enter(0.08)}>
-                <TodayPlan plan={plan} onOpen={setOpenId} />
+                <TodayPlan plan={plan} />
               </motion.div>
             )}
 
