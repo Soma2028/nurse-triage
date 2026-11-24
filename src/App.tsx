@@ -121,7 +121,6 @@ export default function App() {
             {screen === 'schedule' && (
               <ScheduleScreen
                 schedule={schedule}
-                settings={settings}
                 now={now}
                 analysed={analysed}
                 onSetDays={(dates, kind) => dispatch({ type: 'setDays', dates, kind })}

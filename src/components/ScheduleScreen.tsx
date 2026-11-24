@@ -5,7 +5,7 @@ import {
   type AnimationPlaybackControls,
   type PanInfo,
 } from 'framer-motion'
-import { ChevronLeft, ChevronRight, ChevronsUpDown, Plus } from 'lucide-react'
+import { ChevronsUpDown, Plus } from 'lucide-react'
 import {
   useEffect,
   useLayoutEffect,
@@ -19,15 +19,13 @@ import { TRIAGE_STYLE } from '../constants'
 import { markRun, monthCells, tasksByDay } from '../logic/calendar'
 import { addDays, dayKey, keyStart, rangeKeys } from '../logic/schedule'
 import { baseTransition } from '../motion'
-import type { Analysed, DayKind, Schedule, Settings } from '../types'
-import { CalendarHelp } from './Help'
-import { HelpButton, ScreenLayout } from './ScreenLayout'
+import type { Analysed, DayKind, Schedule } from '../types'
+import { ScreenLayout } from './ScreenLayout'
 import { Segmented } from './Segmented'
 import { Sheet } from './Sheet'
 
 interface Props {
   schedule: Schedule
-  settings: Settings
   now: number
   /** 未完了の課題（締切の日に出す） */
   analysed: Analysed[]
@@ -94,8 +92,6 @@ const timeOf = (ms: number) => {
 /** その日の 17:00（日付から課題を追加するときの締切の初期値） */
 const fivePm = (key: string) => keyStart(key) + 17 * 60 * 60 * 1000
 
-const navBtn =
-  'inline-flex size-11 items-center justify-center rounded-full text-ink-muted transition hover:bg-surface hover:text-ink'
 const softBtn =
   'inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-primary-soft px-4 text-sm font-bold text-primary-ink transition hover:bg-primary hover:text-on-primary'
 const label = 'text-xs font-bold tracking-wide text-ink-muted'
@@ -214,7 +210,6 @@ type AddKind = DayKind | 'task'
  */
 export function ScheduleScreen({
   schedule,
-  settings,
   now,
   analysed,
   onSetDays,
@@ -224,7 +219,6 @@ export function ScheduleScreen({
   const today = dayKey(now)
   const [month, setMonth] = useState(() => today.slice(0, 7)) // YYYY-MM
   const [selected, setSelected] = useState<string | null>(null) // 開いている日のシート
-  const [help, setHelp] = useState(false)
   const [trackRef, height] = useHeight()
   /** 表の横の位置。指に合わせて動かし、離したら月の幅ぶん送るか、元に戻す */
   const x = useMotionValue(0)
@@ -333,19 +327,10 @@ export function ScheduleScreen({
   return (
     <ScreenLayout
       title="カレンダー"
-      aside={<HelpButton label="カレンダーの使い方" onClick={() => setHelp(true)} />}
       sub={
-        <div className="-ml-2 flex items-center gap-1">
-          <button
-            type="button"
-            className={navBtn}
-            onClick={() => moveMonth(-1)}
-            aria-label="前の月"
-          >
-            <ChevronLeft aria-hidden className="size-5" />
-          </button>
+        <div className="flex items-center gap-2">
           {/* 押すと年と月を回して選べる（端末の月の選び方を、見えない input で重ねる） */}
-          <div className="relative flex min-h-11 w-32 items-center justify-center gap-1 rounded-2xl has-focus-visible:ring-2 has-focus-visible:ring-primary/25">
+          <div className="relative flex min-h-11 items-center gap-1 rounded-2xl has-focus-visible:ring-2 has-focus-visible:ring-primary/25">
             <h2 className="text-base font-bold whitespace-nowrap tabular-nums" aria-live="polite">
               {y}年{m}月
             </h2>
@@ -362,9 +347,6 @@ export function ScheduleScreen({
               onClick={(e) => e.currentTarget.showPicker?.()}
             />
           </div>
-          <button type="button" className={navBtn} onClick={() => moveMonth(1)} aria-label="次の月">
-            <ChevronRight aria-hidden className="size-5" />
-          </button>
           {/* この月の日数。マスの印と同じ1文字で、狭い画面でも1行に収める */}
           <p className="ml-auto flex gap-2 text-sm whitespace-nowrap text-ink-muted">
             {KIND_OPTIONS.map((o) => (
@@ -563,10 +545,6 @@ export function ScheduleScreen({
             {KIND_NAME[addKind as DayKind]}を追加する
           </button>
         </form>
-      </Sheet>
-
-      <Sheet open={help} title="カレンダーの使い方" onClose={() => setHelp(false)}>
-        <CalendarHelp hoursPractice={settings.hoursPractice} hoursNormal={settings.hoursNormal} />
       </Sheet>
     </ScreenLayout>
   )

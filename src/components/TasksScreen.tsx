@@ -6,11 +6,9 @@ import { cardInView } from '../motion'
 import type { Analysed, Task } from '../types'
 import { formatDue } from '../utils/format'
 import { Chara } from './Chara'
-import { PriorityHelp } from './Help'
 import { OverloadWarning } from './OverloadWarning'
-import { HelpButton, ScreenLayout } from './ScreenLayout'
+import { ScreenLayout } from './ScreenLayout'
 import { Segmented } from './Segmented'
-import { Sheet } from './Sheet'
 import { TaskCard } from './TaskCard'
 
 type Tab = 'open' | 'done'
@@ -41,12 +39,10 @@ export function TasksScreen({
 }: Props) {
   const [tab, setTab] = useState<Tab>('open')
   const [openId, setOpenId] = useState<string | null>(null)
-  const [help, setHelp] = useState(false)
 
   return (
     <ScreenLayout
       title="課題"
-      aside={<HelpButton label="優先度の決め方" onClick={() => setHelp(true)} />}
       sub={
         <Segmented
           label="表示する課題"
@@ -118,10 +114,6 @@ export function TasksScreen({
           ))}
         </ul>
       )}
-
-      <Sheet open={help} title="優先度の決め方" onClose={() => setHelp(false)}>
-        <PriorityHelp />
-      </Sheet>
     </ScreenLayout>
   )
 }

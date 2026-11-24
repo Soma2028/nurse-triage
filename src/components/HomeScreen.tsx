@@ -6,10 +6,8 @@ import { enter } from '../motion'
 import type { Analysed, Plan } from '../types'
 import { formatHours } from '../utils/format'
 import { Chara } from './Chara'
-import { HomeHelp } from './Help'
 import { OverloadWarning } from './OverloadWarning'
-import { HelpButton, ScreenLayout } from './ScreenLayout'
-import { Sheet } from './Sheet'
+import { ScreenLayout } from './ScreenLayout'
 import { TaskCard } from './TaskCard'
 import { TodayPlan } from './TodayPlan'
 
@@ -96,7 +94,6 @@ export function HomeScreen({
   onComplete,
   onAdd,
 }: Props) {
-  const [help, setHelp] = useState(false)
   // ほかの急ぎで開いているカード（同時に開くのは1枚）
   const [openId, setOpenId] = useState<string | null>(null)
   const { next, urgent } = view
@@ -105,7 +102,6 @@ export function HomeScreen({
     <ScreenLayout
       title={date}
       note={dayNote}
-      aside={<HelpButton label="ホームの見方" onClick={() => setHelp(true)} />}
       sub={<Summary blackCount={blackCount} redCount={redCount} hours={plan.hours} />}
       onAdd={onAdd}
     >
@@ -166,10 +162,6 @@ export function HomeScreen({
           </section>
         )}
       </div>
-
-      <Sheet open={help} title="ホームの見方" onClose={() => setHelp(false)}>
-        <HomeHelp />
-      </Sheet>
     </ScreenLayout>
   )
 }

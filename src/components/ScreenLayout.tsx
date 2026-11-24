@@ -1,11 +1,11 @@
-import { CircleHelp, Plus } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 
 interface Props {
   title: ReactNode
   /** 見出しの横に小さく出す一言（「今日は実習日」など） */
   note?: ReactNode
-  /** 見出しの右（「？」ボタンなど） */
+  /** 見出しの右に置くもの */
   aside?: ReactNode
   /** 見出しの下の1行（集計・タブ・月の切り替えなど）。ここまでは動かない */
   sub?: ReactNode
@@ -80,19 +80,5 @@ export function ScreenLayout({
         )}
       </div>
     </div>
-  )
-}
-
-/** 見出しの右に置く「？」。説明文は画面に置かず、ここから開く */
-export function HelpButton({ label, onClick }: { label: string; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      className="-mr-2 inline-flex size-11 shrink-0 items-center justify-center rounded-full text-ink-muted transition hover:bg-surface hover:text-ink"
-    >
-      <CircleHelp aria-hidden className="size-6" strokeWidth={1.75} />
-    </button>
   )
 }

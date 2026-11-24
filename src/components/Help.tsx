@@ -4,7 +4,7 @@ import type { Triage } from '../types'
 import { formatHours } from '../utils/format'
 
 /*
- * 「？」から開く説明。
+ * せっていの「ヘルプ」から開く説明。
  * 書き方の決まり：1項目は「見出し＋その下に短い説明」。コロンで定義を並べない。1文に1つのことだけ。
  * 計算式は書かない（README に任せる）。本文は濃い文字で読みやすく。
  */
@@ -36,7 +36,7 @@ const TAGS: { triage: Triage; text: string }[] = [
   { triage: 'green', text: '今のペースで間に合う課題。' },
 ]
 
-/** 優先度の決め方（課題・せっていの「？」、ホームの「？」の後半） */
+/** 優先度の決め方（せっていのヘルプ。ホームの見方の後半にも出す） */
 export function PriorityHelp() {
   return (
     <div className="flex flex-col gap-8">
@@ -71,7 +71,7 @@ export function PriorityHelp() {
   )
 }
 
-/** ホームの「？」：ホームの見方と、優先度の決め方 */
+/** ホームの見方と、優先度の決め方（せっていのヘルプ） */
 export function HomeHelp() {
   return (
     <div className="flex flex-col gap-8">
@@ -89,7 +89,7 @@ export function HomeHelp() {
   )
 }
 
-/** カレンダーの「？」 */
+/** カレンダーの使い方（せっていのヘルプ） */
 export function CalendarHelp({
   hoursPractice,
   hoursNormal,

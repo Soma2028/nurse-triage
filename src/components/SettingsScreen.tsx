@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useNotifyStatus } from '../sync/useNotifyStatus'
 import type { Settings } from '../types'
 import { Group, HoursStepper, Row, SwitchRow } from './Group'
-import { PriorityHelp } from './Help'
+import { CalendarHelp, HomeHelp, PriorityHelp } from './Help'
 import { NotifyPanel } from './NotifyPanel'
 import { ScreenLayout } from './ScreenLayout'
 import { Sheet } from './Sheet'
@@ -57,9 +57,9 @@ function TodayLabel({ label, today }: { label: string; today: boolean }) {
   )
 }
 
-type Open = 'notify' | 'priority' | null
+type Open = 'notify' | 'home' | 'priority' | 'calendar' | null
 
-/** せってい。実習期間中・1日に使える時間・通知・優先度の決め方・すべて消す */
+/** せってい。実習・1日に使える時間・通知・ヘルプ・データの見出しで分ける */
 export function SettingsScreen({
   settings,
   practice,
@@ -75,7 +75,7 @@ export function SettingsScreen({
   return (
     <ScreenLayout title="せってい">
       <div className="flex flex-col gap-6">
-        <Group>
+        <Group label="実習">
           <SwitchRow
             label="実習期間中"
             note={practiceNote}
@@ -105,12 +105,17 @@ export function SettingsScreen({
           </Row>
         </Group>
 
-        <Group>
+        <Group label="通知">
           <LinkRow label="通知" value={notifyStatus} onClick={() => setOpen('notify')} />
-          <LinkRow label="優先度の決め方" onClick={() => setOpen('priority')} />
         </Group>
 
-        <Group>
+        <Group label="ヘルプ">
+          <LinkRow label="ホームの見方" onClick={() => setOpen('home')} />
+          <LinkRow label="優先度の決め方" onClick={() => setOpen('priority')} />
+          <LinkRow label="カレンダーの使い方" onClick={() => setOpen('calendar')} />
+        </Group>
+
+        <Group label="データ">
           <button
             type="button"
             onClick={onClearAll}
@@ -124,8 +129,14 @@ export function SettingsScreen({
       <Sheet open={open === 'notify'} title="通知" onClose={close}>
         <NotifyPanel />
       </Sheet>
+      <Sheet open={open === 'home'} title="ホームの見方" onClose={close}>
+        <HomeHelp />
+      </Sheet>
       <Sheet open={open === 'priority'} title="優先度の決め方" onClose={close}>
         <PriorityHelp />
+      </Sheet>
+      <Sheet open={open === 'calendar'} title="カレンダーの使い方" onClose={close}>
+        <CalendarHelp hoursPractice={settings.hoursPractice} hoursNormal={settings.hoursNormal} />
       </Sheet>
     </ScreenLayout>
   )
