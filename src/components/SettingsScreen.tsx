@@ -2,10 +2,9 @@ import { ChevronRight } from 'lucide-react'
 import { useState } from 'react'
 import { useNotifyStatus } from '../sync/useNotifyStatus'
 import type { Settings } from '../types'
-import { Group, HoursStepper, Row } from './Group'
+import { Group, HoursStepper, Row, SwitchRow } from './Group'
 import { PriorityHelp } from './Help'
 import { NotifyPanel } from './NotifyPanel'
-import { PracticeSwitch } from './PracticeSwitch'
 import { ScreenLayout } from './ScreenLayout'
 import { Sheet } from './Sheet'
 
@@ -77,9 +76,12 @@ export function SettingsScreen({
     <ScreenLayout title="せってい">
       <div className="flex flex-col gap-6">
         <Group>
-          <div className="px-4 py-2">
-            <PracticeSwitch on={practice} note={practiceNote} onToggle={onTogglePractice} />
-          </div>
+          <SwitchRow
+            label="実習期間中"
+            note={practiceNote}
+            on={practice}
+            onToggle={onTogglePractice}
+          />
         </Group>
 
         <Group label="1日に使える時間">

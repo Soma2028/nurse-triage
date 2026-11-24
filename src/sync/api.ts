@@ -45,5 +45,3 @@ export const unsubscribeRemote = (c: Credentials, endpoint: string) =>
 
 export const syncRemote = (c: Credentials, body: SyncBody) =>
   call('POST', '/api/sync', { ...c, ...body })
-
-export const testRemote = (c: Credentials) => call('POST', '/api/test', c)

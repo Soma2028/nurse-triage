@@ -142,7 +142,7 @@ flowchart TB
 - **ローカル優先**：画面は今まで通り localStorage から表示します。サーバーへの同期は裏で行い、失敗しても画面と操作は止まりません（次の変更のときか、開き直したときに送り直します）
 - **ログインなし**：端末ごとにランダムな `deviceId` と `secret` を作り、localStorage に置きます。サーバーには secret の SHA-256 だけを保存します
 - 通知をオンにしていない端末は、サーバーに何も送りません
-- そのほかの API：`/api/test`（テスト通知）、`/api/vapid-key`（VAPID の公開鍵。アプリは鍵をビルドに埋め込まず、ここから取る）
+- そのほかの API：`/api/test`（テスト通知。アプリの画面からは呼ばない。動作確認用）、`/api/vapid-key`（VAPID の公開鍵。アプリは鍵をビルドに埋め込まず、ここから取る）
 - Vercel Hobby の cron は1日1回までなので、定期実行には cron-job.org を使います
 
 ### サーバーに送るもの
@@ -197,7 +197,7 @@ flowchart TB
    - Advanced：Request method は `GET`、Headers に `Authorization` ＝ `Bearer <CRON_SECRET の値>`、Timeout 30秒
    - 「TEST RUN」で 200 と `{"ok":true,"devices":…,"sent":…}` が返れば設定完了（401 ならヘッダーを見直す）
    - Notifications で「execution fails」をオンにしておくと、止まったときにメールで気づけます
-7. **確かめる**：iPhone でホーム画面から開き、せってい → 通知 →「通知を受け取る」→「テスト通知を送る」
+7. **確かめる**：iPhone でホーム画面から開き、せってい → 通知 →「通知」のスイッチをオン。締切を近くにした課題を入れて、通知が届くか見る
 
 `npm run dev` では `/api` が動かないので、通知の登録はできません（画面の確認はできます）。API までローカルで動かすときは `npx vercel env pull` のあと `npx vercel dev` を使います。
 

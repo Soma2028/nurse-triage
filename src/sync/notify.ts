@@ -2,7 +2,7 @@
  * 通知のオン・オフ・テスト送信と、開いたときの点検。
  * どれも失敗してもアプリの表示や操作は止めない（結果を返すだけ）。
  */
-import { subscribeRemote, testRemote, unsubscribeRemote } from './api'
+import { subscribeRemote, unsubscribeRemote } from './api'
 import { getPushState, newCredentials, setPushState } from './pushState'
 import { vapidKeyToBytes } from './support'
 
@@ -102,16 +102,6 @@ export async function disableNotifications(): Promise<void> {
     // 401 はもう消えているということ。それ以外の失敗は、次に開いたときにやり直す
     if (!r.ok && r.status !== 401) setPushState({ pendingDelete: pending })
   }
-}
-
-export type TestResult = 'sent' | 'none' | 'failed'
-
-export async function sendTestNotification(): Promise<TestResult> {
-  const { deviceId, secret } = getPushState()
-  if (!deviceId || !secret) return 'failed'
-  const r = await testRemote({ deviceId, secret })
-  if (!r.ok) return 'failed'
-  return Number(r.data?.sent) > 0 ? 'sent' : 'none'
 }
 
 /**
