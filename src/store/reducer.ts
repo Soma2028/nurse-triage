@@ -33,6 +33,7 @@ export type Action =
   | { type: 'remove'; id: string; now: number }
   | { type: 'complete'; id: string; now: number }
   | { type: 'advance'; id: string; now: number; step?: number }
+  | { type: 'setProgress'; id: string; progress: number; now: number }
   | { type: 'restore'; id: string; now: number }
   | { type: 'setSettings'; patch: Partial<Settings> }
   | { type: 'setDays'; dates: string[]; kind: DayKind | null }
@@ -116,10 +117,15 @@ export function reducer(state: State, action: Action): State {
       return task ? completeTask(state, task, action.now, workOf(task, task.progress, 100)) : state
     }
 
-    case 'advance': {
+    case 'advance':
+    case 'setProgress': {
       const task = state.tasks.find((t) => t.id === action.id)
       if (!task) return state
-      const progress = Math.min(100, task.progress + (action.step ?? PROGRESS_STEP))
+      // +25% は今の進捗に足す。スライダー（setProgress）はその値にする
+      const target =
+        action.type === 'advance' ? task.progress + (action.step ?? PROGRESS_STEP) : action.progress
+      const progress = Math.min(100, Math.max(0, target))
+      if (progress === task.progress) return state
       // 100% になったら自動で完了
       const worked = workOf(task, task.progress, progress)
       if (progress >= 100)

@@ -46,6 +46,41 @@
 /* 画面の部品の見た目をそろえる共通クラス（夢のタネと同じ考え方）。
    角の丸み：大きなカード 3xl / 行・入力欄 2xl / カレンダーのマス xl / ボタン・タグ full */
 @layer components {
+  /* 進み具合のスライダー（ホームのつぎにやる）。--pct まで --fill の色で塗る。
+     つまみは 28px、押せる高さは 44px */
+  .ui-range {
+    @apply h-11 w-full cursor-pointer appearance-none bg-transparent;
+  }
+  .ui-range::-webkit-slider-runnable-track {
+    @apply h-2 rounded-full;
+    background: linear-gradient(
+      to right,
+      var(--fill) 0 var(--pct),
+      var(--color-line) var(--pct) 100%
+    );
+  }
+  .ui-range::-moz-range-track {
+    @apply h-2 rounded-full;
+    background: linear-gradient(
+      to right,
+      var(--fill) 0 var(--pct),
+      var(--color-line) var(--pct) 100%
+    );
+  }
+  .ui-range::-webkit-slider-thumb {
+    @apply -mt-2.5 size-7 appearance-none rounded-full border border-line-strong bg-surface;
+    box-shadow: 0 2px 8px rgb(29 63 110 / 0.18);
+  }
+  .ui-range::-moz-range-thumb {
+    @apply size-7 rounded-full border border-line-strong bg-surface;
+    box-shadow: 0 2px 8px rgb(29 63 110 / 0.18);
+  }
+  .ui-range:focus-visible {
+    @apply outline-none;
+  }
+  .ui-range:focus-visible::-webkit-slider-thumb {
+    @apply ring-2 ring-primary/40;
+  }
   .ui-page-title {
     @apply text-title font-bold tracking-tight;
   }

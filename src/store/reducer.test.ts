@@ -163,6 +163,18 @@ describe('reducer: 実習スケジュール', () => {
     expect(s.today?.hours).toBe(1.4)
   })
 
+  it('スライダーで進捗をその値にする。戻すと今日のぶんから引き、100% で完了', () => {
+    let s = reducer(base(), { type: 'setProgress', id: 'a', progress: 75, now: NOW }) // 2h の 25%
+    expect(s.tasks.find((x) => x.id === 'a')?.progress).toBe(75)
+    expect(s.today?.hours).toBe(0.5)
+    s = reducer(s, { type: 'setProgress', id: 'a', progress: 50, now: NOW })
+    expect(s.today?.hours).toBe(0)
+    expect(reducer(s, { type: 'setProgress', id: 'a', progress: 50, now: NOW })).toBe(s)
+    s = reducer(s, { type: 'setProgress', id: 'a', progress: 100, now: NOW })
+    expect(s.tasks.map((x) => x.id)).toEqual(['b'])
+    expect(s.done[0].id).toBe('a')
+  })
+
   it('完了を元に戻すと、今日のぶんも戻る', () => {
     let s = reducer(base(), { type: 'complete', id: 'a', now: NOW })
     expect(s.today?.hours).toBe(1)

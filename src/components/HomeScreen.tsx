@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion'
+import { useState, type CSSProperties } from 'react'
 import type { HomeView } from '../logic/home'
 import { enter } from '../motion'
 import type { Analysed, Plan } from '../types'
@@ -7,12 +8,11 @@ import { Chara, type Mood } from './Chara'
 import { OverloadWarning } from './OverloadWarning'
 import { ScreenLayout } from './ScreenLayout'
 import { Check } from 'lucide-react'
-import { PROGRESS_STEP } from '../store/reducer'
 import { Group } from './Group'
 import { PageStack } from './PageStack'
 import { TaskDetailPage } from './TaskDetailPage'
 import { usePageNav } from './pageNav'
-import { ProgressBar, Reason, TagChip, TaskMeta, TaskRow } from './TaskRow'
+import { Reason, TagChip, TaskMeta, TaskRow } from './TaskRow'
 import { todayProgress, type TodayProgress } from '../logic/today'
 import { TodayPlan } from './TodayPlan'
 
@@ -31,31 +31,77 @@ interface Props {
   /** 今日進めた時間 */
   worked: number
   onAdvance: (id: string) => void
+  /** つぎにやるのスライダーで進捗を変えたとき */
+  onSetProgress: (id: string, progress: number) => void
   onComplete: (id: string) => void
   onEdit: (id: string) => void
   onRemove: (id: string) => void
   onAdd: () => void
 }
 
+/** スライダーのきざみ（%） */
+const SLIDER_STEP = 25
+
 /**
- * 「つぎにやる」の1件。上を押すとくわしいページ、下の2つのボタンでその場で進められる。
- * 主役は課題名と進み具合のバー（タッグは課題名の上の小さな札）
+ * 進み具合のスライダー（25% きざみ）。動かしている間は表示だけ変え、指を離したら保存する。
+ * 100% にすると完了になる（元に戻せる）
+ */
+function ProgressSlider({ a, onCommit }: { a: Analysed; onCommit: (progress: number) => void }) {
+  const [draft, setDraft] = useState<number | null>(null)
+  const value = draft ?? a.task.progress
+  const commit = () => {
+    if (draft !== null && draft !== a.task.progress) onCommit(draft)
+    setDraft(null)
+  }
+  const style = {
+    '--pct': `${value}%`,
+    '--fill': `var(--color-tag-${a.triage})`,
+  } as CSSProperties
+
+  return (
+    <div className="flex items-center gap-3">
+      <input
+        type="range"
+        min={0}
+        max={100}
+        step={SLIDER_STEP}
+        value={value}
+        aria-label="進捗"
+        aria-valuetext={`${value}%`}
+        className="ui-range min-w-0 flex-1"
+        style={style}
+        onChange={(e) => setDraft(Number(e.target.value))}
+        onPointerUp={commit}
+        onTouchEnd={commit}
+        onKeyUp={commit}
+        onBlur={commit}
+      />
+      <span className="w-12 shrink-0 text-right text-base font-bold text-ink tabular-nums">
+        {value}%
+      </span>
+    </div>
+  )
+}
+
+/**
+ * 「つぎにやる」の1件。上を押すとくわしいページ。進み具合はスライダーで、その場で動かせる。
+ * 主役は課題名と進み具合（タッグは課題名の上の小さな札）
  */
 function NextCard({
   a,
   rank,
   onOpen,
   onComplete,
-  onAdvance,
+  onSetProgress,
 }: {
   a: Analysed
   rank: number
   onOpen: () => void
   onComplete: () => void
-  onAdvance: () => void
+  onSetProgress: (progress: number) => void
 }) {
   return (
-    <div className="ui-card flex flex-col gap-4 p-4">
+    <div className="ui-card flex flex-col gap-2 p-4">
       <button
         type="button"
         onClick={onOpen}
@@ -69,36 +115,19 @@ function NextCard({
           </span>
         </span>
         <span className="text-title font-bold break-words text-ink">{a.task.title}</span>
-        <span className="flex w-full items-center gap-3">
-          <span className="block min-w-0 flex-1">
-            <ProgressBar a={a} />
-          </span>
-          <span className="shrink-0 text-base font-bold text-ink tabular-nums">
-            {a.task.progress}%
-          </span>
-        </span>
         <span className="text-sm leading-6 text-ink-muted">
           <Reason a={a} />
         </span>
       </button>
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={onComplete}
-          className="inline-flex min-h-11 flex-1 items-center justify-center gap-1 rounded-full bg-primary text-sm font-bold text-on-primary transition hover:bg-primary-strong"
-        >
-          <Check aria-hidden className="size-4" strokeWidth={2.5} />
-          完了
-        </button>
-        <button
-          type="button"
-          onClick={onAdvance}
-          aria-label={`進捗を${PROGRESS_STEP}%進める`}
-          className="inline-flex min-h-11 flex-1 items-center justify-center rounded-full border border-line bg-surface text-sm font-bold text-ink transition hover:bg-paper"
-        >
-          +{PROGRESS_STEP}%
-        </button>
-      </div>
+      <ProgressSlider key={a.task.id} a={a} onCommit={onSetProgress} />
+      <button
+        type="button"
+        onClick={onComplete}
+        className="mt-2 inline-flex min-h-11 items-center justify-center gap-1 rounded-full bg-primary text-sm font-bold text-on-primary transition hover:bg-primary-strong"
+      >
+        <Check aria-hidden className="size-4" strokeWidth={2.5} />
+        完了
+      </button>
     </div>
   )
 }
@@ -189,6 +218,7 @@ export function HomeScreen({
   shortage,
   worked,
   onAdvance,
+  onSetProgress,
   onComplete,
   onEdit,
   onRemove,
@@ -242,7 +272,7 @@ export function HomeScreen({
                   a={next}
                   rank={analysed.indexOf(next) + 1}
                   onOpen={() => setOpenId(next.task.id)}
-                  onAdvance={() => onAdvance(next.task.id)}
+                  onSetProgress={(v) => onSetProgress(next.task.id, v)}
                   onComplete={() => onComplete(next.task.id)}
                 />
               </motion.section>

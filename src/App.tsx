@@ -109,6 +109,8 @@ export default function App() {
 
   const togglePractice = () => dispatch({ type: 'togglePracticeToday', now: Date.now() })
   const advance = (id: string) => dispatch({ type: 'advance', id, now: Date.now() })
+  const setProgress = (id: string, progress: number) =>
+    dispatch({ type: 'setProgress', id, progress, now: Date.now() })
   const complete = (id: string) => dispatch({ type: 'complete', id, now: Date.now() })
   const dismissUndo = useCallback(() => dispatch({ type: 'dismissUndo' }), [dispatch])
 
@@ -141,6 +143,7 @@ export default function App() {
                 shortage={shortage}
                 worked={workedToday(state.today, now)}
                 onAdvance={advance}
+                onSetProgress={setProgress}
                 onComplete={complete}
                 onEdit={openEdit}
                 onRemove={(id) => dispatch({ type: 'remove', id, now: Date.now() })}
