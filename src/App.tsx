@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { lazy, Suspense, useCallback, useMemo, useState } from 'react'
 import { HomeScreen } from './components/HomeScreen'
 import { BottomNav, DesktopNav, type Screen } from './components/Nav'
+import { RotateNotice } from './components/RotateNotice'
 import { ScheduleScreen } from './components/ScheduleScreen'
 import { SettingsScreen } from './components/SettingsScreen'
 import { TaskSheet } from './components/TaskSheet'
@@ -186,6 +187,8 @@ export default function App() {
           <InviteSheet />
         </Suspense>
       )}
+
+      <RotateNotice />
 
       <UndoToast
         undo={state.undo}

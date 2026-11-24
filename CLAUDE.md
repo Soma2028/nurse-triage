@@ -32,6 +32,7 @@
 - 「実習中」の切り替えはせっていだけ。ホームの日付の横に「今日は実習日」「今日は休み」「今日はテスト」を小さく出す
 - タップ領域は44px以上、入力欄は16px（iOS でズームさせない）
 - iPhone のホーム画面から開いたとき、上端に白いもやを出さない：iOS 26 は時計の帯の下をぼかし、上端に固定された不透明な要素があるときだけその色で塗る。`index.css` の `body::before`（safe-area の高さの固定の帯。`pointer-events: none` を付けると Safari が見つけられない）と、`ScreenLayout` の見出しの `sticky top-0` を外さない。見出しに半透明・ぼかし・影を使わない
+- 縦向きだけで使う。Android は manifest の `orientation: portrait` で固定される。iPhone は固定できないので、横向きのスマホ（`landscape-phone` の variant：横向き・高さ 500px 以下・指で操作）のときだけ `RotateNotice` が画面全体に「縦にして使ってね」を出す
 - 長押しで文字選択・iPhone のメニューを出さない（`index.css` で全体に `user-select: none`・`-webkit-touch-callout: none`。入力欄だけ戻す。画像は `pointer-events: none` でタップを外側に渡す）
 
 ## キャラクター（いまは仮）

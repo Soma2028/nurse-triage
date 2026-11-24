@@ -5,6 +5,9 @@
  * ライトのみ（ダークモードには対応しない）。
  * タッグの黒・赤・黄・緑は判定の意味を持つので、それ以外の場所では使わない。
  */
+/* 横向きのスマホ（指で操作する・高さが低い）のときだけ。iPhone は向きを固定できないので「縦にしてね」を出す */
+@custom-variant landscape-phone (@media (orientation: landscape) and (max-height: 500px) and (pointer: coarse));
+
 @theme {
   --color-paper: #fbf8f3; /* 背景（生成り） */
   --color-surface: #ffffff; /* カード */
