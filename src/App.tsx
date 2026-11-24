@@ -1,9 +1,10 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { lazy, Suspense, useCallback, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { HomeScreen } from './components/HomeScreen'
 import { BottomNav, DesktopNav, type Screen } from './components/Nav'
 import { RotateNotice } from './components/RotateNotice'
 import { ScheduleScreen } from './components/ScheduleScreen'
+import { loadAccountGroups } from './components/accountGroupsLoader'
 import { SettingsScreen } from './components/SettingsScreen'
 import { TaskSheet } from './components/TaskSheet'
 import { TasksScreen } from './components/TasksScreen'
@@ -37,12 +38,22 @@ const SocialSync = lazy(() =>
   import('./components/SocialSync').then((m) => ({ default: m.SocialSync })),
 )
 
+/**
+ * 起動してからこれだけたったら、せっていのプロフィールの部分（AccountGroups）を先に読み込む。
+ * 初めてせっていを開いたとき、プロフィールの行が遅れて出て下の行がずれないように
+ */
+const PRELOAD_DELAY_MS = 1500
+
 /** 追加・編集パネルの状態。editingId が null なら新規追加 */
 type Sheet = { open: false } | { open: true; editingId: string | null; defaultDue?: number }
 
 export default function App() {
   const { state, dispatch, now } = useStore()
   const [screen, setScreen] = useState<Screen>('home')
+  useEffect(() => {
+    const id = window.setTimeout(() => void loadAccountGroups().catch(() => {}), PRELOAD_DELAY_MS)
+    return () => window.clearTimeout(id)
+  }, [])
   const [sheet, setSheet] = useState<Sheet>({ open: false })
   const invite = usePendingInvite()
   const socialAvailable = useSocialAvailable()

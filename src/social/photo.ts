@@ -1,8 +1,9 @@
 /**
- * 写真のアイコンを作る：選んだ写真を、まん中で正方形に切り抜き、128px の JPEG（数KB）にする。
+ * 写真のアイコンを作る：選んだ写真を、まん中で正方形に切り抜き、192px の JPEG（10KB ほど）にする。
+ * タップで大きく見たときに粗くなりすぎない大きさ（サーバーの上限 40,000 文字に収まる）。
  * 縮めた画像だけを使い、元の写真は端末の外に出さない。
  */
-const SIZE = 128
+const SIZE = 192
 const QUALITY = 0.72
 
 /** 画像を読む。向き（スマホで縦に撮った写真など）は写真の情報どおりに直す */
@@ -23,7 +24,7 @@ async function load(file: Blob): Promise<ImageBitmap | HTMLImageElement> {
   }
 }
 
-/** 写真を 128px の正方形の JPEG の data URL にする。画像でなければ例外 */
+/** 写真を 192px の正方形の JPEG の data URL にする。画像でなければ例外 */
 export async function photoToIcon(file: Blob): Promise<string> {
   if (!file.type.startsWith('image/')) throw new Error('画像ではない')
   const img = await load(file)

@@ -462,7 +462,7 @@ function PersonDetail({
       </button>
 
       <div className="flex items-center gap-4 px-4">
-        <Avatar icon={person.icon} photo={person.photo} size="lg" />
+        <Avatar icon={person.icon} photo={person.photo} size="lg" zoomable />
         <div className="min-w-0">
           <p className="truncate text-base font-bold text-ink">{person.nickname}</p>
           {sub && <p className="text-sm text-ink-muted">{sub}</p>}

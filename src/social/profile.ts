@@ -54,7 +54,7 @@ export interface Profile {
   icon: ProfileIcon
   grade: number | null // 1〜4。null は「ひみつ」
   bio: string
-  /** 写真のアイコン（128px の正方形の JPEG の data URL）。なければ絵のアイコン */
+  /** 写真のアイコン（192px の正方形の JPEG の data URL）。なければ絵のアイコン */
   photo?: string | null
   friendCode: string
   /** 今日の進み具合をフレンドに見せるか（前の版の保存データにはないので、ないときは見せる） */

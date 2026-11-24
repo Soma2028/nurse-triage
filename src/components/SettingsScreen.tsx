@@ -1,10 +1,11 @@
 import { AnimatePresence, motion, useDragControls, type PanInfo } from 'framer-motion'
 import { Bell, CircleHelp, Clock, Stethoscope } from 'lucide-react'
-import { lazy, Suspense, useCallback, useState, type PointerEvent, type ReactNode } from 'react'
+import { Suspense, useCallback, useState, type PointerEvent, type ReactNode } from 'react'
 import { pageSlide } from '../motion'
 import { useNotifyStatus } from '../sync/useNotifyStatus'
 import type { Settings } from '../types'
 import { formatHours } from '../utils/format'
+import { lazyAccountPart } from './accountGroupsLoader'
 import { Group, HoursStepper, LinkRow, Row, SwitchRow } from './Group'
 import { CalendarHelp, HomeHelp, PriorityHelp } from './Help'
 import { NotifyPanel } from './NotifyPanel'
@@ -12,11 +13,10 @@ import { ScreenLayout } from './ScreenLayout'
 import { Segmented } from './Segmented'
 
 // ログインまわりは Clerk を使うので、別のファイルに分けて必要なときだけ読み込む
-const accountGroups = () => import('./AccountGroups')
-const ProfileGroup = lazy(() => accountGroups().then((m) => ({ default: m.ProfileGroup })))
-const AccountRow = lazy(() => accountGroups().then((m) => ({ default: m.AccountRow })))
-const FriendsPage = lazy(() => accountGroups().then((m) => ({ default: m.FriendsPage })))
-const AccountPage = lazy(() => accountGroups().then((m) => ({ default: m.AccountPage })))
+const ProfileGroup = lazyAccountPart((m) => m.ProfileGroup)
+const AccountRow = lazyAccountPart((m) => m.AccountRow)
+const FriendsPage = lazyAccountPart((m) => m.FriendsPage)
+const AccountPage = lazyAccountPart((m) => m.AccountPage)
 
 interface Props {
   settings: Settings

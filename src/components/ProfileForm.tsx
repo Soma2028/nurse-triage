@@ -61,7 +61,7 @@ export function ProfileForm({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  /** 写真を選んだら、端末の中で 128px に縮めてから使う */
+  /** 写真を選んだら、端末の中で 192px に縮めてから使う */
   const pickPhoto = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     e.target.value = '' // 同じ写真をもう一度選んでも動くように
@@ -130,7 +130,7 @@ export function ProfileForm({
           アイコン
         </h3>
         <div className="ui-card flex items-center gap-3 rounded-2xl p-2 pl-3">
-          <Avatar icon={icon} photo={photo} size="lg" />
+          <Avatar icon={icon} photo={photo} size="lg" zoomable />
           <div className="flex min-w-0 flex-1 flex-wrap justify-end gap-2">
             {/* iPhone では、写真を撮る・写真ライブラリから選ぶ、が出る */}
             <label

@@ -142,7 +142,7 @@ function SignedInvite({ code }: { code: string }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-4 px-4">
-        <Avatar icon={person.icon} photo={person.photo} size="lg" />
+        <Avatar icon={person.icon} photo={person.photo} size="lg" zoomable />
         <p className="min-w-0 text-base text-ink">
           <span className="font-bold break-all">{person.nickname}</span>
           さんからの招待だよ。

@@ -30,7 +30,7 @@ export interface Profile {
   icon: ProfileIcon
   grade: number | null // 1〜4。null は「ひみつ」
   bio: string
-  /** 写真のアイコン（128px の正方形の JPEG の data URL）。なければ null で、絵のアイコンを使う */
+  /** 写真のアイコン（192px の正方形の JPEG の data URL。前に作った 128px のものもある）。なければ null で、絵のアイコンを使う */
   photo: string | null
   friendCode: string
   shareProgress: boolean // 今日の進み具合をフレンドに見せるか
@@ -51,7 +51,7 @@ const text = (min: number, max: number) =>
     .refine((s) => !CONTROL.test(s), '使えない文字が入っている')
     .refine((s) => length(s) >= min && length(s) <= max, `${min}〜${max}文字`)
 
-/** 写真の data URL の長さの上限（128px の JPEG は数KB。余裕を見て 40,000 文字＝約30KB） */
+/** 写真の data URL の長さの上限（192px の JPEG は10KB ほど。余裕を見て 40,000 文字＝約30KB） */
 export const PHOTO_MAX_LENGTH = 40_000
 const PHOTO_PREFIX = 'data:image/jpeg;base64,'
 
