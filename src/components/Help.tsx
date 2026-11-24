@@ -36,7 +36,7 @@ const TAGS: { triage: Triage; text: string }[] = [
   { triage: 'green', text: '今のペースで間に合う課題。' },
 ]
 
-/** 優先度の決め方（せっていのヘルプ。ホームの見方の後半にも出す） */
+/** 優先度の決め方（せっていのヘルプ） */
 export function PriorityHelp() {
   return (
     <div className="flex flex-col gap-8">
@@ -48,7 +48,7 @@ export function PriorityHelp() {
           {TAGS.map(({ triage, text }) => (
             <li key={triage} className="flex items-start gap-3">
               <span
-                className={`w-10 shrink-0 rounded-full text-center text-xs leading-6 font-bold ${TRIAGE_STYLE[triage].tag}`}
+                className={`inline-flex size-10 shrink-0 items-center justify-center rounded-xl text-sm font-black ${TRIAGE_STYLE[triage].tag}`}
               >
                 {TRIAGE_STYLE[triage].name}
               </span>
@@ -71,20 +71,20 @@ export function PriorityHelp() {
   )
 }
 
-/** ホームの見方と、優先度の決め方（せっていのヘルプ） */
+/** ホームの見方（せっていのヘルプ。優先度の決め方は別の切り替え） */
 export function HomeHelp() {
   return (
     <div className="flex flex-col gap-8">
-      {/* シートの見出しが「ホームの見方」なので、ここにはラベルを付けない */}
       <Group>
-        <Item title="つぎにやる">まずやる1件。黒か赤の課題から選んでいるよ。</Item>
+        <Item title="つぎにやる">
+          まずやる1件。黒か赤の課題から選んでいるよ。押すとくわしく見られるよ。
+        </Item>
         <Item title="今日のプラン">今日の時間を、どの課題に何時間使うか。</Item>
         <Item title="ほかの急ぎ">今日のプランに入りきらなかった、黒と赤の課題。</Item>
         <Item title="日付の横の「今日は実習日」">
           今日使える時間が、その日の予定で決まっているよ。休みの日は「今日は休み」と出るよ。
         </Item>
       </Group>
-      <PriorityHelp />
     </div>
   )
 }

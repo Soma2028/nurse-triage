@@ -81,15 +81,10 @@ function LocalProfileGroup({ loginRow }: { loginRow: ReactNode }) {
   const [open, setOpen] = useState(false)
   return (
     <>
-      <section className="flex flex-col gap-2">
-        <Group label="プロフィール">
-          <ProfileRow profile={local} onClick={() => setOpen(true)} />
-          {loginRow}
-        </Group>
-        <p className="px-4 text-xs leading-5 text-ink-muted">
-          ログインすると、このプロフィールでフレンドとつながれるよ。
-        </p>
-      </section>
+      <Group>
+        <ProfileRow profile={local} onClick={() => setOpen(true)} />
+        {loginRow}
+      </Group>
       <Sheet
         open={open}
         title={local ? 'プロフィール' : 'プロフィールを作る'}
@@ -166,7 +161,7 @@ function SignedProfileGroup() {
                 disabled={!isLoaded}
                 className={`${rowBtn} disabled:text-ink-muted`}
               >
-                <span className="min-w-0 flex-1">ログインする</span>
+                <span className="min-w-0 flex-1">ログインしてフレンドとつながる</span>
                 {!isLoaded && <span className="text-sm text-ink-muted">つないでいるよ</span>}
                 <ChevronRight aria-hidden className="size-4 shrink-0 text-ink-muted" />
               </button>
@@ -215,7 +210,7 @@ function SignedProfileGroup() {
 
   return (
     <>
-      <Group label="プロフィール">
+      <Group>
         {row}
         {profile && (
           <button type="button" onClick={() => setFriendsOpen(true)} className={rowBtn}>
@@ -256,15 +251,22 @@ function SignedProfileGroup() {
   )
 }
 
-/** せっていの下のほうの「アカウント」のまとまり（ログインしているときだけ） */
-export function AccountGroup() {
+/** せっていのいちばん下のまとまりに置く「アカウント」の行（ログインしているときだけ）。押すとシート */
+export function AccountRow() {
   const available = useSocialAvailable()
-  return available ? <SignedAccountGroup /> : null
+  return available ? <SignedAccountRow /> : null
 }
 
-type Open = 'signOut' | 'delete' | null
+type Open = 'account' | 'signOut' | 'delete' | null
 
-function SignedAccountGroup() {
+const primaryBtn =
+  'min-h-12 rounded-full bg-primary text-base font-bold text-on-primary transition hover:bg-primary-strong'
+const dangerBtn =
+  'min-h-12 rounded-full bg-danger text-base font-bold text-on-primary transition hover:opacity-90 disabled:opacity-60'
+const cancelBtn =
+  'min-h-12 rounded-full border border-line bg-surface text-base font-bold text-ink transition hover:bg-paper'
+
+function SignedAccountRow() {
   const { isSignedIn, getToken } = useAuth()
   const { user } = useUser()
   const { signOut } = useClerk()
@@ -277,6 +279,7 @@ function SignedAccountGroup() {
   }
 
   if (!isSignedIn) return null
+  const email = user?.primaryEmailAddress?.emailAddress ?? ''
 
   const deleteAccount = async () => {
     setBusy(true)
@@ -295,23 +298,31 @@ function SignedAccountGroup() {
 
   return (
     <>
-      <Group label="アカウント">
-        <Row label="メールアドレス">
-          <span className="truncate pr-2 text-sm text-ink-muted">
-            {user?.primaryEmailAddress?.emailAddress ?? ''}
-          </span>
-        </Row>
-        <button type="button" onClick={() => setOpen('signOut')} className={rowBtn}>
-          ログアウト
-        </button>
-        <button
-          type="button"
-          onClick={() => setOpen('delete')}
-          className={`${rowBtn} text-danger hover:bg-danger-soft`}
-        >
-          退会する
-        </button>
-      </Group>
+      <button type="button" onClick={() => setOpen('account')} className={rowBtn}>
+        <span className="min-w-0 flex-1">アカウント</span>
+        <span className="truncate text-sm text-ink-muted">{email}</span>
+        <ChevronRight aria-hidden className="size-4 shrink-0 text-ink-muted" />
+      </button>
+
+      <Sheet open={open === 'account'} title="アカウント" onClose={close}>
+        <div className="flex flex-col gap-4">
+          <Group>
+            <Row label="メールアドレス">
+              <span className="truncate pr-2 text-sm text-ink-muted">{email}</span>
+            </Row>
+          </Group>
+          <button type="button" onClick={() => setOpen('signOut')} className={cancelBtn}>
+            ログアウト
+          </button>
+          <button
+            type="button"
+            onClick={() => setOpen('delete')}
+            className="min-h-11 self-center rounded-full px-4 text-sm font-bold text-danger transition hover:bg-danger-soft"
+          >
+            退会する
+          </button>
+        </div>
+      </Sheet>
 
       <Sheet open={open === 'signOut'} title="ログアウトする？" onClose={close}>
         <div className="flex flex-col gap-4">
@@ -326,7 +337,7 @@ function SignedAccountGroup() {
               await signOut()
               close()
             }}
-            className="min-h-12 rounded-full bg-primary text-base font-bold text-on-primary transition hover:bg-primary-strong"
+            className={primaryBtn}
           >
             ログアウト
           </button>
@@ -346,12 +357,7 @@ function SignedAccountGroup() {
               {error}
             </p>
           )}
-          <button
-            type="button"
-            onClick={deleteAccount}
-            disabled={busy}
-            className="min-h-12 rounded-full bg-danger text-base font-bold text-on-primary transition hover:opacity-90 disabled:opacity-60"
-          >
+          <button type="button" onClick={deleteAccount} disabled={busy} className={dangerBtn}>
             退会する
           </button>
           <button type="button" onClick={close} className={cancelBtn}>
@@ -362,6 +368,3 @@ function SignedAccountGroup() {
     </>
   )
 }
-
-const cancelBtn =
-  'min-h-12 rounded-full border border-line bg-surface text-base font-bold text-ink transition hover:bg-paper'

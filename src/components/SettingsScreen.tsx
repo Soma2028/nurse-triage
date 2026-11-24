@@ -6,15 +6,14 @@ import { Group, HoursStepper, Row, SwitchRow } from './Group'
 import { CalendarHelp, HomeHelp, PriorityHelp } from './Help'
 import { NotifyPanel } from './NotifyPanel'
 import { ScreenLayout } from './ScreenLayout'
+import { Segmented } from './Segmented'
 import { Sheet } from './Sheet'
 
 // ログインまわりは Clerk を使うので、別のファイルに分けて必要なときだけ読み込む
 const ProfileGroup = lazy(() =>
   import('./AccountGroups').then((m) => ({ default: m.ProfileGroup })),
 )
-const AccountGroup = lazy(() =>
-  import('./AccountGroups').then((m) => ({ default: m.AccountGroup })),
-)
+const AccountRow = lazy(() => import('./AccountGroups').then((m) => ({ default: m.AccountRow })))
 
 interface Props {
   settings: Settings
@@ -65,9 +64,14 @@ function TodayLabel({ label, today }: { label: string; today: boolean }) {
   )
 }
 
-type Open = 'notify' | 'home' | 'priority' | 'calendar' | 'clear' | null
+type Open = 'notify' | 'help' | 'clear' | null
 
-/** せってい。プロフィール・実習・1日に使える時間・通知・ヘルプ・アカウント・データの見出しで分ける */
+type HelpTab = 'home' | 'priority' | 'calendar'
+
+/**
+ * せってい。まとまりは4つだけ：プロフィール／毎日の時間／通知・ヘルプ／アカウント・すべて消す。
+ * 説明の文は画面に置かず、それぞれのシートの中に
+ */
 export function SettingsScreen({
   settings,
   practice,
@@ -77,6 +81,7 @@ export function SettingsScreen({
   onClearAll,
 }: Props) {
   const [open, setOpen] = useState<Open>(null)
+  const [helpTab, setHelpTab] = useState<HelpTab>('home')
   const notifyStatus = useNotifyStatus()
   const close = () => setOpen(null)
 
@@ -87,28 +92,25 @@ export function SettingsScreen({
           <ProfileGroup />
         </Suspense>
 
-        <Group label="実習">
+        <Group label="毎日の時間">
           <SwitchRow
             label="実習期間中"
             note={practiceNote}
             on={practice}
             onToggle={onTogglePractice}
           />
-        </Group>
-
-        <Group label="1日に使える時間">
-          <Row label={<TodayLabel label="実習中" today={practice} />}>
+          <Row label={<TodayLabel label="実習の日" today={practice} />}>
             <HoursStepper
-              label="実習中"
+              label="実習の日に使える時間"
               value={settings.hoursPractice}
               min={MIN_H}
               max={MAX_H}
               onChange={(h) => onChangeSettings({ hoursPractice: h })}
             />
           </Row>
-          <Row label={<TodayLabel label="ふだん" today={!practice} />}>
+          <Row label={<TodayLabel label="ふだんの日" today={!practice} />}>
             <HoursStepper
-              label="ふだん"
+              label="ふだんの日に使える時間"
               value={settings.hoursNormal}
               min={MIN_H}
               max={MAX_H}
@@ -117,21 +119,15 @@ export function SettingsScreen({
           </Row>
         </Group>
 
-        <Group label="通知">
+        <Group>
           <LinkRow label="通知" value={notifyStatus} onClick={() => setOpen('notify')} />
+          <LinkRow label="ヘルプ" onClick={() => setOpen('help')} />
         </Group>
 
-        <Group label="ヘルプ">
-          <LinkRow label="ホームの見方" onClick={() => setOpen('home')} />
-          <LinkRow label="優先度の決め方" onClick={() => setOpen('priority')} />
-          <LinkRow label="カレンダーの使い方" onClick={() => setOpen('calendar')} />
-        </Group>
-
-        <Suspense fallback={null}>
-          <AccountGroup />
-        </Suspense>
-
-        <Group label="データ">
+        <Group>
+          <Suspense fallback={null}>
+            <AccountRow />
+          </Suspense>
           <button
             type="button"
             onClick={() => setOpen('clear')}
@@ -170,14 +166,28 @@ export function SettingsScreen({
       <Sheet open={open === 'notify'} title="通知" onClose={close}>
         <NotifyPanel />
       </Sheet>
-      <Sheet open={open === 'home'} title="ホームの見方" onClose={close}>
-        <HomeHelp />
-      </Sheet>
-      <Sheet open={open === 'priority'} title="優先度の決め方" onClose={close}>
-        <PriorityHelp />
-      </Sheet>
-      <Sheet open={open === 'calendar'} title="カレンダーの使い方" onClose={close}>
-        <CalendarHelp hoursPractice={settings.hoursPractice} hoursNormal={settings.hoursNormal} />
+      {/* ヘルプは1つのシートにまとめ、上の切り替えで見る */}
+      <Sheet open={open === 'help'} title="ヘルプ" onClose={close}>
+        <div className="flex flex-col gap-6">
+          <Segmented
+            label="ヘルプの項目"
+            value={helpTab}
+            onChange={setHelpTab}
+            options={[
+              { value: 'home', label: 'ホーム' },
+              { value: 'priority', label: '優先度' },
+              { value: 'calendar', label: 'カレンダー' },
+            ]}
+          />
+          {helpTab === 'home' && <HomeHelp />}
+          {helpTab === 'priority' && <PriorityHelp />}
+          {helpTab === 'calendar' && (
+            <CalendarHelp
+              hoursPractice={settings.hoursPractice}
+              hoursNormal={settings.hoursNormal}
+            />
+          )}
+        </div>
       </Sheet>
     </ScreenLayout>
   )
