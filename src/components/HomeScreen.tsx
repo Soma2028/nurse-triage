@@ -3,17 +3,17 @@ import { useState, type UIEvent } from 'react'
 import type { HomeView } from '../logic/home'
 import { enter } from '../motion'
 import type { Analysed, Plan } from '../types'
-import { formatHours } from '../utils/format'
+import { formatDue, formatHours, formatRemaining } from '../utils/format'
 import { Chara, type Mood } from './Chara'
 import { OverloadWarning } from './OverloadWarning'
 import { ScreenLayout } from './ScreenLayout'
 import { Check } from 'lucide-react'
-import { PROGRESS_STEP } from '../constants'
+import { PROGRESS_STEP, TRIAGE_STYLE } from '../constants'
 import { Group } from './Group'
 import { PageStack } from './PageStack'
 import { TaskDetailPage } from './TaskDetailPage'
 import { usePageNav } from './pageNav'
-import { ProgressBar, Reason, TagChip, TaskMeta, TaskRow } from './TaskRow'
+import { ProgressBar, Reason, TaskRow } from './TaskRow'
 import { todayProgress, type TodayProgress } from '../logic/today'
 import { TodayPlan } from './TodayPlan'
 
@@ -40,7 +40,27 @@ interface Props {
 }
 
 /**
- * 「つぎにやる」の1件。トリアージ風に、左に大きなタッグ（色の四角に順位）、右に課題名と締切。
+ * カードの左端のトリアージタッグ（はじめのデザイン）。病院のトリアージタッグのように、
+ * 縦長の色の帯に、紐を通す穴・大きな順位・「今すぐ」などの言葉。色を持つのはここだけ
+ */
+function TriageTag({ a, rank }: { a: Analysed; rank: number }) {
+  const style = TRIAGE_STYLE[a.triage]
+  return (
+    <div
+      aria-hidden
+      className={`relative flex w-16 shrink-0 flex-col items-center gap-1 px-1 pt-8 pb-3 text-center ${style.tag}`}
+    >
+      <span className="absolute top-2 left-1/2 size-3 -translate-x-1/2 rounded-full bg-surface ring-2 ring-black/15" />
+      <span className="text-title leading-none font-black tabular-nums">{rank}</span>
+      <span className="text-xs leading-tight font-bold tracking-tighter whitespace-nowrap">
+        {a.label}
+      </span>
+    </div>
+  )
+}
+
+/**
+ * 「つぎにやる」の1件（はじめのトリアージタッグのカード）。左端にタッグ、右に課題名・締切・進み具合・根拠。
  * 上を押すとくわしいページ、下の2つのボタンでその場で進められる
  */
 function NextCard({
@@ -56,51 +76,54 @@ function NextCard({
   onComplete: () => void
   onAdvance: () => void
 }) {
+  const { task, ms } = a
   return (
-    <div className="ui-card flex h-full flex-col gap-3 p-4">
-      <button
-        type="button"
-        onClick={onOpen}
-        className="flex items-start gap-3 text-left"
-        aria-label={`${rank}番目「${a.label}」 ${a.task.title}のくわしいこと`}
-      >
-        <TagChip a={a} rank={rank} size="lg" />
-        <span className="min-w-0 flex-1">
-          <span className="block text-base font-bold break-words text-ink">{a.task.title}</span>
-          <span className="block text-xs text-ink-muted">
-            <TaskMeta a={a} />
+    <article className="ui-card ui-card-raised flex h-full overflow-hidden" aria-label={task.title}>
+      <TriageTag a={a} rank={rank} />
+      <div className="flex min-w-0 flex-1 flex-col px-4 py-3">
+        <button
+          type="button"
+          onClick={onOpen}
+          className="flex flex-col text-left"
+          aria-label={`${rank}番目・${TRIAGE_STYLE[a.triage].name}「${a.label}」 ${task.title}のくわしいこと`}
+        >
+          <span className="leading-snug font-bold break-words text-ink">{task.title}</span>
+          <span className="mt-1 text-sm text-ink-muted">
+            {formatDue(task.due)}
+            <b className={`ml-1 ${ms < 0 ? 'font-black' : ''} text-ink`}>{formatRemaining(ms)}</b>
           </span>
-        </span>
-      </button>
-      {/* 進み具合（はじめの形にはなかったが、どこまで進んだかわかるように残す） */}
-      <div className="flex items-center gap-3">
-        <span className="min-w-0 flex-1">
-          <ProgressBar a={a} />
-        </span>
-        <span className="shrink-0 text-sm font-bold text-ink tabular-nums">{a.task.progress}%</span>
-      </div>
-      <p className="text-sm leading-6 text-ink-muted">
-        <Reason a={a} />
-      </p>
-      <div className="mt-auto flex gap-2">
-        <button
-          type="button"
-          onClick={onComplete}
-          className="inline-flex min-h-11 flex-1 items-center justify-center gap-1 rounded-full bg-primary text-sm font-bold text-on-primary transition hover:bg-primary-strong"
-        >
-          <Check aria-hidden className="size-4" strokeWidth={2.5} />
-          完了
+          <span className="mt-3 flex w-full items-center gap-2">
+            <span className="block min-w-0 flex-1">
+              <ProgressBar a={a} />
+            </span>
+            <span className="w-9 text-right text-xs font-bold text-ink-muted tabular-nums">
+              {task.progress}%
+            </span>
+          </span>
+          <span className="mt-2 text-sm leading-relaxed text-ink-muted">
+            <Reason a={a} />
+          </span>
         </button>
-        <button
-          type="button"
-          onClick={onAdvance}
-          aria-label={`進捗を${PROGRESS_STEP}%進める`}
-          className="inline-flex min-h-11 flex-1 items-center justify-center rounded-full border border-line bg-surface text-sm font-bold text-ink transition hover:bg-paper"
-        >
-          +{PROGRESS_STEP}%
-        </button>
+        <div className="mt-auto -mb-1 -ml-1 flex flex-wrap items-center gap-1 pt-2">
+          <button
+            type="button"
+            onClick={onAdvance}
+            className="inline-flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-full border border-line bg-surface px-3 text-sm font-bold text-ink transition hover:bg-paper"
+            aria-label={`「${task.title}」の進捗を${PROGRESS_STEP}%進める`}
+          >
+            +{PROGRESS_STEP}%
+          </button>
+          <button
+            type="button"
+            onClick={onComplete}
+            className="inline-flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-full bg-primary-soft px-3 text-sm font-bold text-primary-ink transition hover:bg-primary hover:text-on-primary"
+          >
+            <Check aria-hidden className="size-4" strokeWidth={2.5} />
+            完了
+          </button>
+        </div>
       </div>
-    </div>
+    </article>
   )
 }
 
