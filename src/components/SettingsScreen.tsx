@@ -1,6 +1,6 @@
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, motion, useDragControls, type PanInfo } from 'framer-motion'
 import { Bell, CircleHelp, Clock, Stethoscope, Trash2 } from 'lucide-react'
-import { lazy, Suspense, useCallback, useState, type ReactNode } from 'react'
+import { lazy, Suspense, useCallback, useState, type PointerEvent, type ReactNode } from 'react'
 import { pageSlide } from '../motion'
 import { useNotifyStatus } from '../sync/useNotifyStatus'
 import type { Settings } from '../types'
@@ -45,6 +45,12 @@ const TITLES: Record<Page, string> = {
 
 type HelpTab = 'home' | 'priority' | 'calendar'
 
+/** 画面の左端からこの幅の中で触り始めたら、右へのスワイプで一覧に戻る（iPhone の戻る操作と同じ） */
+const EDGE = 24
+/** これだけ右に引いたら（または速く引いたら）戻る。足りなければ元の位置に戻る */
+const BACK_OFFSET = 96
+const BACK_VELOCITY = 500
+
 /** 今日の分に「今日」の印を付けた名前 */
 function TodayLabel({ label, today }: { label: string; today: boolean }) {
   return (
@@ -77,6 +83,7 @@ export function SettingsScreen({
   const [clearOpen, setClearOpen] = useState(false)
   const [helpTab, setHelpTab] = useState<HelpTab>('home')
   const notifyStatus = useNotifyStatus()
+  const drag = useDragControls()
 
   const go = (p: Page) => {
     setDir(1)
@@ -232,6 +239,16 @@ export function SettingsScreen({
       break
   }
 
+  /** 左端で指を置いたら、ページを指に合わせて右へ動かす。シートが開いているときは動かさない */
+  const onPointerDown = (e: PointerEvent) => {
+    if (page === 'top' || e.pointerType !== 'touch' || e.clientX > EDGE) return
+    if (document.querySelector('[role="dialog"]')) return
+    drag.start(e)
+  }
+  const onDragEnd = (_: unknown, info: PanInfo) => {
+    if (info.offset.x > BACK_OFFSET || info.velocity.x > BACK_VELOCITY) back()
+  }
+
   return (
     <AnimatePresence mode="wait" initial={false} custom={dir}>
       <motion.div
@@ -242,6 +259,16 @@ export function SettingsScreen({
         initial="enter"
         animate="show"
         exit="exit"
+        // 横へのスワイプはこちらで受け取り、縦のスクロールはそのまま中身に任せる
+        style={page === 'top' ? undefined : { touchAction: 'pan-y' }}
+        onPointerDown={onPointerDown}
+        drag={page === 'top' ? false : 'x'}
+        dragListener={false}
+        dragControls={drag}
+        dragConstraints={{ left: 0, right: 0 }}
+        dragElastic={{ left: 0, right: 1 }}
+        dragMomentum={false}
+        onDragEnd={onDragEnd}
       >
         {content}
       </motion.div>
