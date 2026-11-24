@@ -1,8 +1,11 @@
 /**
  * Vercel Functions の入口で使う共通処理：JSON の読み取り・依存の用意・エラー時の 500。
  */
+import type { SocialDeps } from './account.js'
 import { neonDb } from './db.js'
-import { MissingEnvError, readEnv } from './env.js'
+import { MissingEnvError, readEnv, readSocialEnv } from './env.js'
+import { bearerToken, clerkIdentity } from './identity.js'
+import { neonSocialDb } from './socialDb.js'
 import type { Deps, Result } from './handlers.js'
 import { webPushSender } from './push.js'
 
@@ -49,6 +52,37 @@ export async function handle(
 
   try {
     const result = await run(input, getDeps())
+    return json(result.status, result.body)
+  } catch (e) {
+    if (e instanceof MissingEnvError) {
+      console.error(e.message)
+      return json(500, { error: 'server not configured' })
+    }
+    console.error('handler failed', e)
+    return json(500, { error: 'server error' })
+  }
+}
+
+let socialDeps: SocialDeps | undefined
+
+function getSocialDeps(): SocialDeps {
+  if (!socialDeps) {
+    const env = readSocialEnv()
+    socialDeps = {
+      db: neonSocialDb(env.DATABASE_URL),
+      identity: clerkIdentity(env.CLERK_SECRET_KEY),
+    }
+  }
+  return socialDeps
+}
+
+/** ログインした人向けの API。Authorization: Bearer <Clerk のセッショントークン> を処理に渡す */
+export async function handleAuthed(
+  request: Request,
+  run: (token: string | null, deps: SocialDeps) => Promise<Result>,
+): Promise<Response> {
+  try {
+    const result = await run(bearerToken(request.headers.get('authorization')), getSocialDeps())
     return json(result.status, result.body)
   } catch (e) {
     if (e instanceof MissingEnvError) {

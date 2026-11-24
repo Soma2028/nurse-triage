@@ -1,5 +1,5 @@
 import { ChevronRight } from 'lucide-react'
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { useNotifyStatus } from '../sync/useNotifyStatus'
 import type { Settings } from '../types'
 import { Group, HoursStepper, Row, SwitchRow } from './Group'
@@ -7,6 +7,14 @@ import { CalendarHelp, HomeHelp, PriorityHelp } from './Help'
 import { NotifyPanel } from './NotifyPanel'
 import { ScreenLayout } from './ScreenLayout'
 import { Sheet } from './Sheet'
+
+// ログインまわりは Clerk を使うので、別のファイルに分けて必要なときだけ読み込む
+const ProfileGroup = lazy(() =>
+  import('./AccountGroups').then((m) => ({ default: m.ProfileGroup })),
+)
+const AccountGroup = lazy(() =>
+  import('./AccountGroups').then((m) => ({ default: m.AccountGroup })),
+)
 
 interface Props {
   settings: Settings
@@ -59,7 +67,7 @@ function TodayLabel({ label, today }: { label: string; today: boolean }) {
 
 type Open = 'notify' | 'home' | 'priority' | 'calendar' | 'clear' | null
 
-/** せってい。実習・1日に使える時間・通知・ヘルプ・データの見出しで分ける */
+/** せってい。プロフィール・実習・1日に使える時間・通知・ヘルプ・アカウント・データの見出しで分ける */
 export function SettingsScreen({
   settings,
   practice,
@@ -75,6 +83,10 @@ export function SettingsScreen({
   return (
     <ScreenLayout title="せってい">
       <div className="flex flex-col gap-6">
+        <Suspense fallback={null}>
+          <ProfileGroup />
+        </Suspense>
+
         <Group label="実習">
           <SwitchRow
             label="実習期間中"
@@ -114,6 +126,10 @@ export function SettingsScreen({
           <LinkRow label="優先度の決め方" onClick={() => setOpen('priority')} />
           <LinkRow label="カレンダーの使い方" onClick={() => setOpen('calendar')} />
         </Group>
+
+        <Suspense fallback={null}>
+          <AccountGroup />
+        </Suspense>
 
         <Group label="データ">
           <button

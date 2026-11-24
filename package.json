@@ -13,6 +13,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@clerk/backend": "^3.32.0",
+    "@clerk/react": "^6.19.5",
     "@neondatabase/serverless": "^1.2.1",
     "framer-motion": "^14.14.0",
     "lucide-react": "^1.77.0",
