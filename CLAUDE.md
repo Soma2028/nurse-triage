@@ -67,9 +67,10 @@
 
 ## ログイン・フレンド（作っている途中）
 
-- `SPEC-social.md` の段階どおりに進める。段階4（フレンド：コードで申請・承認・断る・取り消す・やめる・ブロック・コードの作り直し）まで作った。`migrations/003_blocks.sql` は実行済み。段階6（今日の進み具合：今日完了にした数・赤の数をフレンドに見せる）まで作った
+- `SPEC-social.md` の段階どおりに進める。段階4（フレンド：コードで申請・承認・断る・取り消す・やめる・ブロック・コードの作り直し）まで作った。`migrations/003_blocks.sql` は実行済み。段階7（応援のスタンプと通知）まで作った。残りは段階8（README・SPEC を直す）
 - 招待リンクは `vercel.json` の rewrite で index.html を返し、`main.tsx` の `takeInviteFromUrl` でコードを取り出してアドレスを `/` に戻す。`InviteSheet` は Clerk を使うので、招待から開いたときだけ読み込む
 - 進み具合は `ProgressSync`（Clerk を使うので必要なときだけ読み込む）が、変わったら2秒まとめて `/api/progress` に送る。送るのは日付と数だけ。見せるのをやめるとサーバーの分も消す
+- 応援はフレンドにだけ、同じ相手に1日（日本時間）3回まで。相手の端末に通知で届けるため、`DeviceLink` が通知の端末（devices.user_id）にログインした人を付け、ログアウトの前に外す。通知の文面に課題のことは書かない
 - QR は `qrcode-generator` で SVG を作る（白地に炭色・まわりに4マスの余白）
 - Clerk の公開キーは `/api/config` から取り、localStorage に置いて次の起動からすぐ使う。Clerk は大きいので、`SocialRoot` と `AccountGroups` を別のファイルに分けて必要なときだけ読み込む（main の JS を 500kB 未満に保つ）
 - 自分のプロフィールは `useMyProfile`（`/api/profile`）。localStorage にも置き、次に開いたときに読み込みを待たずに出す。ログインした直後でプロフィールがなければ、作るシートを開く

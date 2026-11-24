@@ -7,10 +7,28 @@ import { z } from 'zod'
 import { UNAUTHORIZED, type SocialDeps } from './account.js'
 import type { Result } from './handlers.js'
 import { FRIEND_CODE_LENGTH, newFriendCode } from './profile.js'
-import type { SocialDb } from './socialDb.js'
+import { fromJst, toJst } from './schedule.js'
+import { STAMPS, type SocialDb, type Stamp } from './socialDb.js'
 
 /** フレンドの上限（1人あたり） */
 export const MAX_FRIENDS = 100
+
+/** 同じ相手に1日（日本時間）に送れる応援の数 */
+export const MAX_CHEERS_PER_DAY = 3
+
+/** 通知に出すスタンプの言葉 */
+export const STAMP_TEXT: Record<Stamp, string> = {
+  ganbare: 'がんばれ',
+  otsukare: 'おつかれ',
+  issho: 'いっしょにやろう',
+  erai: 'えらい',
+}
+
+/** 日本時間のその日の 0:00 */
+function jstDayStart(ms: number): number {
+  const { year, month, date } = toJst(ms)
+  return fromJst(year, month, date)
+}
 
 const userId = z.string().min(1).max(100)
 
@@ -31,6 +49,7 @@ export const friendActionSchema = z.discriminatedUnion('action', [
   z.strictObject({ action: z.literal('block'), userId }),
   z.strictObject({ action: z.literal('unblock'), userId }),
   z.strictObject({ action: z.literal('regenerateCode') }),
+  z.strictObject({ action: z.literal('cheer'), userId, stamp: z.enum(STAMPS) }),
 ])
 
 const fail = (status: number, error: string): Result => ({ status, body: { error } })
@@ -58,7 +77,8 @@ export async function getFriends(
 export async function postFriends(
   token: string | null,
   input: unknown,
-  { db, identity }: SocialDeps,
+  { db, identity, sendPush }: SocialDeps,
+  now: number = Date.now(),
 ): Promise<Result> {
   const me = token ? await identity.verify(token) : null
   if (!me) return UNAUTHORIZED
@@ -146,6 +166,24 @@ export async function postFriends(
     case 'unblock':
       await db.unblock(me, a.userId)
       return done('unblocked')
+    case 'cheer': {
+      const rel = await db.relation(me, a.userId)
+      // フレンドにだけ送れる。ブロックされていれば、フレンドでないのと同じ返事
+      if (!rel.friends || rel.blocked || rel.blockedBy) return fail(404, 'not_found')
+      if ((await db.countCheers(me, a.userId, jstDayStart(now))) >= MAX_CHEERS_PER_DAY) {
+        return fail(409, 'cheer_limit')
+      }
+      await db.addCheer(me, a.userId, a.stamp)
+      if (sendPush) {
+        // 通知は届かなくても、応援はアプリの中に残る（失敗しても成功として返す）
+        try {
+          await pushCheer(db, sendPush, a.userId, profile.nickname, a.stamp)
+        } catch (e) {
+          console.error('応援の通知に失敗', e)
+        }
+      }
+      return done('cheered')
+    }
     case 'regenerateCode': {
       for (let i = 0; i < CODE_RETRIES; i++) {
         const next = newFriendCode()
@@ -163,4 +201,32 @@ export async function postFriends(
 async function underLimit(db: SocialDb, a: string, b: string): Promise<boolean> {
   const [x, y] = await Promise.all([db.countFriends(a), db.countFriends(b)])
   return x < MAX_FRIENDS && y < MAX_FRIENDS
+}
+
+/** 相手の端末すべてに、応援の通知を送る。もうない宛先は消す */
+async function pushCheer(
+  db: SocialDb,
+  sendPush: NonNullable<SocialDeps['sendPush']>,
+  to: string,
+  fromName: string,
+  stamp: Stamp,
+) {
+  const targets = await db.userSubscriptions(to)
+  const results = await Promise.all(
+    targets.map((t) =>
+      sendPush(
+        t,
+        {
+          title: `${fromName}さんから応援が届いたよ`,
+          body: STAMP_TEXT[stamp],
+          tag: 'cheer',
+          url: '/',
+        },
+        { ttlSeconds: 12 * 60 * 60 },
+      ),
+    ),
+  )
+  for (const [i, r] of results.entries()) {
+    if (r === 'gone') await db.deleteSubscriptionByEndpoint(targets[i].endpoint)
+  }
 }

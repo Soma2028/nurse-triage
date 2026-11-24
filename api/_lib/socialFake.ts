@@ -4,7 +4,8 @@
 import { vi } from 'vitest'
 import type { SocialDeps } from './account.js'
 import type { Profile } from './profile.js'
-import { pair, type Person, type Progress, type SocialDb } from './socialDb.js'
+import type { PushTarget } from './db.js'
+import { pair, type Cheer, type Person, type Progress, type SocialDb } from './socialDb.js'
 
 export function fakeSocial(tokens: Record<string, string> = { good: 'user_1' }) {
   const profiles = new Map<string, Profile>()
@@ -12,6 +13,11 @@ export function fakeSocial(tokens: Record<string, string> = { good: 'user_1' }) 
   const friendships = new Set<string>() // `${a}|${b}`（a < b）
   const blocks = new Set<string>() // `${blocker}>${blocked}`
   const progress = new Map<string, Progress>()
+  const cheers: (Omit<Cheer, 'from'> & { fromId: string; toId: string })[] = []
+  /** 応援の時刻に使う時計（テストで進める） */
+  const clock = { now: Date.UTC(2026, 10, 24, 3) } // 日本時間 11/24 12:00
+  const devices = new Map<string, { secretHash: string; userId: string | null }>()
+  const subs = new Map<string, PushTarget & { deviceId: string }>()
   const calls: string[] = []
 
   const person = (userId: string): Person => {
@@ -44,6 +50,15 @@ export function fakeSocial(tokens: Record<string, string> = { good: 'user_1' }) 
     findUserByCode: async (code) =>
       [...profiles].find(([, p]) => p.friendCode === code)?.[0] ?? null,
     friendLists: async (me) => ({
+      cheers: cheers
+        .filter((c) => c.toId === me && !blocks.has(`${me}>${c.fromId}`))
+        .sort((x, y) => y.createdAt - x.createdAt)
+        .map(({ id, stamp, createdAt, fromId }) => ({
+          id,
+          stamp,
+          createdAt,
+          from: person(fromId),
+        })),
       friends: [...friendships]
         .map((f) => f.split('|'))
         .filter((f) => f.includes(me))
@@ -101,6 +116,26 @@ export function fakeSocial(tokens: Record<string, string> = { good: 'user_1' }) 
       profiles.set(userId, { ...profiles.get(userId)!, shareProgress: share })
       if (!share) progress.delete(userId)
     },
+    countCheers: async (from, to, since) =>
+      cheers.filter((c) => c.fromId === from && c.toId === to && c.createdAt >= since).length,
+    addCheer: async (from, to, stamp) => {
+      cheers.push({ id: cheers.length + 1, fromId: from, toId: to, stamp, createdAt: clock.now })
+    },
+    deviceSecretHash: async (id) => devices.get(id)?.secretHash ?? null,
+    linkDevice: async (id, userId) => {
+      devices.get(id)!.userId = userId
+    },
+    unlinkDevice: async (id, userId) => {
+      const d = devices.get(id)
+      if (d?.userId === userId) d.userId = null
+    },
+    userSubscriptions: async (userId) =>
+      [...subs.values()]
+        .filter((s) => devices.get(s.deviceId)?.userId === userId)
+        .map(({ endpoint, p256dh, auth }) => ({ endpoint, p256dh, auth })),
+    deleteSubscriptionByEndpoint: async (endpoint) => {
+      subs.delete(endpoint)
+    },
     setFriendCode: async (userId, code) => {
       if ([...profiles].some(([id, p]) => id !== userId && p.friendCode === code)) return false
       profiles.set(userId, { ...profiles.get(userId)!, friendCode: code })
@@ -116,5 +151,5 @@ export function fakeSocial(tokens: Record<string, string> = { good: 'user_1' }) 
       }),
     },
   }
-  return { deps, db, profiles, friendships, progress, calls }
+  return { deps, db, profiles, friendships, progress, cheers, clock, devices, subs, calls }
 }

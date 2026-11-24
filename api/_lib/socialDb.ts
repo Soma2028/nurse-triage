@@ -3,6 +3,7 @@
  * 課題名・課題の中身はここには入れない。
  */
 import { neon } from '@neondatabase/serverless'
+import type { PushTarget } from './db.js'
 import type { Profile, ProfileIcon, ProfileInput } from './profile.js'
 
 export interface SocialDb {
@@ -41,6 +42,34 @@ export interface SocialDb {
   saveProgress(userId: string, p: ProgressInput): Promise<void>
   /** 見せるのをやめたら、置いてある進み具合も消す */
   setShareProgress(userId: string, share: boolean): Promise<void>
+
+  // ---- 応援 ----
+  /** from から to へ、since 以降に送った応援の数（1日の上限を見るため） */
+  countCheers(from: string, to: string, since: number): Promise<number>
+  addCheer(from: string, to: string, stamp: Stamp): Promise<void>
+
+  // ---- 端末（応援を通知で届けるため） ----
+  /** 通知の端末の secret の SHA-256。端末がなければ null */
+  deviceSecretHash(deviceId: string): Promise<string | null>
+  /** 端末にユーザー ID を付ける（同じ端末で別の人がログインしたら付け替える） */
+  linkDevice(deviceId: string, userId: string): Promise<void>
+  /** その人の端末なら、ユーザー ID を外す */
+  unlinkDevice(deviceId: string, userId: string): Promise<void>
+  /** その人の端末すべての通知の宛先 */
+  userSubscriptions(userId: string): Promise<PushTarget[]>
+  deleteSubscriptionByEndpoint(endpoint: string): Promise<void>
+}
+
+/** 応援のスタンプ */
+export const STAMPS = ['ganbare', 'otsukare', 'issho', 'erai'] as const
+export type Stamp = (typeof STAMPS)[number]
+
+/** 届いた応援（送った人と、いつ・どのスタンプか） */
+export interface Cheer {
+  id: number
+  from: Person
+  stamp: Stamp
+  createdAt: number // epoch ms
 }
 
 /** 今日の進み具合（課題名・種類・締切は含まない。数だけ） */
@@ -66,6 +95,7 @@ export interface Person {
 }
 
 export interface FriendLists {
+  cheers: Cheer[] // 届いた応援（新しい順・最近の分だけ）
   friends: Person[]
   incoming: Person[] // 届いた申請
   outgoing: Person[] // 送った申請
@@ -115,8 +145,15 @@ export function neonSocialDb(databaseUrl: string): SocialDb {
     },
 
     async friendLists(userId) {
-      const [friends, incoming, outgoing, blocked] = await sql.transaction(
+      const [cheers, friends, incoming, outgoing, blocked] = await sql.transaction(
         [
+          // 届いた応援：14日以内の30件。ブロックした人からのものは出さない
+          sql`select c.id, c.stamp, c.created_at, p.user_id, p.nickname, p.icon, p.grade, p.bio
+              from cheers c join profiles p on p.user_id = c.from_user
+              where c.to_user = ${userId}
+                and c.created_at > now() - interval '14 days'
+                and not exists (select 1 from blocks b where b.blocker = ${userId} and b.blocked = c.from_user)
+              order by c.created_at desc limit 30`,
           sql`select p.user_id, p.nickname, p.icon, p.grade, p.bio,
                 pr.day::text as day, pr.done_count, pr.red_count, pr.updated_at
               from friendships f
@@ -137,6 +174,12 @@ export function neonSocialDb(databaseUrl: string): SocialDb {
         { readOnly: true },
       )
       return {
+        cheers: cheers.map((r) => ({
+          id: Number(r.id),
+          from: toPerson(r),
+          stamp: r.stamp as Stamp,
+          createdAt: new Date(r.created_at as string | Date).getTime(),
+        })),
         friends: friends.map((r) => ({ ...toPerson(r), progress: toProgress(r) })),
         incoming: incoming.map(toPerson),
         outgoing: outgoing.map(toPerson),
@@ -232,6 +275,43 @@ export function neonSocialDb(databaseUrl: string): SocialDb {
         sql`update profiles set share_progress = ${share} where user_id = ${userId}`,
         ...(share ? [] : [sql`delete from progress where user_id = ${userId}`]),
       ])
+    },
+
+    async countCheers(from, to, since) {
+      const rows = await sql`
+        select count(*)::int as n from cheers
+        where from_user = ${from} and to_user = ${to}
+          and created_at >= ${new Date(since).toISOString()}::timestamptz`
+      return rows[0].n as number
+    },
+
+    async addCheer(from, to, stamp) {
+      await sql`insert into cheers (from_user, to_user, stamp) values (${from}, ${to}, ${stamp})`
+    },
+
+    async deviceSecretHash(deviceId) {
+      const rows = await sql`select secret_hash from devices where id = ${deviceId}`
+      return (rows[0]?.secret_hash as string | undefined) ?? null
+    },
+
+    async linkDevice(deviceId, userId) {
+      await sql`update devices set user_id = ${userId} where id = ${deviceId}`
+    },
+
+    async unlinkDevice(deviceId, userId) {
+      await sql`update devices set user_id = null where id = ${deviceId} and user_id = ${userId}`
+    },
+
+    async userSubscriptions(userId) {
+      const rows = await sql`
+        select s.endpoint, s.p256dh, s.auth from subscriptions s
+        join devices d on d.id = s.device_id
+        where d.user_id = ${userId}`
+      return rows.map((r) => ({ endpoint: r.endpoint, p256dh: r.p256dh, auth: r.auth }))
+    },
+
+    async deleteSubscriptionByEndpoint(endpoint) {
+      await sql`delete from subscriptions where endpoint = ${endpoint}`
     },
 
     async deleteUserData(userId) {

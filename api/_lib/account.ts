@@ -2,12 +2,15 @@
  * /api/account の中身。ログインした人だけが、自分のアカウントを消せる。
  */
 import type { Identity } from './identity.js'
+import type { SendPush } from './push.js'
 import type { Result } from './handlers.js'
 import type { SocialDb } from './socialDb.js'
 
 export interface SocialDeps {
   db: SocialDb
   identity: Identity
+  /** 応援を通知で届ける。VAPID の鍵がなければ無し（応援はアプリの中にだけ出る） */
+  sendPush?: SendPush
 }
 
 export const UNAUTHORIZED: Result = { status: 401, body: { error: 'unauthorized' } }

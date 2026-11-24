@@ -4,6 +4,8 @@ import type { ActResult, FriendAction, FriendState, Person } from '../social/fri
 import { gradeLabel } from '../social/profile'
 import { inviteLink } from '../social/invite'
 import { progressText } from '../social/progress'
+import { markCheersSeen } from '../social/cheersSeen'
+import { MAX_CHEERS_PER_DAY, STAMP_KEYS, STAMPS, cheerTime } from '../social/stamps'
 import { dayKey } from '../logic/schedule'
 import { Avatar } from './Avatar'
 import { Group, SwitchRow } from './Group'
@@ -15,6 +17,7 @@ type Kind = 'friend' | 'incoming' | 'outgoing' | 'blocked'
 type Message = { tone: 'info' | 'error'; text: string } | null
 
 const RESULT_TEXT: Record<string, string> = {
+  cheered: '応援を送ったよ。',
   requested: '申請したよ。相手が承認するとフレンドになるよ。',
   friends: 'フレンドになったよ。',
   declined: '申請を断ったよ。',
@@ -26,6 +29,7 @@ const RESULT_TEXT: Record<string, string> = {
 }
 
 const ERROR_TEXT: Record<string, string> = {
+  cheer_limit: `同じ人への応援は、1日${MAX_CHEERS_PER_DAY}回までだよ。`,
   not_found: 'そのコードの人が見つからなかったよ。コードを確かめてね。',
   self: 'それは自分のコードだよ。',
   already_friends: 'もうフレンドだよ。',
@@ -105,7 +109,8 @@ export function FriendsPanel({
   const [code, setCode] = useState('')
   const [showQr, setShowQr] = useState(false)
   // 今日の日付（シートを開いたときの。進み具合が今日の分か見分ける）
-  const [today] = useState(() => dayKey(Date.now()))
+  const [openedAt] = useState(() => Date.now())
+  const today = dayKey(openedAt)
   /** 見せるスイッチを押したあと、サーバーが返事をするまでの値（押した瞬間に切り替えて見せる） */
   const [sharePending, setSharePending] = useState<boolean | null>(null)
 
@@ -118,6 +123,12 @@ export function FriendsPanel({
     setSharePending(null)
     if (!ok) setMessage({ tone: 'error', text: NETWORK_ERROR })
   }
+
+  // 届いた応援を見たことにする（せっていの「フレンド」の行の数を消す）
+  const latestCheer = data?.cheers[0]?.createdAt ?? 0
+  useEffect(() => {
+    if (latestCheer) markCheersSeen(latestCheer)
+  }, [latestCheer])
 
   // 開いたら最新にする（申請が届いているかもしれない）
   useEffect(() => {
@@ -221,6 +232,28 @@ export function FriendsPanel({
         >
           {message.text}
         </p>
+      )}
+
+      {data.cheers.length > 0 && (
+        <Group label="届いた応援">
+          {data.cheers.slice(0, 10).map((c) => {
+            const { Icon, label: stampLabel } = STAMPS[c.stamp]
+            return (
+              <div key={c.id} className="flex min-h-14 items-center gap-3 px-4 py-2">
+                <Avatar icon={c.from.icon} />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-base text-ink">
+                    {c.from.nickname}さん「{stampLabel}」
+                  </span>
+                  <span className="block text-xs text-ink-muted">
+                    {cheerTime(c.createdAt, openedAt)}
+                  </span>
+                </span>
+                <Icon aria-hidden className="size-5 shrink-0 text-primary-ink" />
+              </div>
+            )
+          })}
+        </Group>
       )}
 
       {data.incoming.length > 0 && (
@@ -461,6 +494,31 @@ function PersonDetail({
             >
               申請を取り消す
             </button>
+          )}
+          {kind === 'friend' && (
+            <section className="flex flex-col gap-2">
+              <h3 className="px-4 text-xs font-bold tracking-wide text-ink-muted">応援する</h3>
+              <div className="grid grid-cols-2 gap-2">
+                {STAMP_KEYS.map((key) => {
+                  const { Icon, label: stampLabel } = STAMPS[key]
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      disabled={busy}
+                      onClick={() => onAction({ action: 'cheer', userId: id, stamp: key })}
+                      className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-primary-soft px-3 text-sm font-bold text-primary-ink transition hover:bg-primary hover:text-on-primary disabled:opacity-60"
+                    >
+                      <Icon aria-hidden className="size-4 shrink-0" />
+                      {stampLabel}
+                    </button>
+                  )
+                })}
+              </div>
+              <p className="px-4 text-xs leading-5 text-ink-muted">
+                {`同じ人には1日${MAX_CHEERS_PER_DAY}回まで送れるよ。`}
+              </p>
+            </section>
           )}
           {kind === 'friend' && (
             <button type="button" onClick={() => setConfirm('remove')} className={plainBtn}>

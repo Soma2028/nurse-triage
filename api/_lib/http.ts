@@ -68,9 +68,18 @@ let socialDeps: SocialDeps | undefined
 function getSocialDeps(): SocialDeps {
   if (!socialDeps) {
     const env = readSocialEnv()
+    const { VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY } = process.env
     socialDeps = {
       db: neonSocialDb(env.DATABASE_URL),
       identity: clerkIdentity(env.CLERK_SECRET_KEY),
+      sendPush:
+        VAPID_SUBJECT && VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY
+          ? webPushSender({
+              subject: VAPID_SUBJECT,
+              publicKey: VAPID_PUBLIC_KEY,
+              privateKey: VAPID_PRIVATE_KEY,
+            })
+          : undefined,
     }
   }
   return socialDeps
@@ -81,16 +90,19 @@ export async function handleAuthed(
   request: Request,
   run: (token: string | null, input: unknown, deps: SocialDeps) => Promise<Result>,
 ): Promise<Response> {
+  // 本文があれば JSON として読む（DELETE /api/account のように本文がないものもある）
   let input: unknown = undefined
-  if (request.method !== 'GET' && request.method !== 'DELETE') {
+  if (request.method !== 'GET') {
     const text = await request.text()
     if (new TextEncoder().encode(text).length > MAX_BODY_BYTES) {
       return json(413, { error: 'too large' })
     }
-    try {
-      input = JSON.parse(text)
-    } catch {
-      return json(400, { error: 'invalid json' })
+    if (text.trim() !== '') {
+      try {
+        input = JSON.parse(text)
+      } catch {
+        return json(400, { error: 'invalid json' })
+      }
     }
   }
   try {

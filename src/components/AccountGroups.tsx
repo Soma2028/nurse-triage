@@ -3,10 +3,12 @@ import { ChevronRight } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { authedCall } from '../social/api'
 import { useSocialAvailable } from '../social/SocialContext'
+import { useCheersSeen } from '../social/cheersSeen'
 import { useFriends } from '../social/friends'
 import { gradeLabel } from '../social/profile'
 import { useMyProfile } from '../social/useMyProfile'
 import { Avatar } from './Avatar'
+import { forgetDeviceLink, unlinkThisDevice } from '../social/deviceLink'
 import { FriendsPanel } from './FriendsPanel'
 import { Group, Row } from './Group'
 import { ProfileForm } from './ProfileForm'
@@ -42,6 +44,8 @@ function SignedProfileGroup() {
   const { isLoaded, isSignedIn } = useAuth()
   const me = useMyProfile()
   const friends = useFriends(!!me.profile)
+  const cheersSeen = useCheersSeen()
+  const newCheers = friends.data?.cheers.filter((c) => c.createdAt > cheersSeen).length ?? 0
   const [loginOpen, setLoginOpen] = useState(false)
   const [friendsOpen, setFriendsOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
@@ -128,6 +132,8 @@ function SignedProfileGroup() {
               <span className="text-sm font-bold text-ink">
                 申請 {friends.data.incoming.length}
               </span>
+            ) : newCheers > 0 ? (
+              <span className="text-sm font-bold text-ink">応援 {newCheers}</span>
             ) : (
               friends.data && (
                 <span className="text-sm text-ink-muted">{friends.data.friends.length}人</span>
@@ -200,6 +206,7 @@ function SignedAccountGroup() {
       setBusy(false)
       return setError('うまく消せなかったよ。電波のいいところで、もう一度試してね。')
     }
+    forgetDeviceLink()
     await signOut()
     setBusy(false)
     close()
@@ -233,6 +240,8 @@ function SignedAccountGroup() {
           <button
             type="button"
             onClick={async () => {
+              // この端末にもう応援の通知が届かないよう、先にログインを外す
+              await unlinkThisDevice(() => getToken())
               await signOut()
               close()
             }}

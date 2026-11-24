@@ -6,6 +6,7 @@ import { useAuth } from '@clerk/react'
 import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react'
 import { authedCall } from './api'
 import { PROFILE_ICONS, type ProfileIcon } from './profile'
+import { STAMP_KEYS, type Stamp } from './stamps'
 
 /** フレンドの一覧などに出す人（課題のことは何も含まない） */
 export interface Person {
@@ -26,8 +27,17 @@ export interface FriendProgress {
   updatedAt: number
 }
 
+/** 届いた応援 */
+export interface Cheer {
+  id: number
+  from: Person
+  stamp: Stamp
+  createdAt: number // epoch ms
+}
+
 export interface FriendState {
   friendCode: string
+  cheers: Cheer[] // 届いた応援（新しい順）
   friends: Person[]
   incoming: Person[] // 届いた申請
   outgoing: Person[] // 送った申請
@@ -38,6 +48,7 @@ export type FriendAction =
   | { action: 'request'; code: string }
   | { action: 'accept' | 'decline' | 'cancel' | 'remove' | 'block' | 'unblock'; userId: string }
   | { action: 'regenerateCode' }
+  | { action: 'cheer'; userId: string; stamp: Stamp }
 
 const isPerson = (v: unknown): v is Person => {
   const p = v as Partial<Person> | null
@@ -55,8 +66,18 @@ export function toFriendState(v: unknown): FriendState | null {
   const d = v as Record<string, unknown> | null
   if (!d || typeof d.friendCode !== 'string') return null
   const list = (k: string) => (Array.isArray(d[k]) ? (d[k] as unknown[]).filter(isPerson) : [])
+  const cheers = Array.isArray(d.cheers)
+    ? (d.cheers as Partial<Cheer>[]).filter(
+        (c): c is Cheer =>
+          typeof c?.id === 'number' &&
+          isPerson(c.from) &&
+          (STAMP_KEYS as readonly unknown[]).includes(c.stamp) &&
+          typeof c.createdAt === 'number',
+      )
+    : []
   return {
     friendCode: d.friendCode,
+    cheers,
     friends: list('friends'),
     incoming: list('incoming'),
     outgoing: list('outgoing'),

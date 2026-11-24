@@ -31,9 +31,9 @@ const InviteSheet = lazy(() =>
   import('./components/InviteSheet').then((m) => ({ default: m.InviteSheet })),
 )
 
-// 今日の進み具合をフレンドに送る部品も Clerk を使うので、ログインの機能が使えるときだけ読み込む
-const ProgressSync = lazy(() =>
-  import('./components/ProgressSync').then((m) => ({ default: m.ProgressSync })),
+// 進み具合を送る・通知の端末にログインを付ける部品も Clerk を使うので、ログインの機能が使えるときだけ読み込む
+const SocialSync = lazy(() =>
+  import('./components/SocialSync').then((m) => ({ default: m.SocialSync })),
 )
 
 /** 追加・編集パネルの状態。editingId が null なら新規追加 */
@@ -175,7 +175,7 @@ export default function App() {
 
       {socialAvailable && (
         <Suspense fallback={null}>
-          <ProgressSync progress={progress} />
+          <SocialSync progress={progress} />
         </Suspense>
       )}
 
