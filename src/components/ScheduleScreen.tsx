@@ -20,6 +20,7 @@ import { markRun, monthCells, tasksByDay } from '../logic/calendar'
 import { addDays, dayKey, keyStart, rangeKeys } from '../logic/schedule'
 import { baseTransition } from '../motion'
 import type { Analysed, DayKind, Schedule } from '../types'
+import { Group, Picker, Row, SwitchRow } from './Group'
 import { ScreenLayout } from './ScreenLayout'
 import { Segmented } from './Segmented'
 import { Sheet } from './Sheet'
@@ -500,39 +501,42 @@ export function ScheduleScreen({
             onChange={chooseAddKind}
             options={[...KIND_OPTIONS, { value: 'task' as const, label: '課題' }]}
           />
-          <div className="grid grid-cols-2 gap-2">
-            <label className="ui-label min-w-0">
-              開始日
-              <input
-                type="date"
-                className="ui-input px-2"
-                value={start}
-                onChange={(e) => {
-                  setStart(e.target.value)
-                  // テストは1日だけのことが多いので、終わりの日も一緒に動かす
-                  if (addKind === 'test') setEnd(e.target.value)
-                }}
-              />
-            </label>
-            <label className="ui-label min-w-0">
-              終了日
-              <input
-                type="date"
-                className="ui-input px-2"
-                value={end}
-                onChange={(e) => setEnd(e.target.value)}
-              />
-            </label>
-          </div>
-          <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm text-ink">
-            <input
-              type="checkbox"
-              checked={skipWeekends}
-              onChange={(e) => setSkipWeekends(e.target.checked)}
-              className="size-5 accent-primary"
+          {/* 課題の追加と同じ形：左に名前・右に日付。行のどこを押しても日付を選ぶ画面が開く */}
+          <Group>
+            <Row label="開始日">
+              <Picker text={start ? shortDate(start) : '選んでね'}>
+                <input
+                  type="date"
+                  aria-label="開始日"
+                  className="ui-picker"
+                  value={start}
+                  onChange={(e) => {
+                    setStart(e.target.value)
+                    // テストは1日だけのことが多いので、終わりの日も一緒に動かす
+                    if (addKind === 'test') setEnd(e.target.value)
+                  }}
+                  onClick={(e) => e.currentTarget.showPicker?.()}
+                />
+              </Picker>
+            </Row>
+            <Row label="終了日">
+              <Picker text={end ? shortDate(end) : '選んでね'}>
+                <input
+                  type="date"
+                  aria-label="終了日"
+                  className="ui-picker"
+                  value={end}
+                  onChange={(e) => setEnd(e.target.value)}
+                  onClick={(e) => e.currentTarget.showPicker?.()}
+                />
+              </Picker>
+            </Row>
+            <SwitchRow
+              label="土日を除く"
+              on={skipWeekends}
+              onToggle={() => setSkipWeekends((v) => !v)}
             />
-            土日を除く
-          </label>
+          </Group>
           {addError && (
             <p role="alert" className="text-sm font-bold text-danger">
               {addError}
