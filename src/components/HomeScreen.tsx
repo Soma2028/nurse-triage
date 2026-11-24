@@ -40,8 +40,8 @@ interface Props {
 }
 
 /**
- * 「つぎにやる」の1件。上を押すとくわしいページ、下の2つのボタンでその場で進められる。
- * 主役は課題名と進み具合のバー（タッグは課題名の上の小さな札）
+ * 「つぎにやる」の1件。トリアージ風に、左に大きなタッグ（色の四角に順位）、右に課題名と締切。
+ * 上を押すとくわしいページ、下の2つのボタンでその場で進められる
  */
 function NextCard({
   a,
@@ -57,32 +57,31 @@ function NextCard({
   onAdvance: () => void
 }) {
   return (
-    <div className="ui-card flex h-full flex-col gap-4 p-4">
+    <div className="ui-card flex h-full flex-col gap-3 p-4">
       <button
         type="button"
         onClick={onOpen}
-        className="flex flex-col gap-2 text-left"
+        className="flex items-start gap-3 text-left"
         aria-label={`${rank}番目「${a.label}」 ${a.task.title}のくわしいこと`}
       >
-        <span className="flex min-w-0 items-center gap-2 text-xs text-ink-muted">
-          <TagChip a={a} rank={rank} size="sm" />
-          <span className="truncate">
+        <TagChip a={a} rank={rank} size="lg" />
+        <span className="min-w-0 flex-1">
+          <span className="block text-base font-bold break-words text-ink">{a.task.title}</span>
+          <span className="block text-xs text-ink-muted">
             <TaskMeta a={a} />
           </span>
         </span>
-        <span className="text-title font-bold break-words text-ink">{a.task.title}</span>
-        <span className="flex w-full items-center gap-3">
-          <span className="block min-w-0 flex-1">
-            <ProgressBar a={a} />
-          </span>
-          <span className="shrink-0 text-base font-bold text-ink tabular-nums">
-            {a.task.progress}%
-          </span>
-        </span>
-        <span className="text-sm leading-6 text-ink-muted">
-          <Reason a={a} />
-        </span>
       </button>
+      {/* 進み具合（はじめの形にはなかったが、どこまで進んだかわかるように残す） */}
+      <div className="flex items-center gap-3">
+        <span className="min-w-0 flex-1">
+          <ProgressBar a={a} />
+        </span>
+        <span className="shrink-0 text-sm font-bold text-ink tabular-nums">{a.task.progress}%</span>
+      </div>
+      <p className="text-sm leading-6 text-ink-muted">
+        <Reason a={a} />
+      </p>
       <div className="mt-auto flex gap-2">
         <button
           type="button"
