@@ -103,6 +103,9 @@ export async function handleAuthed(
       return json(500, { error: 'server not configured' })
     }
     console.error('handler failed', e)
-    return json(500, { error: 'server error' })
+    // データベースのエラーなら、その種類（SQLSTATE の5文字。中身は出さない）だけ返して、原因を探せるようにする
+    const code = (e as { code?: unknown }).code
+    const dbCode = typeof code === 'string' && /^[0-9A-Z]{5}$/.test(code) ? code : undefined
+    return json(500, dbCode ? { error: 'server error', dbCode } : { error: 'server error' })
   }
 }

@@ -122,7 +122,8 @@ export function useFriends(enabled: boolean) {
     if (r.ok && data) set({ userId, data, error: null })
     else {
       // 失敗しても前の一覧は残し、理由だけ覚えておく（「読み込んでいるよ」のまま止まらないように）
-      const reason = typeof r.data?.error === 'string' ? r.data.error : String(r.status)
+      const base = typeof r.data?.error === 'string' ? r.data.error : String(r.status)
+      const reason = typeof r.data?.dbCode === 'string' ? `${base} ${r.data.dbCode}` : base
       console.error('フレンドを読み込めなかった', r.status, reason)
       set({ userId, data: store.userId === userId ? store.data : null, error: reason })
     }
