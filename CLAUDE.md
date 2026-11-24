@@ -62,6 +62,7 @@
 - service worker（`public/sw.js`）は push と notificationclick だけ。キャッシュはしない
 - 課題名はサーバーに送らないのが初期設定（課題名に患者の情報が入りやすいため）
 - 環境変数・Neon・cron-job.org の準備はユーザーがやる。段階3の前に必要なものを示して待つ
+- セキュリティのヘッダー（CSP・X-Frame-Options など）は `vercel.json` にある。CSP は自分のアプリと Clerk（`cosmic-chow-5908.clerk.accounts.dev`・`*.protect.clerk.com`・`img.clerk.com`）と Cloudflare のロボット対策だけを許す。Clerk を本番のインスタンスに切り替えたら、CSP の Clerk の場所も直す。外のサイトの読み込みを足すときも CSP を直す
 - 秘密の値（`.env*`）はリポジトリに入れない
 - VAPID の公開鍵は、アプリが `/api/vapid-key` から取る（フロント用の環境変数は使わない）
 
