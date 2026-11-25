@@ -139,6 +139,21 @@ function SignedProfileGroup({ onOpenFriends }: { onOpenFriends: () => void }) {
     if (JSON.stringify(next) !== JSON.stringify(local)) saveLocalProfile(next)
   }, [isSignedIn, status, profile, local, save])
 
+  // ログインを確かめている間（Clerk の読み込み中）は、前のプロフィールとフレンドの行をそのまま出しておく。
+  // 「ログインしてフレンドとつながる」を一瞬出してから行が入れ替わり、下の行がずれないように
+  if (!isLoaded && !gaveUp && me.pending) {
+    return (
+      <>
+        <Group>
+          <ProfileRow profile={me.pending} onClick={() => {}} />
+        </Group>
+        <Group>
+          <LinkRow icon={Users} label="フレンド" onClick={onOpenFriends} />
+        </Group>
+      </>
+    )
+  }
+
   if (!isSignedIn || (!isLoaded && gaveUp)) {
     const offline = !isLoaded && gaveUp
     return (

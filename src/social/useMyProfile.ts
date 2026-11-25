@@ -121,6 +121,11 @@ export function useMyProfile() {
   return {
     status: mine ? current.status : ('loading' as Status),
     profile: mine ? current.profile : null,
+    /**
+     * Clerk がログインを確かめている間だけ、前にログインしていた人のプロフィール（保存したもの）。
+     * 確かめ終わるまで「ログインして…」の行を出して、あとで行がずれないようにするため。見た目にだけ使う
+     */
+    pending: !isLoaded && current.userId ? current.profile : null,
     reload: () => userId && load(userId),
     save,
     setShare,
