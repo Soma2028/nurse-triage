@@ -4,15 +4,19 @@ import type { Analysed } from '../types'
 import { formatDue, formatHours, formatRemaining } from '../utils/format'
 import { Phrase } from './Phrase'
 
-/** 根拠の一行。足りない分・締切を過ぎた時間は太字（赤い文字は使わない。赤はタッグだけ） */
+/**
+ * 根拠。ことがらごとに1行に分ける（「あと約1.6h」／「締切までに使えるのは約3.7h」／「…足りない」）。
+ * 長い1文を途中で折り返すと、カードごとに切れ目がそろわないため。
+ * 足りない分・締切を過ぎた時間は太字（赤い文字は使わない。赤はタッグだけ）
+ */
 export function Reason({ a }: { a: Analysed }) {
   const { remain, avail, shortage, ms } = a
   const head = `あと約${formatHours(remain)}`
   if (ms < 0) {
     return (
       <>
-        <span className="whitespace-nowrap">{head}</span> ／{' '}
-        <b className="whitespace-nowrap text-ink">{formatRemaining(ms)}</b>
+        <span className="block">{head}</span>
+        <b className="block text-ink">{formatRemaining(ms)}</b>
       </>
     )
   }
@@ -24,15 +28,14 @@ export function Reason({ a }: { a: Analysed }) {
       : `ほかの課題と合わせると${formatHours(shortage)}足りない`
   return (
     <>
-      <span className="whitespace-nowrap">{head}</span> ／{' '}
-      <Phrase text={`締切までに使えるのは約${formatHours(avail)}`} />
+      <span className="block">{head}</span>
+      <span className="block">
+        <Phrase text={`締切までに使えるのは約${formatHours(avail)}`} />
+      </span>
       {showShortage && (
-        <>
-          ・
-          <b className="text-ink">
-            <Phrase text={shortText} />
-          </b>
-        </>
+        <b className="block text-ink">
+          <Phrase text={shortText} />
+        </b>
       )}
     </>
   )

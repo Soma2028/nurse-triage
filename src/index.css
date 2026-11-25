@@ -94,6 +94,8 @@
     word-break: keep-all;
     overflow-wrap: anywhere;
     text-wrap: pretty;
+    /* 行の頭の「（」「『」の前の全角の空きを詰める（2行目が右にずれて見えないように） */
+    text-spacing-trim: trim-start;
   }
   .ui-page-title {
     @apply text-title font-bold tracking-tight;

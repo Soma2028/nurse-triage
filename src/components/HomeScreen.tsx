@@ -109,7 +109,7 @@ function NextCard({
               {task.progress}%
             </span>
           </span>
-          <span className="mt-3 text-sm leading-6 text-ink-muted">
+          <span className="mt-3 text-sm leading-5 text-ink-muted">
             <Reason a={a} />
           </span>
         </button>
