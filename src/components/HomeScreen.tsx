@@ -16,6 +16,7 @@ import { usePageNav } from './pageNav'
 import { ProgressBar, Reason, TaskRow } from './TaskRow'
 import { todayProgress, type TodayProgress } from '../logic/today'
 import { TodayPlan } from './TodayPlan'
+import { Phrase } from './Phrase'
 import { TodayClasses } from './TodayClasses'
 import type { TodayClass } from '../logic/timetable'
 
@@ -91,10 +92,12 @@ function NextCard({
           className="flex flex-col text-left"
           aria-label={`${rank}番目・${TRIAGE_STYLE[a.triage].name}「${a.label}」 ${task.title}のくわしいこと`}
         >
-          <span className="leading-snug font-bold break-words text-ink">{task.title}</span>
+          <span className="leading-snug font-bold text-ink">
+            <Phrase text={task.title} />
+          </span>
           <span className="mt-2 text-sm text-ink-muted">
-            {formatDue(task.due)}
-            <b className={`ml-1 whitespace-nowrap ${ms < 0 ? 'font-black' : ''} text-ink`}>
+            <span className="whitespace-nowrap">{formatDue(task.due)}</span>{' '}
+            <b className={`whitespace-nowrap ${ms < 0 ? 'font-black' : ''} text-ink`}>
               {formatRemaining(ms)}
             </b>
           </span>
@@ -183,7 +186,9 @@ function TodayHeader({
             </div>
           </>
         )}
-        <p className={`text-sm text-ink ${showBar ? 'mt-2' : ''}`}>{line}</p>
+        <p className={`text-sm text-ink ${showBar ? 'mt-2' : ''}`}>
+          <Phrase text={line} />
+        </p>
       </div>
     </section>
   )
@@ -271,8 +276,10 @@ function Empty({ mood, lines }: { mood: 'happy' | 'normal'; lines: [string, stri
     <div className="flex items-center gap-4 rounded-3xl px-2 py-4">
       <Chara mood={mood} size={64} />
       <p className="text-sm text-ink-muted">
-        <b className="block text-base text-ink">{lines[0]}</b>
-        {lines[1]}
+        <b className="block text-base text-ink">
+          <Phrase text={lines[0]} />
+        </b>
+        <Phrase text={lines[1]} />
       </p>
     </div>
   )
@@ -320,7 +327,8 @@ export function HomeScreen({
         />
       ) : (
         <ScreenLayout title={date} note={dayNote} onAdd={onAdd}>
-          <div className="flex flex-col gap-4">
+          {/* ホームの文は、文節の切れ目でだけ折り返す（Phrase） */}
+          <div className="ui-text flex flex-col gap-4">
             {analysed.length > 0 && (
               <TodayHeader
                 progress={todayProgress(worked, plan)}

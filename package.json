@@ -16,6 +16,7 @@
     "@clerk/backend": "^3.32.0",
     "@clerk/react": "^6.19.5",
     "@neondatabase/serverless": "^1.2.1",
+    "budoux": "^0.10.4",
     "framer-motion": "^14.14.0",
     "lucide-react": "^1.77.0",
     "qrcode-generator": "^2.0.4",

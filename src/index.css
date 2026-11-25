@@ -88,6 +88,13 @@
   .ui-no-scrollbar::-webkit-scrollbar {
     display: none;
   }
+  /* 日本語の文を、文節の切れ目（Phrase の <wbr>・句読点・空白）でだけ折り返す。
+     入りきらない長い語だけは途中で折り返し、最後の行に1〜2文字だけ残らないようにする */
+  .ui-text {
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+    text-wrap: pretty;
+  }
   .ui-page-title {
     @apply text-title font-bold tracking-tight;
   }

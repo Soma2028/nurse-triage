@@ -27,6 +27,7 @@
 - 部品は共通クラス（`ui-card` `ui-input` `ui-label`）と共通の部品（`ScreenLayout` `PageStack` `Sheet` `TaskRow` `TaskDetailPage` `Segmented`、行の一覧は `Group` `Row` `LinkRow` `Picker` `HoursStepper`）で1通りずつ。似た部品を新しく作らない
 - 動きは `src/motion.ts` の値だけを使う（0.3秒・16px・ease-out、押すと97%）
 - アイコンは lucide-react。絵文字アイコンは使わない
+- 日本語の文は文節の切れ目でだけ折り返す：外側に `ui-text`（keep-all）、文の中は `Phrase`（BudouX で文節に分けて `<wbr>`）。日付・「あと21時間」など切りたくないまとまりは `whitespace-nowrap`。ホームは全体に `ui-text` を付けている
 - 文言はやわらかい話し言葉（「〜しよう」「〜だよ」）。カッコ書きの補足や説明っぽい文を増やさない
 - 数字を並べたダッシュボード風のカードや、同じ形のカードの羅列にしない
 - ページ全体はスクロールしない。見出しと下のタブは固定し、真ん中だけが動く（`ScreenLayout`）。iPhone 15（393×852）と SE（375×667）で、どのタブも `document.scrollHeight` が画面の高さと同じことを確かめる

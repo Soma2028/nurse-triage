@@ -2,6 +2,7 @@ import { useState, type CSSProperties } from 'react'
 import { TRIAGE_STYLE } from '../constants'
 import type { Analysed } from '../types'
 import { formatDue, formatHours, formatRemaining } from '../utils/format'
+import { Phrase } from './Phrase'
 
 /** 根拠の一行。足りない分・締切を過ぎた時間は太字（赤い文字は使わない。赤はタッグだけ） */
 export function Reason({ a }: { a: Analysed }) {
@@ -10,7 +11,8 @@ export function Reason({ a }: { a: Analysed }) {
   if (ms < 0) {
     return (
       <>
-        {head} ／ <b className="text-ink">{formatRemaining(ms)}</b>
+        <span className="whitespace-nowrap">{head}</span> ／{' '}
+        <b className="whitespace-nowrap text-ink">{formatRemaining(ms)}</b>
       </>
     )
   }
@@ -22,10 +24,14 @@ export function Reason({ a }: { a: Analysed }) {
       : `ほかの課題と合わせると${formatHours(shortage)}足りない`
   return (
     <>
-      {head} ／ 締切までに使えるのは約{formatHours(avail)}
+      <span className="whitespace-nowrap">{head}</span> ／{' '}
+      <Phrase text={`締切までに使えるのは約${formatHours(avail)}`} />
       {showShortage && (
         <>
-          ・<b className="text-ink">{shortText}</b>
+          ・
+          <b className="text-ink">
+            <Phrase text={shortText} />
+          </b>
         </>
       )}
     </>

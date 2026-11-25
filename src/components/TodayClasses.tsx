@@ -1,4 +1,5 @@
 import type { TodayClass } from '../logic/timetable'
+import { Phrase } from './Phrase'
 
 /** 1列に並べる授業の数。これより多いときは3つずつで折り返す（1マスが狭くなりすぎないように） */
 const ONE_ROW_MAX = 4
@@ -11,7 +12,7 @@ const ONE_ROW_MAX = 4
 export function TodayClasses({ classes }: { classes: TodayClass[] }) {
   const cols = classes.length <= ONE_ROW_MAX ? classes.length : 3
   return (
-    <section aria-labelledby="classes-heading" className="ui-card p-4">
+    <section aria-labelledby="classes-heading" className="ui-card ui-text p-4">
       <div className="flex items-baseline justify-between">
         <h2 id="classes-heading" className="text-base font-bold">
           今日の時間割
@@ -43,7 +44,7 @@ export function TodayClasses({ classes }: { classes: TodayClass[] }) {
               aria-hidden
               className="mt-1 line-clamp-3 text-sm leading-5 font-bold break-all text-ink"
             >
-              {slot.name}
+              <Phrase text={slot.name} />
             </span>
             {slot.room && (
               <span aria-hidden className="truncate text-xs text-ink-muted">

@@ -1,6 +1,7 @@
 import { TRIAGE_STYLE } from '../constants'
 import type { Plan } from '../types'
 import { formatHours } from '../utils/format'
+import { Phrase } from './Phrase'
 
 interface Props {
   plan: Plan
@@ -16,7 +17,7 @@ export function TodayPlan({ plan, className = '' }: Props) {
   const showFree = free >= 0.05
 
   return (
-    <section aria-labelledby="plan-heading" className={`ui-card p-4 ${className}`}>
+    <section aria-labelledby="plan-heading" className={`ui-card ui-text p-4 ${className}`}>
       <div className="flex items-baseline justify-between">
         <h2 id="plan-heading" className="text-base font-bold">
           今日のプラン
@@ -25,7 +26,9 @@ export function TodayPlan({ plan, className = '' }: Props) {
       </div>
 
       {hours === 0 ? (
-        <p className="mt-2 text-sm text-ink-muted">今日は休みの日。課題の割り振りはないよ。</p>
+        <p className="mt-2 text-sm text-ink-muted">
+          <Phrase text="今日は休みの日。課題の割り振りはないよ。" />
+        </p>
       ) : (
         <>
           {/* 積み上げバー（読み上げはリストに任せる） */}
@@ -64,7 +67,9 @@ export function TodayPlan({ plan, className = '' }: Props) {
                   className="size-2 shrink-0 rounded-full border border-ink-muted"
                 />
                 <span className="w-10 shrink-0 font-bold tabular-nums">{formatHours(free)}</span>
-                <span>空き。休むか、復習にあてよう</span>
+                <span className="min-w-0">
+                  <Phrase text="空き。休むか、復習にあてよう" />
+                </span>
               </li>
             )}
             {items.length === 0 && !showFree && (

@@ -1,6 +1,7 @@
 import { CircleAlert } from 'lucide-react'
 import type { Analysed } from '../types'
 import { formatHours } from '../utils/format'
+import { Phrase } from './Phrase'
 
 /**
  * 締切が最も早い時間不足の課題について、1行で知らせる。
@@ -11,12 +12,13 @@ export function OverloadWarning({ a }: { a: Analysed | undefined }) {
   return (
     <p
       role="status"
-      className="flex items-start gap-2 rounded-2xl border border-line bg-surface px-4 py-2 text-sm text-ink"
+      className="ui-text flex items-start gap-2 rounded-2xl border border-line bg-surface px-4 py-2 text-sm text-ink"
     >
       <CircleAlert aria-hidden className="size-5 shrink-0" strokeWidth={2.25} />
       <span className="min-w-0">
-        締切順に積み上げると『{a.task.title}』まで
-        <b className="font-bold">約{formatHours(a.shortage)}足りない</b>
+        <Phrase text={`締切順に積み上げると『${a.task.title}』まで`} />
+        <wbr />
+        <b className="font-bold whitespace-nowrap">約{formatHours(a.shortage)}足りない</b>
       </span>
     </p>
   )
