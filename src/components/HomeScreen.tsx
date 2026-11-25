@@ -13,7 +13,7 @@ import { Group } from './Group'
 import { PageStack } from './PageStack'
 import { TaskDetailPage } from './TaskDetailPage'
 import { usePageNav } from './pageNav'
-import { ProgressBar, Reason, TaskRow } from './TaskRow'
+import { ProgressBar, TaskRow } from './TaskRow'
 import { todayProgress, type TodayProgress } from '../logic/today'
 import { TodayPlan } from './TodayPlan'
 import { Phrase } from './Phrase'
@@ -65,7 +65,8 @@ function TriageTag({ a, rank }: { a: Analysed; rank: number }) {
 }
 
 /**
- * 「つぎにやる」の1件（はじめのトリアージタッグのカード）。左端にタッグ、右に課題名・締切・進み具合・根拠。
+ * 「つぎにやる」の1件（はじめのトリアージタッグのカード）。左端にタッグ、右に課題名・締切・進み具合。
+ * 根拠の文はくわしいページに任せ、ここでは時間が足りないときだけ太字の1行を出す（情報を絞る）。
  * 上を押すとくわしいページ、下の2つのボタンでその場で進められる
  */
 function NextCard({
@@ -82,6 +83,7 @@ function NextCard({
   onAdvance: () => void
 }) {
   const { task, ms } = a
+  const short = ms >= 0 && Math.round(a.shortage * 10) >= 1
   return (
     <article className="ui-card ui-card-raised flex h-full overflow-hidden" aria-label={task.title}>
       <TriageTag a={a} rank={rank} />
@@ -109,9 +111,9 @@ function NextCard({
               {task.progress}%
             </span>
           </span>
-          <span className="mt-3 text-sm leading-5 text-ink-muted">
-            <Reason a={a} />
-          </span>
+          {short && (
+            <b className="mt-3 text-sm text-ink">時間が約{formatHours(a.shortage)}足りない</b>
+          )}
         </button>
         <div className="mt-auto -mb-1 -ml-1 flex flex-wrap items-center gap-2 pt-4">
           <button
