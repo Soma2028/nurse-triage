@@ -273,6 +273,7 @@ flowchart TB
 - **ログイン**：本番では、公開版のアドレスで作られた Clerk のトークンだけを受け付ける（localhost・プレビューは受け付けない）
 - **秘密の値**：端末の secret はサーバーに SHA-256 だけ置き、比べるときは時間で中身がわからない方法で比べる。環境変数の値はリポジトリに入れない
 - **使わない入口は置かない**：テスト通知の `/api/test` は消した
+- **エラーに気づく**（`api/_lib/errorLog.ts`、テーブルは [migrations/006_api_errors.sql](migrations/006_api_errors.sql)）：API が 500 を返したら、Vercel のログに `[api-error]` の印つきで1行出し、`api_errors` に「どの API か・番号・DB のエラーの種類」だけ残す（ユーザーの入力や課題の中身は残さない）。15分ごとの cron が、まだ知らせていないエラーがあれば、環境変数 `ERROR_ALERT_USER_ID`（持ち主の Clerk のユーザー ID。`user_…`）の端末に「サーバーでエラーがあったよ」と通知する。持ち主がログインして通知をオンにしている端末に届く。記録は30日で消す。テーブルや環境変数がなければ、記録・通知をしないだけで API は止まらない
 
 ## 起動方法
 
@@ -344,6 +345,7 @@ migrations/002_social.sql   ログイン・プロフィール・フレンド・�
 migrations/003_blocks.sql   ブロックのテーブル
 migrations/004_rate_limits.sql   API の回数制限のテーブル
 migrations/005_profile_photo.sql プロフィールの写真の列
+migrations/006_api_errors.sql   サーバーのエラーの記録
 vercel.json                 招待リンク（/f/コード）で index.html を返す・セキュリティのヘッダー
 public/sw.js                通知を受け取る service worker（キャッシュはしない）
 ```

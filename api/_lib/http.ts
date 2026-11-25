@@ -8,6 +8,8 @@ import { bearerToken, clerkIdentity } from './identity.js'
 import { NotReadyError, neonSocialDb } from './socialDb.js'
 import type { Deps, Result } from './handlers.js'
 import { webPushSender } from './push.js'
+import { neon } from '@neondatabase/serverless'
+import { sqlErrorLog, type ErrorLog } from './errorLog.js'
 import { RATE_LIMITED, allowed, clientIp, neonRateLimiter, type LimitName } from './rateLimit.js'
 
 /** 受け取る JSON の大きさの上限（課題200件でも余裕がある大きさ） */
@@ -30,6 +32,27 @@ export function getDeps(): Deps {
     }
   }
   return deps
+}
+
+let errorLog: ErrorLog | null | undefined
+
+/** エラーの記録先（DATABASE_URL がなければ null） */
+function getErrorLog(): ErrorLog | null {
+  if (errorLog === undefined) {
+    const url = process.env.DATABASE_URL
+    errorLog = url ? sqlErrorLog(neon(url)) : null
+  }
+  return errorLog
+}
+
+/**
+ * 500 を返すときに、ログに「[api-error]」の印つきで1行出し、api_errors に残す（持ち主に知らせるため）。
+ * ユーザーの入力や課題の中身は残さない（どの API か・番号・DB のエラーの種類だけ）
+ */
+async function reportError(request: Request, status: number, e: unknown, code?: string) {
+  const route = new URL(request.url).pathname
+  console.error(`[api-error] ${request.method} ${route} ${status}${code ? ` ${code}` : ''}`, e)
+  await getErrorLog()?.record(route, status, code)
 }
 
 export function json(status: number, body: Record<string, unknown>): Response {
@@ -64,9 +87,10 @@ export async function handle(
   } catch (e) {
     if (e instanceof MissingEnvError) {
       console.error(e.message)
+      await reportError(request, 500, e, 'env')
       return json(500, { error: 'server not configured' })
     }
-    console.error('handler failed', e)
+    await reportError(request, 500, e)
     return json(500, { error: 'server error' })
   }
 }
@@ -121,6 +145,7 @@ export async function handleAuthed(
   } catch (e) {
     if (e instanceof MissingEnvError) {
       console.error(e.message)
+      await reportError(request, 500, e, 'env')
       return json(500, { error: 'server not configured' })
     }
     if (e instanceof NotReadyError) {
@@ -128,10 +153,10 @@ export async function handleAuthed(
       console.error(e.message)
       return json(503, { error: 'not_ready' })
     }
-    console.error('handler failed', e)
     // データベースのエラーなら、その種類（SQLSTATE の5文字。中身は出さない）だけ返して、原因を探せるようにする
     const code = (e as { code?: unknown }).code
     const dbCode = typeof code === 'string' && /^[0-9A-Z]{5}$/.test(code) ? code : undefined
+    await reportError(request, 500, e, dbCode)
     return json(500, dbCode ? { error: 'server error', dbCode } : { error: 'server error' })
   }
 }
