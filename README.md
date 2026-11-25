@@ -294,6 +294,15 @@ npm run dev        # 開発サーバー（http://localhost:5173）
 | `npm run lint`    | ESLint                            |
 | `npm run format`  | Prettier で整形                   |
 
+## 画面の自動テスト
+
+```bash
+npx playwright install webkit   # 初めてのときだけ
+npm run e2e
+```
+
+iPhone と同じ WebKit で開発サーバーを開き、どのタブもページ全体が動かないこと（iPhone SE・iPhone 15・360px・PC）、課題の追加、招待のページを確かめます（`e2e/`）。
+
 ## デプロイ
 
 Vercel にデプロイしています（Vite プリセット、ビルドは `npm run build`、出力は `dist/`）。

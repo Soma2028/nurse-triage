@@ -27,3 +27,7 @@ dist-ssr
 # 秘密の値（名前だけの .env.example は入れる）
 .env*
 !.env.example
+
+# 画面の自動テストの結果
+/test-results/
+/playwright-report/

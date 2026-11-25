@@ -11,7 +11,7 @@
 - iPhone のホーム画面のアプリは裏で開いたまま残り、読み込み直さない。`src/sync/updateCheck.ts` が、アプリに戻ってきたとき（と30分おき）に index.html の JS の名前を見て、新しい版なら読み込み直す（シート・入力の途中は待つ）。後から読み込む JS が見つからないとき（`vite:preloadError`）も読み込み直す
 - 新しい画面はローカルで確認したあと、ユーザーが実機の iPhone で確かめる
 - 画面や仕様を変えたら `SPEC.md` と `README.md` も合わせて直す
-- 完成の条件：`npm run test` と `npm run lint` が通り、`npm run build` が警告なしで通る。360px 幅で横スクロールが出ない
+- 完成の条件：`npm run test` と `npm run lint` が通り、`npm run build` が警告なしで通る。`npm run e2e`（Playwright・WebKit。どのタブもページ全体が動かない・360px で横スクロールがない・課題の追加・招待のページ）が通る。画面を足したら `e2e/` にもテストを足す。初めての端末では `npx playwright install webkit` が要る
 
 ## 見た目の方針（夢のタネ寄り）
 
