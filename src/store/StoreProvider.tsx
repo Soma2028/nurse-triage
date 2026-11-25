@@ -21,10 +21,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const { tasks, done, settings, schedule, today } = state
+  const { tasks, done, settings, schedule, today, timetable } = state
   useEffect(() => {
-    save({ tasks, done, settings, schedule, today })
-  }, [tasks, done, settings, schedule, today])
+    save({ tasks, done, settings, schedule, today, timetable })
+  }, [tasks, done, settings, schedule, today, timetable])
 
   const value = useMemo(() => ({ state, dispatch, now }), [state, now])
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>

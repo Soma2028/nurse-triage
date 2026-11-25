@@ -1,7 +1,7 @@
-import { Bell, CircleHelp, Clock, House, Stethoscope } from 'lucide-react'
+import { Bell, BookOpen, CircleHelp, Clock, House, Stethoscope } from 'lucide-react'
 import { Suspense, useState, type ReactNode } from 'react'
 import { useNotifyStatus } from '../sync/useNotifyStatus'
-import type { Settings } from '../types'
+import type { ClassSlot, Period, Settings, Timetable } from '../types'
 import { formatHours } from '../utils/format'
 import { lazyAccountPart } from './accountGroupsLoader'
 import { Group, HoursStepper, LinkRow, Row, SwitchRow } from './Group'
@@ -11,6 +11,7 @@ import { PageStack } from './PageStack'
 import { usePageNav } from './pageNav'
 import { ScreenLayout } from './ScreenLayout'
 import { Segmented } from './Segmented'
+import { TimetablePage } from './TimetablePage'
 
 // ログインまわりは Clerk を使うので、別のファイルに分けて必要なときだけ読み込む
 const ProfileGroup = lazyAccountPart((m) => m.ProfileGroup)
@@ -24,17 +25,24 @@ interface Props {
   practiceNote: string | null
   onTogglePractice: () => void
   onChangeSettings: (patch: Partial<Settings>) => void
+  timetable: Timetable
+  /** 今日の曜日（0=日〜6=土） */
+  todayWeekday: number
+  onSetClass: (weekday: number, period: number, slot: ClassSlot | null) => void
+  onSetPeriod: (period: number, time: Period) => void
+  onSetSaturday: (on: boolean) => void
 }
 
 const MIN_H = 0.5
 const MAX_H = 16
 
 /** せっていの中のページ。top が一覧で、ほかは一覧の行から開く */
-type Page = 'top' | 'hours' | 'notify' | 'help' | 'friends' | 'account'
+type Page = 'top' | 'hours' | 'timetable' | 'notify' | 'help' | 'friends' | 'account'
 
 const TITLES: Record<Page, string> = {
   top: 'せってい',
   hours: '使える時間',
+  timetable: '時間割',
   notify: '通知',
   help: 'ヘルプ',
   friends: 'フレンド',
@@ -67,11 +75,17 @@ export function SettingsScreen({
   practiceNote,
   onTogglePractice,
   onChangeSettings,
+  timetable,
+  todayWeekday,
+  onSetClass,
+  onSetPeriod,
+  onSetSaturday,
 }: Props) {
   const { page, dir, go, back, isTop } = usePageNav<Page>('top')
   const [helpTab, setHelpTab] = useState<HelpTab>('home')
   const notifyStatus = useNotifyStatus()
 
+  const classCount = Object.keys(timetable.classes).length
   const hoursValue = `今日 ${formatHours(practice ? settings.hoursPractice : settings.hoursNormal)}`
 
   const top = (
@@ -90,6 +104,12 @@ export function SettingsScreen({
             onToggle={onTogglePractice}
           />
           <LinkRow icon={Clock} label="使える時間" value={hoursValue} onClick={() => go('hours')} />
+          <LinkRow
+            icon={BookOpen}
+            label="時間割"
+            value={classCount > 0 ? `${classCount}コマ` : 'まだないよ'}
+            onClick={() => go('timetable')}
+          />
         </Group>
 
         <Group>
@@ -143,6 +163,17 @@ export function SettingsScreen({
             休みの日は0hで数えるよ。テストの日は、ふだんの日と同じだよ。
           </p>
         </section>,
+      )
+      break
+    case 'timetable':
+      content = sub(
+        <TimetablePage
+          timetable={timetable}
+          todayWeekday={todayWeekday}
+          onSetClass={onSetClass}
+          onSetPeriod={onSetPeriod}
+          onSetSaturday={onSetSaturday}
+        />,
       )
       break
     case 'notify':

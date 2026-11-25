@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_SETTINGS } from '../constants'
+import { emptyTimetable } from '../logic/timetable'
 import { load, save, STORAGE_KEY, type Persisted } from './storage'
 
 function memoryStorage(initial: Record<string, string> = {}) {
@@ -35,6 +36,11 @@ const data: Persisted = {
   },
   schedule: { '2026-11-24': 'practice', '2026-11-25': 'off' },
   today: { day: '2026-11-24', hours: 1.5 },
+  timetable: {
+    periods: emptyTimetable().periods,
+    saturday: true,
+    classes: { '1-1': { name: '解剖学', room: '302' } },
+  },
 }
 
 describe('storage', () => {
@@ -54,6 +60,7 @@ describe('storage', () => {
       'settings',
       'schedule',
       'today',
+      'timetable',
     ])
   })
 
@@ -82,6 +89,7 @@ describe('storage', () => {
     const r = load(memoryStorage({ [STORAGE_KEY]: JSON.stringify({ tasks, done, settings }) }))!
     expect(r.tasks).toEqual(tasks)
     expect(r.schedule).toEqual({})
+    expect(r.timetable).toEqual(emptyTimetable())
   })
 
   it('schedule の不正なキー・値と、不正な practiceOverride は捨てる', () => {

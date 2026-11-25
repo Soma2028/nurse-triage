@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_SETTINGS } from '../constants'
+import { emptyTimetable } from '../logic/timetable'
 import type { Task } from '../types'
 import { initState, reducer, type State } from './reducer'
 import { daysFromToday, sampleTasks } from './sample'
@@ -21,6 +22,7 @@ const base = (): State => ({
   done: [],
   settings: { ...DEFAULT_SETTINGS },
   schedule: {},
+  timetable: emptyTimetable(),
   undo: null,
 })
 
@@ -97,7 +99,7 @@ describe('initState / sample', () => {
       settings: { ...DEFAULT_SETTINGS, practiceMode: true },
       schedule: {},
     }
-    expect(initState(NOW, p)).toEqual({ ...p, undo: null })
+    expect(initState(NOW, p)).toEqual({ ...p, timetable: emptyTimetable(), undo: null })
   })
 
   it('サンプルの締切は「今日から○日後」の指定時刻', () => {
@@ -197,5 +199,32 @@ describe('reducer: 実習スケジュール', () => {
       schedule: { '2026-09-01': 'practice' as const, '2026-11-24': 'off' as const },
     }
     expect(initState(NOW, p).schedule).toEqual({ '2026-11-24': 'off' })
+  })
+
+  it('時間割のコマ・時刻・土曜日を変える', () => {
+    let s = reducer(base(), {
+      type: 'setClass',
+      weekday: 1,
+      period: 2,
+      slot: { name: '成人看護学', room: '302' },
+    })
+    expect(s.timetable.classes['1-2']).toEqual({ name: '成人看護学', room: '302' })
+    s = reducer(s, { type: 'setClass', weekday: 1, period: 2, slot: null })
+    expect(s.timetable.classes).toEqual({})
+    s = reducer(s, { type: 'setPeriod', period: 1, time: { start: '8:50', end: '10:20' } })
+    expect(s.timetable.periods[0]).toEqual({ start: '8:50', end: '10:20' })
+    expect(s.timetable.periods[1]).toEqual({ start: '10:40', end: '12:10' })
+    s = reducer(s, { type: 'setSaturday', on: true })
+    expect(s.timetable.saturday).toBe(true)
+  })
+
+  it('時間割のない古い保存データは、空の時間割で始める', () => {
+    const s = initState(NOW, {
+      tasks: [],
+      done: [],
+      settings: { ...DEFAULT_SETTINGS },
+      schedule: {},
+    })
+    expect(s.timetable).toEqual(emptyTimetable())
   })
 })

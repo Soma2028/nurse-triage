@@ -6,8 +6,9 @@ import {
   isPracticeToday,
   pruneSchedule,
 } from '../logic/schedule'
+import { emptyTimetable, slotKey } from '../logic/timetable'
 import { addWork, workOf } from '../logic/today'
-import type { DayKind, Settings, Task } from '../types'
+import type { ClassSlot, DayKind, Period, Settings, Task, Timetable } from '../types'
 import { sampleTasks } from './sample'
 import { load, type Persisted } from './storage'
 
@@ -24,6 +25,7 @@ export interface UndoEntry {
 }
 
 export interface State extends Persisted {
+  timetable: Timetable
   undo: UndoEntry | null
 }
 
@@ -37,6 +39,10 @@ export type Action =
   | { type: 'setSettings'; patch: Partial<Settings> }
   | { type: 'setDays'; dates: string[]; kind: DayKind | null }
   | { type: 'togglePracticeToday'; now: number }
+  /** 時間割のコマを決める。slot が null なら空ける */
+  | { type: 'setClass'; weekday: number; period: number; slot: ClassSlot | null }
+  | { type: 'setPeriod'; period: number; time: Period }
+  | { type: 'setSaturday'; on: boolean }
   | { type: 'undo' }
   | { type: 'dismissUndo' }
 
@@ -178,6 +184,24 @@ export function reducer(state: State, action: Action): State {
       return { ...state, settings: nextSettings }
     }
 
+    case 'setClass': {
+      const classes = { ...state.timetable.classes }
+      const key = slotKey(action.weekday, action.period)
+      if (action.slot) classes[key] = action.slot
+      else delete classes[key]
+      return { ...state, timetable: { ...state.timetable, classes } }
+    }
+
+    case 'setPeriod': {
+      const periods = state.timetable.periods.map((p, i) =>
+        i === action.period - 1 ? action.time : p,
+      )
+      return { ...state, timetable: { ...state.timetable, periods } }
+    }
+
+    case 'setSaturday':
+      return { ...state, timetable: { ...state.timetable, saturday: action.on } }
+
     case 'undo':
       return state.undo ? { ...state, ...state.undo.prev, undo: null } : state
 
@@ -189,12 +213,18 @@ export function reducer(state: State, action: Action): State {
 /** 起動時の状態：保存データがあればそれ（古い印は掃除）、なければサンプル課題 */
 export function initState(now: number, persisted: Persisted | null = load()): State {
   if (persisted)
-    return { ...persisted, schedule: pruneSchedule(persisted.schedule, now), undo: null }
+    return {
+      ...persisted,
+      schedule: pruneSchedule(persisted.schedule, now),
+      timetable: persisted.timetable ?? emptyTimetable(),
+      undo: null,
+    }
   return {
     tasks: sampleTasks(now),
     done: [],
     settings: { ...DEFAULT_SETTINGS },
     schedule: {},
+    timetable: emptyTimetable(),
     undo: null,
   }
 }

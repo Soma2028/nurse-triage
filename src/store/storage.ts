@@ -1,6 +1,7 @@
 import { DEFAULT_SETTINGS, TASK_TYPES } from '../constants'
 import { isDayKey } from '../logic/schedule'
-import type { DayKind, DayLog, Schedule, Settings, Task } from '../types'
+import { toTimetable } from '../logic/timetable'
+import type { DayKind, DayLog, Schedule, Settings, Task, Timetable } from '../types'
 
 export const STORAGE_KEY = 'nurse-triage-v1'
 
@@ -12,6 +13,8 @@ export interface Persisted {
   schedule: Schedule
   /** 今日進めた時間（後から追加。古いデータには無い） */
   today?: DayLog
+  /** 毎週の時間割（後から追加。古いデータには無いので空の時間割で補う） */
+  timetable?: Timetable
 }
 
 type StorageLike = Pick<Storage, 'getItem' | 'setItem'>
@@ -104,6 +107,7 @@ export function load(storage: StorageLike | undefined = defaultStorage()): Persi
       settings: toSettings(d.settings),
       schedule: toSchedule(d.schedule),
       today: toDayLog(d.today),
+      timetable: toTimetable(d.timetable),
     }
   } catch {
     return null
@@ -117,8 +121,11 @@ export function save(
 ): boolean {
   try {
     if (!storage) return false
-    const { tasks, done, settings, schedule, today } = data
-    storage.setItem(STORAGE_KEY, JSON.stringify({ tasks, done, settings, schedule, today }))
+    const { tasks, done, settings, schedule, today, timetable } = data
+    storage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ tasks, done, settings, schedule, today, timetable }),
+    )
     return true
   } catch {
     return false

@@ -65,3 +65,25 @@ export interface Plan {
   used: number // 割り当てた合計
   free: number // 空き時間 = hours - used
 }
+
+/** 時間割の1コマ（授業）。端末の中だけに置き、サーバーには送らない */
+export interface ClassSlot {
+  name: string
+  room?: string
+}
+
+/** 時限の時刻（24時間の 'H:MM'） */
+export interface Period {
+  start: string
+  end: string
+}
+
+/** 毎週の時間割 */
+export interface Timetable {
+  /** 1限〜の時刻（PERIOD_COUNT 個） */
+  periods: Period[]
+  /** 土曜日の列を出すか */
+  saturday: boolean
+  /** `${曜日 1=月〜6=土}-${時限 1〜}` → 授業 */
+  classes: Record<string, ClassSlot>
+}
