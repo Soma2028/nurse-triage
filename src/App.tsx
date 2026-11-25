@@ -28,6 +28,7 @@ import { useNotifySync } from './sync/useNotifySync'
 import type { Task } from './types'
 import { formatDay } from './utils/format'
 import { workedToday } from './logic/today'
+import { useFriendsSummary } from './social/friendsSummary'
 import { todayClasses } from './logic/timetable'
 import { TIMETABLE_ENABLED } from './constants'
 
@@ -95,10 +96,20 @@ export default function App() {
 
   /** 中のページ（課題のくわしいページ・せっていのページ）にいるとき、同じタブをもう一度押すと一覧に戻す */
   const [resetKey, setResetKey] = useState(0)
+  /** せっていを開いたときに最初に出すページ（ホームのフレンドの様子から来たときだけ 'friends'） */
+  const [settingsStart, setSettingsStart] = useState<'top' | 'friends'>('top')
   const navigate = (s: Screen) => {
     if (s === screen) setResetKey((k) => k + 1)
+    setSettingsStart('top')
     setScreen(s)
   }
+  /** ホームの「フレンド ○人が…」から、せっていのフレンドのページを開く */
+  const openFriends = () => {
+    setSettingsStart('friends')
+    setResetKey((k) => k + 1)
+    setScreen('settings')
+  }
+  const friendsSummary = useFriendsSummary(dayKey(now))
   /** 課題を追加する。カレンダーの日付から開いたときは、その日を締切の初期値にする */
   const openAdd = (defaultDue?: number) => setSheet({ open: true, editingId: null, defaultDue })
   const openEdit = (id: string) => setSheet({ open: true, editingId: id })
@@ -143,6 +154,8 @@ export default function App() {
                 blackCount={counts.black}
                 shortage={shortage}
                 worked={workedToday(state.today, now)}
+                friends={socialAvailable ? friendsSummary : null}
+                onOpenFriends={openFriends}
                 classes={
                   TIMETABLE_ENABLED ? todayClasses(state.timetable, settings, schedule, now) : []
                 }
@@ -191,6 +204,7 @@ export default function App() {
                 onChangeSettings={(patch) => dispatch({ type: 'setSettings', patch })}
                 timetable={state.timetable}
                 todayWeekday={new Date(now).getDay()}
+                initialPage={settingsStart}
                 onSetClass={(weekday, period, slot) =>
                   dispatch({ type: 'setClass', weekday, period, slot })
                 }

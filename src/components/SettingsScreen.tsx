@@ -32,6 +32,8 @@ interface Props {
   onSetClass: (weekday: number, period: number, slot: ClassSlot | null) => void
   onSetPeriod: (period: number, time: Period) => void
   onSetSaturday: (on: boolean) => void
+  /** 最初に開くページ（ホームのフレンドの様子から来たときは 'friends'） */
+  initialPage?: 'top' | 'friends'
 }
 
 const MIN_H = 0.5
@@ -81,8 +83,9 @@ export function SettingsScreen({
   onSetClass,
   onSetPeriod,
   onSetSaturday,
+  initialPage = 'top',
 }: Props) {
-  const { page, dir, go, back, isTop } = usePageNav<Page>('top')
+  const { page, dir, go, back, isTop } = usePageNav<Page>('top', initialPage)
   const [helpTab, setHelpTab] = useState<HelpTab>('home')
   const notifyStatus = useNotifyStatus()
 

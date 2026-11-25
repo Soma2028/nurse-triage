@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react'
 import { authedCall } from './api'
 import { PROFILE_ICONS, isPhoto, type ProfileIcon } from './profile'
 import { STAMP_KEYS, type Stamp } from './stamps'
+import { FRIENDS_CACHE_KEY, FRIENDS_EVENT } from './friendsSummary'
 
 /** フレンドの一覧などに出す人（課題のことは何も含まない） */
 export interface Person {
@@ -87,7 +88,7 @@ export function toFriendState(v: unknown): FriendState | null {
   }
 }
 
-const CACHE_KEY = 'nurse-triage-friends'
+const CACHE_KEY = FRIENDS_CACHE_KEY
 
 interface Store {
   userId: string | null
@@ -123,6 +124,8 @@ function set(next: Store) {
     // 保存できなくても動く
   }
   listeners.forEach((l) => l())
+  // ホームのフレンドの様子（friendsSummary）に知らせる
+  window.dispatchEvent(new Event(FRIENDS_EVENT))
 }
 
 const subscribe = (l: () => void) => {
@@ -146,7 +149,7 @@ export interface ActResult {
  * フレンドの一覧。enabled（プロフィールがある）のときだけ読み込む
  */
 export function useFriends(enabled: boolean) {
-  const { isSignedIn, userId, getToken } = useAuth()
+  const { isLoaded, isSignedIn, userId, getToken } = useAuth()
   // getToken が描くたびに変わっても、読み込みが何度も走らないよう ref に入れておく
   const tokenRef = useRef(getToken)
   useEffect(() => {
@@ -168,13 +171,16 @@ export function useFriends(enabled: boolean) {
   }, [userId])
 
   useEffect(() => {
+    // Clerk の読み込み中は、ログインしているかまだわからない。保存しておいた一覧を消さずに待つ
+    // （消すと、ホームのフレンドの様子が起動のたびに一度消える）
+    if (!isLoaded) return
     if (!isSignedIn || !userId) {
       if (store.userId) set({ userId: null, data: null, error: null })
       return
     }
     if (store.userId && store.userId !== userId) set({ userId: null, data: null, error: null })
     if (enabled) void load()
-  }, [isSignedIn, userId, enabled, load])
+  }, [isLoaded, isSignedIn, userId, enabled, load])
 
   const act = useCallback(
     async (action: FriendAction): Promise<ActResult> => {

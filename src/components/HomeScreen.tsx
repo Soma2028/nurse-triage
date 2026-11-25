@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { useState, type UIEvent } from 'react'
+import { useState, type ReactNode, type UIEvent } from 'react'
 import type { HomeView } from '../logic/home'
 import { enter } from '../motion'
 import type { Analysed, ClassSlot, Plan, Timetable } from '../types'
@@ -7,7 +7,7 @@ import { formatDue, formatHours, formatRemaining } from '../utils/format'
 import { Chara, type Mood } from './Chara'
 import { OverloadWarning } from './OverloadWarning'
 import { ScreenLayout } from './ScreenLayout'
-import { Check } from 'lucide-react'
+import { Check, ChevronRight, Users } from 'lucide-react'
 import { PROGRESS_STEP, TRIAGE_STYLE } from '../constants'
 import { Group } from './Group'
 import { PageStack } from './PageStack'
@@ -17,6 +17,7 @@ import { ProgressBar, TaskRow } from './TaskRow'
 import { todayProgress, type TodayProgress } from '../logic/today'
 import { TodayPlan } from './TodayPlan'
 import { Phrase } from './Phrase'
+import type { FriendsSummary } from '../social/friendsSummary'
 import { TodayClasses } from './TodayClasses'
 import type { TodayClass } from '../logic/timetable'
 import { ClassSheet, type SlotTarget } from './TimetablePage'
@@ -35,6 +36,10 @@ interface Props {
   shortage: Analysed | undefined
   /** 今日進めた時間 */
   worked: number
+  /** フレンドの様子（フレンドがいない・ログインしていなければ null） */
+  friends: FriendsSummary | null
+  /** せっていのフレンドのページを開く */
+  onOpenFriends: () => void
   /** 今日の授業（時間割より。実習・休みの日は空） */
   classes: TodayClass[]
   timetable: Timetable
@@ -143,6 +148,32 @@ function NextCard({
 }
 
 /**
+ * キャラクターの横の一言で、フレンドの様子を知らせる（人のアイコンと「3人ががんばってるよ ›」）。
+ * 押すと、せっていのフレンドのページ。フレンドがいない・ログインしていなければ出さない
+ */
+function FriendsLine({ summary, onOpen }: { summary: FriendsSummary | null; onOpen: () => void }) {
+  if (!summary) return null
+  // 人のアイコンでフレンドのことだとわかるので、文は短く（360px でも切れないように）
+  const text = summary.active > 0 ? `${summary.active}人ががんばってるよ` : 'フレンドの様子を見る'
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label={
+        summary.active > 0
+          ? `フレンドの様子：${summary.active}人が今日がんばってるよ`
+          : 'フレンドの様子を見る'
+      }
+      className="-ml-2 inline-flex min-h-11 max-w-full items-center gap-1 rounded-full px-2 text-left text-sm text-ink-muted transition hover:bg-surface"
+    >
+      <Users aria-hidden className="size-4 shrink-0" strokeWidth={2.25} />
+      <span className="truncate">{text}</span>
+      <ChevronRight aria-hidden className="size-4 shrink-0" />
+    </button>
+  )
+}
+
+/**
  * いちばん上：キャラクターと「今日のぶん」。カードにせず、背景の上にそのまま置く。
  * キャラクターの顔は、今日のぶんが終わったら笑顔、急ぎ（黒・赤）があれば心配顔
  */
@@ -150,10 +181,13 @@ function TodayHeader({
   progress,
   hours,
   urgent,
+  friends,
 }: {
   progress: TodayProgress
   hours: number
   urgent: boolean
+  /** 一言の下に置くフレンドの様子 */
+  friends: ReactNode
 }) {
   const { worked, target, ratio } = progress
   const finished = target > 0 && ratio >= 1
@@ -195,6 +229,7 @@ function TodayHeader({
         <p className={`text-sm text-ink ${showBar ? 'mt-2' : ''}`}>
           <Phrase text={line} />
         </p>
+        {friends}
       </div>
     </section>
   )
@@ -307,6 +342,8 @@ export function HomeScreen({
   blackCount,
   shortage,
   worked,
+  friends,
+  onOpenFriends,
   classes,
   timetable,
   onSetClass,
@@ -319,6 +356,7 @@ export function HomeScreen({
   // くわしいページを開いている課題（null なら一覧）
   const { page: openId, dir, go: setOpenId, back, isTop } = usePageNav<string | null>(null)
   const { next, urgent } = view
+  const friendsLine = friends ? <FriendsLine summary={friends} onOpen={onOpenFriends} /> : null
   // 今日の時間割の行から開く、コマを変えるシート
   const [slotTarget, setSlotTarget] = useState<SlotTarget | null>(null)
 
@@ -345,16 +383,20 @@ export function HomeScreen({
                   progress={todayProgress(worked, plan)}
                   hours={plan.hours}
                   urgent={redCount + blackCount > 0}
+                  friends={friendsLine}
                 />
               )}
 
               <OverloadWarning a={shortage} />
 
               {analysed.length === 0 ? (
-                <Empty
-                  mood="happy"
-                  lines={['課題はぜんぶ片づいたよ。', '新しい課題は右下の＋から追加してね。']}
-                />
+                <>
+                  <Empty
+                    mood="happy"
+                    lines={['課題はぜんぶ片づいたよ。', '新しい課題は右下の＋から追加してね。']}
+                  />
+                  {friendsLine && <div className="px-2">{friendsLine}</div>}
+                </>
               ) : next.length > 0 ? (
                 <motion.section
                   aria-labelledby="next-heading"
