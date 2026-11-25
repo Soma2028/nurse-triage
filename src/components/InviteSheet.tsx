@@ -45,14 +45,14 @@ function CodeHelp({ code, reason }: { code: string; reason?: 'signIn' | 'profile
     <div className="flex flex-col gap-4">
       <p className={text}>
         {iosBrowser
-          ? 'この招待は、ホーム画面のアプリで受け取ってね。アプリを開いて、せってい → フレンド で、このコードを入れてね。'
+          ? 'このコードをコピーして、ホーム画面のアプリを開いてね。せってい → フレンド →「追加と設定」で、貼り付けのボタンを押すと入るよ。'
           : reason === 'profile'
             ? '先に、せっていでプロフィールを作ってね。そのあと、フレンドでこのコードを入れてね。'
             : 'せっていでログインしてから、フレンドでこのコードを入れてね。'}
       </p>
       {iosBrowser && (
         <p className="text-xs leading-5 text-ink-muted">
-          アプリがまだなら、Safari の共有ボタンから「ホーム画面に追加」してね。
+          リンクからはアプリを直接開けないので、ここでコードを受け取ってね。アプリがまだなら、Safari の共有ボタンから「ホーム画面に追加」してね。
         </p>
       )}
       <Group>

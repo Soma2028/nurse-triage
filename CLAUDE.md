@@ -81,7 +81,8 @@
 - 招待リンクは `vercel.json` の rewrite で index.html を返し、`main.tsx` の `takeInviteFromUrl` でコードを取り出してアドレスを `/` に戻す。`InviteSheet` は Clerk を使うので、招待から開いたときだけ読み込む
 - 進み具合は `ProgressSync`（Clerk を使うので必要なときだけ読み込む）が、変わったら2秒まとめて `/api/progress` に送る。送るのは日付と数だけ。見せるのをやめるとサーバーの分も消す
 - 応援はフレンドにだけ、同じ相手に1日（日本時間）3回まで。相手の端末に通知で届けるため、`DeviceLink` が通知の端末（devices.user_id）にログインした人を付け、ログアウトの前に外す。通知の文面に課題のことは書かない
-- QR は `qrcode-generator` で SVG を作る（白地に炭色・まわりに4マスの余白）
+- QR は `qrcode-generator` で SVG を作る（白地に炭色・まわりに4マスの余白）。「QR を出す」で `Zoom`（写真を大きく見るのと共通の部品）に大きく出す
+- iPhone ではリンクからホーム画面のアプリを開けない。招待リンクは Safari で開き、コードをコピーしてアプリで貼り付けてもらう（`openExternalBrowser=1` で LINE の中のブラウザを避ける）
 - Clerk の公開キーは `/api/config` から取り、localStorage に置いて次の起動からすぐ使う。Clerk は大きいので、`SocialRoot` と `AccountGroups` を別のファイルに分けて必要なときだけ読み込む（main の JS を 500kB 未満に保つ）。`AccountGroups` は起動の1.5秒後に先に読み込み（`accountGroupsLoader.ts`）、読み込み済みなら lazy でも待たずに出す（せっていを初めて開いたときにプロフィールの行が遅れて出ないように）
 - プロフィールはログインしなくても作れる（`localProfile.ts`、端末の中だけ）。ログイン中は `useMyProfile`（`/api/profile`）がもとで、端末の分をそろえる。写真は端末で 192px の JPEG に縮めた data URL（`photo.ts`）を profiles.photo に置く。`Avatar` は写真があれば写真、なければ絵。`zoomable` を付けると写真をタップで大きく見られる（行全体が押せる場所では付けない）
 - 自分のプロフィールは `useMyProfile`（`/api/profile`）。localStorage にも置き、次に開いたときに読み込みを待たずに出す。ログインした直後でプロフィールがなければ、作るシートを開く

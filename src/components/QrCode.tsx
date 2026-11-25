@@ -7,7 +7,16 @@ const QUIET = 4
 /**
  * 文字列を QR コードの SVG にする。iPhone のカメラで読めるよう、白地に炭色で、余白を付ける
  */
-export function QrCode({ text, label }: { text: string; label: string }) {
+export function QrCode({
+  text,
+  label,
+  size: display = 'md',
+}: {
+  text: string
+  label: string
+  /** lg は画面いっぱい近くまで大きく（Zoom の中） */
+  size?: 'md' | 'lg'
+}) {
   const { size, path } = useMemo(() => {
     const qr = qrcode(0, 'M')
     qr.addData(text)
@@ -28,7 +37,7 @@ export function QrCode({ text, label }: { text: string; label: string }) {
       aria-label={label}
       viewBox={`0 0 ${size} ${size}`}
       shapeRendering="crispEdges"
-      className="size-48 rounded-2xl bg-surface"
+      className={`rounded-2xl bg-surface ${display === 'lg' ? 'size-[min(72vw,288px)]' : 'size-48'}`}
     >
       <rect width={size} height={size} fill="#ffffff" />
       <path d={path} fill="#2b2620" />

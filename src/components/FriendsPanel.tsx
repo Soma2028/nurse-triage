@@ -1,8 +1,16 @@
-import { ChevronLeft, ChevronRight, Copy, Eye, QrCode as QrIcon, Share2 } from 'lucide-react'
+import {
+  ChevronLeft,
+  ChevronRight,
+  ClipboardPaste,
+  Copy,
+  Eye,
+  QrCode as QrIcon,
+  Share2,
+} from 'lucide-react'
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import type { ActResult, FriendAction, FriendState, Person } from '../social/friends'
 import { gradeLabel } from '../social/profile'
-import { inviteLink } from '../social/invite'
+import { codeFromText, inviteLink } from '../social/invite'
 import { progressText } from '../social/progress'
 import { markCheersSeen } from '../social/cheersSeen'
 import { MAX_CHEERS_PER_DAY, STAMP_KEYS, STAMPS, cheerTime } from '../social/stamps'
@@ -11,6 +19,7 @@ import { Avatar } from './Avatar'
 import { Group, SwitchRow } from './Group'
 import { Segmented } from './Segmented'
 import { QrCode } from './QrCode'
+import { Zoom } from './Zoom'
 
 /** 人の一覧のどこにいる人か */
 type Kind = 'friend' | 'incoming' | 'outgoing' | 'blocked'
@@ -190,6 +199,22 @@ export function FriendsPanel({
     )
   }
 
+  /** コピーしたコード（招待リンクでもよい）を入れる。Safari で開いた招待から、アプリに戻ってきたとき用 */
+  const paste = async () => {
+    try {
+      const found = codeFromText(await navigator.clipboard.readText())
+      if (found) {
+        setCode(found)
+        setMessage(null)
+      } else setMessage({ tone: 'error', text: 'コピーした中に、コードが見つからなかったよ。' })
+    } catch {
+      setMessage({
+        tone: 'error',
+        text: '貼り付けられなかったよ。入力欄を長押しして貼り付けてね。',
+      })
+    }
+  }
+
   const submitCode = async (e: FormEvent) => {
     e.preventDefault()
     if (await run({ action: 'request', code })) setCode('')
@@ -347,6 +372,16 @@ export function FriendsPanel({
                   spellCheck={false}
                   maxLength={12}
                 />
+                {code.trim() === '' && (
+                  <button
+                    type="button"
+                    onClick={paste}
+                    aria-label="コピーしたコードを貼り付ける"
+                    className="inline-flex size-11 shrink-0 items-center justify-center rounded-full text-primary-ink transition hover:bg-primary-soft"
+                  >
+                    <ClipboardPaste aria-hidden className="size-5" />
+                  </button>
+                )}
                 <button
                   type="submit"
                   disabled={busy || code.trim() === ''}
@@ -386,22 +421,28 @@ export function FriendsPanel({
               </button>
               <button
                 type="button"
-                onClick={() => setShowQr((v) => !v)}
-                aria-expanded={showQr}
+                onClick={() => setShowQr(true)}
                 className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-primary-soft px-4 text-sm font-bold text-primary-ink transition hover:bg-primary hover:text-on-primary"
               >
                 <QrIcon aria-hidden className="size-4" />
-                {showQr ? 'QR をしまう' : 'QR を出す'}
+                QR を出す
               </button>
             </div>
-            {showQr && (
-              <div className="ui-card flex flex-col items-center gap-2 rounded-2xl p-4">
-                <QrCode text={link} label="自分の招待リンクの QR コード" />
-                <p className="text-center text-xs leading-5 text-ink-muted">
-                  相手の iPhone のカメラで読み取ってもらってね。
+            {/* QR は画面のまん中に大きく出す（相手のカメラで読み取りやすいように）。どこを押しても閉じる */}
+            <Zoom
+              open={showQr}
+              label="自分の招待リンクの QR コード"
+              onClose={() => setShowQr(false)}
+            >
+              <div className="ui-card ui-card-raised flex flex-col items-center gap-3 p-6">
+                <QrCode text={link} label="自分の招待リンクの QR コード" size="lg" />
+                <p className="text-center text-sm leading-6 text-ink">
+                  相手の iPhone のカメラで
+                  <br />
+                  読み取ってもらってね
                 </p>
               </div>
-            )}
+            </Zoom>
             <button
               type="button"
               disabled={busy}
