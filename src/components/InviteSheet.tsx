@@ -1,13 +1,11 @@
 import { useAuth } from '@clerk/react'
-import { Copy } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useFriends, type LookupResult } from '../social/friends'
 import { clearInvite, usePendingInvite } from '../social/invite'
 import { useSocialAvailable } from '../social/SocialContext'
 import { useMyProfile } from '../social/useMyProfile'
-import { currentEnv, detectSupport } from '../sync/support'
 import { Avatar } from './Avatar'
-import { Group } from './Group'
+import { CodeCopy } from './CodeCopy'
 import { Sheet } from './Sheet'
 
 const text = 'text-sm leading-6 text-ink'
@@ -29,47 +27,19 @@ export function InviteSheet() {
   )
 }
 
-/** コードを大きく出し、アプリで入れる手順を出す */
+/**
+ * コードを大きく出し、このブラウザ（アプリ）でコードを入れる手順を出す。
+ * Safari・LINE で開いたときの「ホーム画面のアプリで入れてね」の案内は、招待の専用ページ（InvitePage）が出す
+ */
 function CodeHelp({ code, reason }: { code: string; reason?: 'signIn' | 'profile' }) {
-  const iosBrowser = useMemo(() => detectSupport(currentEnv()) === 'ios-browser', [])
-  const [copied, setCopied] = useState(false)
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(code)
-      setCopied(true)
-    } catch {
-      // コピーできなくても、コードは見えている
-    }
-  }
   return (
     <div className="flex flex-col gap-4">
       <p className={text}>
-        {iosBrowser
-          ? 'このコードをコピーして、ホーム画面のアプリを開いてね。せってい → フレンド →「追加と設定」で、貼り付けのボタンを押すと入るよ。'
-          : reason === 'profile'
-            ? '先に、せっていでプロフィールを作ってね。そのあと、フレンドでこのコードを入れてね。'
-            : 'せっていでログインしてから、フレンドでこのコードを入れてね。'}
+        {reason === 'profile'
+          ? '先に、せっていでプロフィールを作ってね。そのあと、フレンドの「追加と設定」でこのコードを入れてね。'
+          : 'せっていでログインしてから、フレンドの「追加と設定」でこのコードを入れてね。'}
       </p>
-      {iosBrowser && (
-        <p className="text-xs leading-5 text-ink-muted">
-          リンクからはアプリを直接開けないので、ここでコードを受け取ってね。アプリがまだなら、Safari の共有ボタンから「ホーム画面に追加」してね。
-        </p>
-      )}
-      <Group>
-        <div className="flex min-h-14 items-center gap-2 pr-2 pl-4">
-          <span className="min-w-0 flex-1 text-title font-bold tracking-widest text-ink tabular-nums select-text">
-            {code}
-          </span>
-          <button
-            type="button"
-            onClick={copy}
-            className="inline-flex min-h-11 shrink-0 items-center gap-1 rounded-full bg-primary-soft px-4 text-sm font-bold text-primary-ink transition hover:bg-primary hover:text-on-primary"
-          >
-            <Copy aria-hidden className="size-4" />
-            {copied ? 'コピーしたよ' : 'コピー'}
-          </button>
-        </div>
-      </Group>
+      <CodeCopy code={code} />
     </div>
   )
 }

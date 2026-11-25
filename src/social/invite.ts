@@ -28,12 +28,19 @@ export function codeFromText(text: string): string | null {
 let pending: string | null = null
 const listeners = new Set<() => void>()
 
-/** 起動したときに1回だけ呼ぶ。招待リンクから開いていれば、そのコードを覚える */
-export function takeInviteFromUrl(): void {
+/** アドレスが招待リンク（/f/コード）なら、そのコード。違えば null（アドレスはそのまま） */
+export function inviteCodeInUrl(): string | null {
   const m = INVITE_PATH.exec(location.pathname)
-  if (!m) return
-  pending = normalizeCode(m[1])
+  return m ? normalizeCode(m[1]) : null
+}
+
+/** 招待リンクのコードを覚えて、アドレスを / に戻す（アプリの中で招待のシートを出すとき） */
+export function takeInviteFromUrl(): void {
+  const code = inviteCodeInUrl()
+  if (!code) return
+  pending = code
   history.replaceState(null, '', '/')
+  listeners.forEach((l) => l())
 }
 
 export function clearInvite(): void {
