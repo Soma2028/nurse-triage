@@ -28,6 +28,7 @@ import { useNotifySync } from './sync/useNotifySync'
 import type { Task } from './types'
 import { formatDay } from './utils/format'
 import { workedToday } from './logic/today'
+import { todayClasses } from './logic/timetable'
 
 // 招待のシートは Clerk を使うので、招待リンクから開いたときだけ読み込む
 const InviteSheet = lazy(() =>
@@ -141,6 +142,7 @@ export default function App() {
                 blackCount={counts.black}
                 shortage={shortage}
                 worked={workedToday(state.today, now)}
+                classes={todayClasses(state.timetable, settings, schedule, now)}
                 onSetProgress={setProgress}
                 onComplete={complete}
                 onEdit={openEdit}
@@ -180,6 +182,13 @@ export default function App() {
                 practiceNote={practiceNote}
                 onTogglePractice={togglePractice}
                 onChangeSettings={(patch) => dispatch({ type: 'setSettings', patch })}
+                timetable={state.timetable}
+                todayWeekday={new Date(now).getDay()}
+                onSetClass={(weekday, period, slot) =>
+                  dispatch({ type: 'setClass', weekday, period, slot })
+                }
+                onSetPeriod={(period, time) => dispatch({ type: 'setPeriod', period, time })}
+                onSetSaturday={(on) => dispatch({ type: 'setSaturday', on })}
               />
             )}
           </motion.div>

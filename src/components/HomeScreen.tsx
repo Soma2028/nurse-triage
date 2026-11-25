@@ -16,6 +16,8 @@ import { usePageNav } from './pageNav'
 import { ProgressBar, Reason, TaskRow } from './TaskRow'
 import { todayProgress, type TodayProgress } from '../logic/today'
 import { TodayPlan } from './TodayPlan'
+import { TodayClasses } from './TodayClasses'
+import type { TodayClass } from '../logic/timetable'
 
 interface Props {
   /** 見出しの日付（「11/24(火)」） */
@@ -31,6 +33,8 @@ interface Props {
   shortage: Analysed | undefined
   /** 今日進めた時間 */
   worked: number
+  /** 今日の授業（時間割より。実習・休みの日は空） */
+  classes: TodayClass[]
   /** つぎにやるのスライダーで進捗を変えたとき */
   onSetProgress: (id: string, progress: number) => void
   onComplete: (id: string) => void
@@ -163,7 +167,7 @@ function TodayHeader({
               </span>
             </p>
             <div
-              className="mt-2 h-2 overflow-hidden rounded-full bg-line"
+              className="mt-2 h-3 overflow-hidden rounded-full bg-primary-soft"
               role="progressbar"
               aria-label="今日のぶんの進み具合"
               aria-valuemin={0}
@@ -171,7 +175,7 @@ function TodayHeader({
               aria-valuenow={Math.round(ratio * 100)}
             >
               <div
-                className="h-full rounded-full bg-ink transition-[width] duration-300 ease-out"
+                className="h-full rounded-full bg-primary transition-[width] duration-300 ease-out"
                 style={{ width: `${ratio * 100}%` }}
               />
             </div>
@@ -288,6 +292,7 @@ export function HomeScreen({
   blackCount,
   shortage,
   worked,
+  classes,
   onSetProgress,
   onComplete,
   onEdit,
@@ -350,6 +355,12 @@ export function HomeScreen({
                 />
               </motion.section>
             ) : null}
+
+            {classes.length > 0 && (
+              <motion.div {...enter(0.04)}>
+                <TodayClasses classes={classes} />
+              </motion.div>
+            )}
 
             {analysed.length > 0 && (
               <motion.div {...enter(0.08)}>
