@@ -134,9 +134,16 @@ export function FriendsPanel({
     if (latestCheer) markCheersSeen(latestCheer)
   }, [latestCheer])
 
-  // 開いたら最新にする（申請が届いているかもしれない）
+  // 開いたら最新にする（申請が届いているかもしれない）。
+  // ホーム画面のアプリは裏で開いたまま残るので、アプリに戻ってきたときも読み直す
+  // （フレンドが変えたアイコン・ニックネーム・進み具合をすぐ出すため）
   useEffect(() => {
     void reload()
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void reload()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
   }, [reload])
 
   const run = async (a: FriendAction): Promise<boolean> => {

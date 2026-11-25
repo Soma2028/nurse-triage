@@ -71,6 +71,29 @@ describe('SQL（migrations を全部実行したとき）', () => {
     expect(after.friends).toEqual([])
     expect(after.cheers).toEqual([]) // ブロックした人の応援は出さない
   })
+  it('フレンドがアイコン（写真・絵）を変えたら、次に読み込んだ一覧に新しいアイコンが出る', async () => {
+    const { deps, profile, friends, befriend } = await setup(ALL)
+    await profile('ta', 'あおい')
+    await befriend()
+    expect((await friends('tb')).friends[0]).toMatchObject({ icon: 'cat', photo: null })
+
+    // 写真にする
+    await profile('ta', 'あおい', JPEG)
+    expect((await friends('tb')).friends[0]).toMatchObject({ photo: JPEG })
+
+    // 別の写真に変える
+    const JPEG2 = `data:image/jpeg;base64,${Buffer.from([0xff, 0xd8, 0xff, 0xe0, 9, 9]).toString('base64')}`
+    await profile('ta', 'あおい', JPEG2)
+    expect((await friends('tb')).friends[0]).toMatchObject({ photo: JPEG2 })
+
+    // 写真をやめて絵に戻す
+    await putProfile(
+      'ta',
+      { nickname: 'あおい', icon: 'dog', grade: null, bio: '', photo: null },
+      deps,
+    )
+    expect((await friends('tb')).friends[0]).toMatchObject({ icon: 'dog', photo: null })
+  })
 })
 
 describe('SQL（新しい SQL をまだ実行していないとき）', () => {
