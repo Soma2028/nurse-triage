@@ -1,35 +1,48 @@
 import type { TodayClass } from '../logic/timetable'
 
 /**
- * ホームの「今日の時間割」。大きなカードにせず、小見出しと「1限 成人看護学概論」の小さな札を
- * 横に並べるだけ（入りきらなければ次の行へ）。いまの授業は薄い紺で塗り、終わった授業は薄くする。
- * 時刻・教室は読み上げとせっていの時間割のページに任せる
+ * ホームの「今日の時間割」。今日のプランと同じ、見出し入りの白いカードに1コマ1行。
+ * 「1限／9:00／授業名」の列をそろえ、名前は1行で切る。
+ * いまの授業は名前を太字にして右に「いま」、終わった授業は薄くする。教室は読み上げとせっていの時間割のページ
  */
 export function TodayClasses({ classes }: { classes: TodayClass[] }) {
   return (
-    <section aria-labelledby="classes-heading" className="flex flex-col gap-2">
-      <h2 id="classes-heading" className="text-xs font-bold tracking-wide text-ink-muted">
-        今日の時間割
-      </h2>
-      <ol className="flex flex-wrap gap-2">
+    <section aria-labelledby="classes-heading" className="ui-card p-4">
+      <div className="flex items-baseline justify-between">
+        <h2 id="classes-heading" className="text-base font-bold">
+          今日の時間割
+        </h2>
+        <span className="text-sm font-bold text-ink-muted tabular-nums">{classes.length}コマ</span>
+      </div>
+      <ol className="mt-3 flex flex-col gap-2 text-sm">
         {classes.map(({ period, time, slot, state }) => (
           <li
             key={period}
             aria-label={`${period}限 ${time.start}〜${time.end} ${slot.name}${slot.room ? ` ${slot.room}` : ''}${
               state === 'now' ? '（いま）' : state === 'past' ? '（終わった）' : ''
             }`}
-            className={`flex h-8 max-w-full min-w-0 items-center gap-2 rounded-full border px-3 text-sm ${
-              state === 'now'
-                ? 'border-primary bg-primary-soft text-primary-ink'
-                : 'border-line bg-surface text-ink'
-            } ${state === 'past' ? 'opacity-50' : ''}`}
+            className={`flex min-h-6 items-center gap-2 ${state === 'past' ? 'text-ink-muted' : 'text-ink'}`}
           >
-            <b aria-hidden className="shrink-0 text-xs tabular-nums">
+            <b aria-hidden className="w-8 shrink-0 tabular-nums">
               {period}限
             </b>
-            <span aria-hidden className="truncate">
+            <span aria-hidden className="w-12 shrink-0 text-right tabular-nums">
+              {time.start}
+            </span>
+            <span
+              aria-hidden
+              className={`ml-2 min-w-0 flex-1 truncate ${state === 'now' ? 'font-bold' : ''}`}
+            >
               {slot.name}
             </span>
+            {state === 'now' && (
+              <span
+                aria-hidden
+                className="shrink-0 rounded-full bg-primary-soft px-2 text-xs leading-5 font-bold text-primary-ink"
+              >
+                いま
+              </span>
+            )}
           </li>
         ))}
       </ol>
