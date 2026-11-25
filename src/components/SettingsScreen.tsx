@@ -6,7 +6,7 @@ import type { ClassSlot, Period, Settings, Timetable } from '../types'
 import { formatHours } from '../utils/format'
 import { lazyAccountPart } from './accountGroupsLoader'
 import { Group, HoursStepper, LinkRow, Row, SwitchRow } from './Group'
-import { CalendarHelp, HomeHelp, PriorityHelp } from './Help'
+import { CalendarHelp, HomeHelp, PriorityHelp, PrivacyHelp } from './Help'
 import { NotifyPanel } from './NotifyPanel'
 import { PageStack } from './PageStack'
 import { usePageNav } from './pageNav'
@@ -52,7 +52,7 @@ const TITLES: Record<Page, string> = {
   account: 'アカウント',
 }
 
-type HelpTab = 'home' | 'priority' | 'calendar'
+type HelpTab = 'home' | 'priority' | 'calendar' | 'privacy'
 
 /** 今日の分に「今日」の印を付けた名前 */
 function TodayLabel({ label, today }: { label: string; today: boolean }) {
@@ -190,6 +190,7 @@ export function SettingsScreen({
         <>
           {helpTab === 'home' && <HomeHelp />}
           {helpTab === 'priority' && <PriorityHelp />}
+          {helpTab === 'privacy' && <PrivacyHelp />}
           {helpTab === 'calendar' && (
             <CalendarHelp
               hoursPractice={settings.hoursPractice}
@@ -204,7 +205,9 @@ export function SettingsScreen({
           options={[
             { value: 'home', label: 'ホーム' },
             { value: 'priority', label: '優先度' },
-            { value: 'calendar', label: 'カレンダー' },
+            // 360px で4つ並べても1行に収まるよう、短い名前にする
+            { value: 'calendar', label: '予定' },
+            { value: 'privacy', label: 'データ' },
           ]}
         />,
       )

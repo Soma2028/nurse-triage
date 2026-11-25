@@ -29,4 +29,7 @@ test('せっていのヘルプが開ける', async ({ page }) => {
   await page.getByRole('button', { name: 'せってい', exact: true }).last().tap()
   await page.getByRole('button', { name: /ヘルプ/ }).tap()
   await expect(page.getByRole('heading', { level: 1, name: 'ヘルプ' })).toBeVisible()
+  // データの扱い
+  await page.getByRole('radio', { name: 'データ' }).tap()
+  await expect(page.getByRole('heading', { name: 'サーバーに送るもの' })).toBeVisible()
 })
