@@ -1,6 +1,8 @@
 import { AnimatePresence, motion, useDragControls, type PanInfo } from 'framer-motion'
 import { X } from 'lucide-react'
 import { useEffect, useRef, type ReactNode } from 'react'
+import { useKeyboardInset } from '../keyboardInset'
+import { isEditing } from '../viewportFix'
 import { DURATION, EASE_OUT, baseTransition } from '../motion'
 
 interface Props {
@@ -23,6 +25,8 @@ const CLOSE_VELOCITY = 600
 export function Sheet({ open, title, onClose, children, focusFirstInput = false }: Props) {
   const panelRef = useRef<HTMLDivElement>(null)
   const drag = useDragControls()
+  // キーボードが出たら、その高さの分だけシートを持ち上げる（入力欄がキーボードの裏に隠れないように）
+  const keyboard = useKeyboardInset(open)
 
   useEffect(() => {
     if (!open) return
@@ -47,7 +51,10 @@ export function Sheet({ open, title, onClose, children, focusFirstInput = false 
   return (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-40 flex items-end justify-center wide:items-center">
+        <div
+          className="fixed inset-0 z-40 flex items-end justify-center wide:items-center"
+          style={keyboard.inset ? { bottom: keyboard.inset } : undefined}
+        >
           <motion.button
             type="button"
             aria-label="閉じる"
@@ -67,6 +74,8 @@ export function Sheet({ open, title, onClose, children, focusFirstInput = false 
             aria-modal="true"
             aria-label={title}
             className="ui-card ui-card-raised relative flex max-h-[92dvh] w-full max-w-xl flex-col rounded-b-none wide:max-w-md wide:rounded-b-3xl"
+            // キーボードが出ている間は、見えている高さに収める（上がはみ出さないように）
+            style={keyboard.inset ? { maxHeight: keyboard.visible - 16 } : undefined}
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
@@ -96,7 +105,15 @@ export function Sheet({ open, title, onClose, children, focusFirstInput = false 
                 </button>
               </div>
             </div>
-            <div className="min-h-0 overflow-y-auto overscroll-contain px-4 pt-2 pb-[max(24px,env(safe-area-inset-bottom))]">
+            <div
+              className="min-h-0 overflow-y-auto overscroll-contain px-4 pt-2 pb-[max(24px,env(safe-area-inset-bottom))]"
+              // 入力欄を押したら、キーボードが出きったあとで、その欄がシートの中で見える位置までずらす
+              onFocus={(e) => {
+                const el = e.target
+                if (!isEditing(el)) return
+                window.setTimeout(() => el.scrollIntoView({ block: 'nearest' }), 350)
+              }}
+            >
               {children}
             </div>
           </motion.div>
