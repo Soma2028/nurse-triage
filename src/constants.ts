@@ -62,5 +62,12 @@ export const TRIAGE_STYLE: Record<Triage, { tag: string; bar: string; dot: strin
     green: { tag: 'bg-tag-green text-white', bar: 'bg-tag-green', dot: 'bg-tag-green', name: '緑' },
   }
 
+/**
+ * 時間割の機能（せっていの「時間割」のページと、ホームの「今日の時間割」）を出すか。
+ * いまは使わないので隠している。true に戻すだけで、そのまま元どおりに使える
+ * （部品・保存の仕組み・入れた時間割のデータはそのまま残している）
+ */
+export const TIMETABLE_ENABLED = false
+
 /** ホームのつぎにやるの「+25%」で進める割合（%） */
 export const PROGRESS_STEP = 25

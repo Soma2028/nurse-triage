@@ -29,6 +29,7 @@ import type { Task } from './types'
 import { formatDay } from './utils/format'
 import { workedToday } from './logic/today'
 import { todayClasses } from './logic/timetable'
+import { TIMETABLE_ENABLED } from './constants'
 
 // 招待のシートは Clerk を使うので、招待リンクから開いたときだけ読み込む
 const InviteSheet = lazy(() =>
@@ -142,7 +143,9 @@ export default function App() {
                 blackCount={counts.black}
                 shortage={shortage}
                 worked={workedToday(state.today, now)}
-                classes={todayClasses(state.timetable, settings, schedule, now)}
+                classes={
+                  TIMETABLE_ENABLED ? todayClasses(state.timetable, settings, schedule, now) : []
+                }
                 timetable={state.timetable}
                 onSetClass={(weekday, period, slot) =>
                   dispatch({ type: 'setClass', weekday, period, slot })

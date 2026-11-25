@@ -1,6 +1,7 @@
 import { Bell, BookOpen, CircleHelp, Clock, House, Stethoscope } from 'lucide-react'
 import { Suspense, useState, type ReactNode } from 'react'
 import { useNotifyStatus } from '../sync/useNotifyStatus'
+import { TIMETABLE_ENABLED } from '../constants'
 import type { ClassSlot, Period, Settings, Timetable } from '../types'
 import { formatHours } from '../utils/format'
 import { lazyAccountPart } from './accountGroupsLoader'
@@ -104,12 +105,14 @@ export function SettingsScreen({
             onToggle={onTogglePractice}
           />
           <LinkRow icon={Clock} label="使える時間" value={hoursValue} onClick={() => go('hours')} />
-          <LinkRow
-            icon={BookOpen}
-            label="時間割"
-            value={classCount > 0 ? `${classCount}コマ` : 'まだないよ'}
-            onClick={() => go('timetable')}
-          />
+          {TIMETABLE_ENABLED && (
+            <LinkRow
+              icon={BookOpen}
+              label="時間割"
+              value={classCount > 0 ? `${classCount}コマ` : 'まだないよ'}
+              onClick={() => go('timetable')}
+            />
+          )}
         </Group>
 
         <Group>
