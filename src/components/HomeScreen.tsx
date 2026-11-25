@@ -84,7 +84,7 @@ function NextCard({
   return (
     <article className="ui-card ui-card-raised flex h-full overflow-hidden" aria-label={task.title}>
       <TriageTag a={a} rank={rank} />
-      <div className="flex min-w-0 flex-1 flex-col px-4 py-3">
+      <div className="flex min-w-0 flex-1 flex-col px-4 py-4">
         <button
           type="button"
           onClick={onOpen}
@@ -92,11 +92,13 @@ function NextCard({
           aria-label={`${rank}番目・${TRIAGE_STYLE[a.triage].name}「${a.label}」 ${task.title}のくわしいこと`}
         >
           <span className="leading-snug font-bold break-words text-ink">{task.title}</span>
-          <span className="mt-1 text-sm text-ink-muted">
+          <span className="mt-2 text-sm text-ink-muted">
             {formatDue(task.due)}
-            <b className={`ml-1 ${ms < 0 ? 'font-black' : ''} text-ink`}>{formatRemaining(ms)}</b>
+            <b className={`ml-1 whitespace-nowrap ${ms < 0 ? 'font-black' : ''} text-ink`}>
+              {formatRemaining(ms)}
+            </b>
           </span>
-          <span className="mt-3 flex w-full items-center gap-2">
+          <span className="mt-4 flex w-full items-center gap-2">
             <span className="block min-w-0 flex-1">
               <ProgressBar a={a} />
             </span>
@@ -104,11 +106,11 @@ function NextCard({
               {task.progress}%
             </span>
           </span>
-          <span className="mt-2 text-sm leading-relaxed text-ink-muted">
+          <span className="mt-3 text-sm leading-6 text-ink-muted">
             <Reason a={a} />
           </span>
         </button>
-        <div className="mt-auto -mb-1 -ml-1 flex flex-wrap items-center gap-1 pt-2">
+        <div className="mt-auto -mb-1 -ml-1 flex flex-wrap items-center gap-2 pt-4">
           <button
             type="button"
             onClick={onAdvance}
