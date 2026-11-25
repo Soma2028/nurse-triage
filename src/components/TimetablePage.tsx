@@ -133,6 +133,56 @@ function PeriodForm({ time, onSave }: { time: Period; onSave: (time: Period) => 
   )
 }
 
+/** コマ（曜日・時限） */
+export interface SlotTarget {
+  weekday: number
+  period: number
+}
+
+/**
+ * 1コマの授業名・教室を変えるシート（ホームの今日の時間割から開く）。
+ * せっていの時間割のページと同じ中身（ClassForm）
+ */
+export function ClassSheet({
+  target,
+  timetable,
+  onSetClass,
+  onClose,
+}: {
+  /** 開くコマ。null なら閉じる */
+  target: SlotTarget | null
+  timetable: Timetable
+  onSetClass: (weekday: number, period: number, slot: ClassSlot | null) => void
+  onClose: () => void
+}) {
+  // 閉じるアニメーションの間も中身を残すため、最後に開いたコマを覚えておく
+  const [last, setLast] = useState<SlotTarget | null>(target)
+  if (target && target !== last) setLast(target)
+  return (
+    <Sheet
+      open={target !== null}
+      title={last ? `${WEEKDAYS[last.weekday]}曜 ${last.period}限` : ''}
+      onClose={onClose}
+      focusFirstInput
+    >
+      {last && (
+        <ClassForm
+          key={`${last.weekday}-${last.period}`}
+          slot={timetable.classes[slotKey(last.weekday, last.period)]}
+          onSave={(slot) => {
+            onSetClass(last.weekday, last.period, slot)
+            onClose()
+          }}
+          onClear={() => {
+            onSetClass(last.weekday, last.period, null)
+            onClose()
+          }}
+        />
+      )}
+    </Sheet>
+  )
+}
+
 /**
  * せっていの「時間割」のページ。月〜金（と土）× 1〜6限の表で、マスを押すと授業を入れるシート、
  * 左の時限を押すと時刻を変えるシートが開く。時間割は端末の中だけに置く

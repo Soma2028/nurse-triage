@@ -2,7 +2,7 @@ import { motion } from 'framer-motion'
 import { useState, type UIEvent } from 'react'
 import type { HomeView } from '../logic/home'
 import { enter } from '../motion'
-import type { Analysed, Plan } from '../types'
+import type { Analysed, ClassSlot, Plan, Timetable } from '../types'
 import { formatDue, formatHours, formatRemaining } from '../utils/format'
 import { Chara, type Mood } from './Chara'
 import { OverloadWarning } from './OverloadWarning'
@@ -19,6 +19,7 @@ import { TodayPlan } from './TodayPlan'
 import { Phrase } from './Phrase'
 import { TodayClasses } from './TodayClasses'
 import type { TodayClass } from '../logic/timetable'
+import { ClassSheet, type SlotTarget } from './TimetablePage'
 
 interface Props {
   /** 見出しの日付（「11/24(火)」） */
@@ -36,6 +37,9 @@ interface Props {
   worked: number
   /** 今日の授業（時間割より。実習・休みの日は空） */
   classes: TodayClass[]
+  timetable: Timetable
+  /** 今日の時間割の行から、コマの授業名・教室を変えたとき */
+  onSetClass: (weekday: number, period: number, slot: ClassSlot | null) => void
   /** つぎにやるのスライダーで進捗を変えたとき */
   onSetProgress: (id: string, progress: number) => void
   onComplete: (id: string) => void
@@ -304,6 +308,8 @@ export function HomeScreen({
   shortage,
   worked,
   classes,
+  timetable,
+  onSetClass,
   onSetProgress,
   onComplete,
   onEdit,
@@ -313,88 +319,101 @@ export function HomeScreen({
   // くわしいページを開いている課題（null なら一覧）
   const { page: openId, dir, go: setOpenId, back, isTop } = usePageNav<string | null>(null)
   const { next, urgent } = view
+  // 今日の時間割の行から開く、コマを変えるシート
+  const [slotTarget, setSlotTarget] = useState<SlotTarget | null>(null)
 
   return (
-    <PageStack pageKey={openId ?? 'list'} dir={dir} isTop={isTop} onBack={back}>
-      {openId ? (
-        <TaskDetailPage
-          analysed={analysed}
-          id={openId}
-          backLabel="ホームにもどる"
-          onBack={back}
-          onSetProgress={onSetProgress}
-          onComplete={onComplete}
-          onEdit={onEdit}
-          onRemove={onRemove}
-        />
-      ) : (
-        <ScreenLayout title={date} note={dayNote} onAdd={onAdd}>
-          {/* ホームの文は、文節の切れ目でだけ折り返す（Phrase） */}
-          <div className="ui-text flex flex-col gap-4">
-            {analysed.length > 0 && (
-              <TodayHeader
-                progress={todayProgress(worked, plan)}
-                hours={plan.hours}
-                urgent={redCount + blackCount > 0}
-              />
-            )}
-
-            <OverloadWarning a={shortage} />
-
-            {analysed.length === 0 ? (
-              <Empty
-                mood="happy"
-                lines={['課題はぜんぶ片づいたよ。', '新しい課題は右下の＋から追加してね。']}
-              />
-            ) : next.length > 0 ? (
-              <motion.section
-                aria-labelledby="next-heading"
-                className="flex flex-col gap-2"
-                {...enter(0)}
-              >
-                <h2 id="next-heading" className={`${label} flex items-baseline justify-between`}>
-                  つぎにやる
-                  {next.length > 1 && <span className="tabular-nums">{next.length}件</span>}
-                </h2>
-                <NextCarousel
-                  items={next}
-                  rankOf={(a) => analysed.indexOf(a) + 1}
-                  onOpen={setOpenId}
-                  onAdvance={(a) =>
-                    onSetProgress(a.task.id, Math.min(100, a.task.progress + PROGRESS_STEP))
-                  }
-                  onComplete={onComplete}
+    <>
+      <PageStack pageKey={openId ?? 'list'} dir={dir} isTop={isTop} onBack={back}>
+        {openId ? (
+          <TaskDetailPage
+            analysed={analysed}
+            id={openId}
+            backLabel="ホームにもどる"
+            onBack={back}
+            onSetProgress={onSetProgress}
+            onComplete={onComplete}
+            onEdit={onEdit}
+            onRemove={onRemove}
+          />
+        ) : (
+          <ScreenLayout title={date} note={dayNote} onAdd={onAdd}>
+            {/* ホームの文は、文節の切れ目でだけ折り返す（Phrase） */}
+            <div className="ui-text flex flex-col gap-4">
+              {analysed.length > 0 && (
+                <TodayHeader
+                  progress={todayProgress(worked, plan)}
+                  hours={plan.hours}
+                  urgent={redCount + blackCount > 0}
                 />
-              </motion.section>
-            ) : null}
+              )}
 
-            {classes.length > 0 && (
-              <motion.div {...enter(0.04)}>
-                <TodayClasses classes={classes} />
-              </motion.div>
-            )}
+              <OverloadWarning a={shortage} />
 
-            {analysed.length > 0 && (
-              <motion.div {...enter(0.08)}>
-                <TodayPlan plan={plan} />
-              </motion.div>
-            )}
-
-            {urgent.length > 0 && (
-              <Group label="ほかの急ぎ">
-                {urgent.map((a) => (
-                  <TaskRow
-                    key={a.task.id}
-                    a={a}
-                    rank={analysed.indexOf(a) + 1}
-                    onOpen={() => setOpenId(a.task.id)}
+              {analysed.length === 0 ? (
+                <Empty
+                  mood="happy"
+                  lines={['課題はぜんぶ片づいたよ。', '新しい課題は右下の＋から追加してね。']}
+                />
+              ) : next.length > 0 ? (
+                <motion.section
+                  aria-labelledby="next-heading"
+                  className="flex flex-col gap-2"
+                  {...enter(0)}
+                >
+                  <h2 id="next-heading" className={`${label} flex items-baseline justify-between`}>
+                    つぎにやる
+                    {next.length > 1 && <span className="tabular-nums">{next.length}件</span>}
+                  </h2>
+                  <NextCarousel
+                    items={next}
+                    rankOf={(a) => analysed.indexOf(a) + 1}
+                    onOpen={setOpenId}
+                    onAdvance={(a) =>
+                      onSetProgress(a.task.id, Math.min(100, a.task.progress + PROGRESS_STEP))
+                    }
+                    onComplete={onComplete}
                   />
-                ))}
-              </Group>
-            )}
-          </div>
-        </ScreenLayout>
-      )}
-    </PageStack>
+                </motion.section>
+              ) : null}
+
+              {classes.length > 0 && (
+                <motion.div {...enter(0.04)}>
+                  <TodayClasses
+                    classes={classes}
+                    onEdit={(c) => setSlotTarget({ weekday: c.weekday, period: c.period })}
+                  />
+                </motion.div>
+              )}
+
+              {analysed.length > 0 && (
+                <motion.div {...enter(0.08)}>
+                  <TodayPlan plan={plan} />
+                </motion.div>
+              )}
+
+              {urgent.length > 0 && (
+                <Group label="ほかの急ぎ">
+                  {urgent.map((a) => (
+                    <TaskRow
+                      key={a.task.id}
+                      a={a}
+                      rank={analysed.indexOf(a) + 1}
+                      onOpen={() => setOpenId(a.task.id)}
+                    />
+                  ))}
+                </Group>
+              )}
+            </div>
+          </ScreenLayout>
+        )}
+      </PageStack>
+      <ClassSheet
+        target={slotTarget}
+        timetable={timetable}
+        onSetClass={onSetClass}
+        onClose={() => setSlotTarget(null)}
+      />
+    </>
   )
 }

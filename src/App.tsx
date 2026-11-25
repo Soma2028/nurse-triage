@@ -143,6 +143,10 @@ export default function App() {
                 shortage={shortage}
                 worked={workedToday(state.today, now)}
                 classes={todayClasses(state.timetable, settings, schedule, now)}
+                timetable={state.timetable}
+                onSetClass={(weekday, period, slot) =>
+                  dispatch({ type: 'setClass', weekday, period, slot })
+                }
                 onSetProgress={setProgress}
                 onComplete={complete}
                 onEdit={openEdit}

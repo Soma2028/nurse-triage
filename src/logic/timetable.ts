@@ -79,6 +79,8 @@ export function toTimetable(v: unknown): Timetable {
 export type ClassState = 'past' | 'now' | 'later'
 
 export interface TodayClass {
+  /** 曜日（1=月〜6=土） */
+  weekday: number
   period: number
   time: Period
   slot: ClassSlot
@@ -108,7 +110,7 @@ export function todayClasses(
     const time = timetable.periods[p - 1]
     const state: ClassState =
       minutes >= toMinutes(time.end) ? 'past' : minutes >= toMinutes(time.start) ? 'now' : 'later'
-    list.push({ period: p, time, slot, state })
+    list.push({ weekday: w, period: p, time, slot, state })
   }
   return list
 }
