@@ -315,6 +315,8 @@ npx vercel --prod
 
 通知を使うには、Neon・環境変数・cron-job.org の設定が必要です（[自分でデプロイするときの設定](#自分でデプロイするときの設定)）。
 
+`main` に push したときとプルリクエストのときは、GitHub Actions（`.github/workflows/ci.yml`）が lint・test・build・画面の自動テストを回します。Vercel のデプロイとは別に動くので、通らなくても公開は止まりません（GitHub のメールとコミットの横の ✕ で知らせます）。
+
 ## 技術構成
 
 - React + Vite + TypeScript

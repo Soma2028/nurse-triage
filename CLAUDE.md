@@ -8,6 +8,7 @@
 - ユーザーへの返答は日本語で書く
 - 作業は段階に分け、段階ごとにコミットする（メッセージは日本語、`feat:` `style:` `docs:` などの接頭辞）
 - `main` に push すると Vercel に自動でデプロイされる（公開版 <https://nurse-triage-amber.vercel.app>）
+- push すると GitHub Actions（`.github/workflows/ci.yml`）が lint・test・build・e2e を回す。デプロイとは別に動く（通らなくても公開は止まらない）。push したら `gh run list` で結果を見る
 - iPhone のホーム画面のアプリは裏で開いたまま残り、読み込み直さない。`src/sync/updateCheck.ts` が、アプリに戻ってきたとき（と30分おき）に index.html の JS の名前を見て、新しい版なら読み込み直す（シート・入力の途中は待つ）。後から読み込む JS が見つからないとき（`vite:preloadError`）も読み込み直す
 - 新しい画面はローカルで確認したあと、ユーザーが実機の iPhone で確かめる
 - 画面や仕様を変えたら `SPEC.md` と `README.md` も合わせて直す
