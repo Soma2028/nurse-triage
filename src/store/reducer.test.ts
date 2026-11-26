@@ -227,4 +227,24 @@ describe('reducer: 実習スケジュール', () => {
     })
     expect(s.timetable).toEqual(emptyTimetable())
   })
+
+  it('バックアップの読み込みで丸ごと置き換え、元に戻すは消す', () => {
+    let s = reducer(base(), { type: 'complete', id: 'a', now: NOW })
+    expect(s.undo).not.toBeNull()
+    s = reducer(s, {
+      type: 'replaceAll',
+      now: NOW,
+      data: {
+        tasks: [t('z')],
+        done: [],
+        settings: { ...DEFAULT_SETTINGS, hoursNormal: 6 },
+        schedule: { '2020-01-01': 'off', '2026-11-30': 'practice' },
+      },
+    })
+    expect(s.tasks.map((x) => x.id)).toEqual(['z'])
+    expect(s.settings.hoursNormal).toBe(6)
+    expect(s.schedule).toEqual({ '2026-11-30': 'practice' }) // 古い印は消す
+    expect(s.timetable).toEqual(emptyTimetable())
+    expect(s.undo).toBeNull()
+  })
 })

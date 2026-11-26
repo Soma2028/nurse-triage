@@ -1,4 +1,4 @@
-import { Bell, BookOpen, CircleHelp, Clock, House, Stethoscope } from 'lucide-react'
+import { Archive, Bell, BookOpen, CircleHelp, Clock, House, Stethoscope } from 'lucide-react'
 import { Suspense, useState, type ReactNode } from 'react'
 import { useNotifyStatus } from '../sync/useNotifyStatus'
 import { TIMETABLE_ENABLED } from '../constants'
@@ -13,6 +13,7 @@ import { usePageNav } from './pageNav'
 import { ScreenLayout } from './ScreenLayout'
 import { Segmented } from './Segmented'
 import { TimetablePage } from './TimetablePage'
+import { BackupPage } from './BackupPage'
 
 // ログインまわりは Clerk を使うので、別のファイルに分けて必要なときだけ読み込む
 const ProfileGroup = lazyAccountPart((m) => m.ProfileGroup)
@@ -40,12 +41,13 @@ const MIN_H = 0.5
 const MAX_H = 16
 
 /** せっていの中のページ。top が一覧で、ほかは一覧の行から開く */
-type Page = 'top' | 'hours' | 'timetable' | 'notify' | 'help' | 'friends' | 'account'
+type Page = 'top' | 'hours' | 'timetable' | 'backup' | 'notify' | 'help' | 'friends' | 'account'
 
 const TITLES: Record<Page, string> = {
   top: 'せってい',
   hours: '使える時間',
   timetable: '時間割',
+  backup: 'バックアップ',
   notify: '通知',
   help: 'ヘルプ',
   friends: 'フレンド',
@@ -120,6 +122,7 @@ export function SettingsScreen({
 
         <Group>
           <LinkRow icon={Bell} label="通知" value={notifyStatus} onClick={() => go('notify')} />
+          <LinkRow icon={Archive} label="バックアップ" onClick={() => go('backup')} />
           <LinkRow icon={CircleHelp} label="ヘルプ" onClick={() => go('help')} />
           {/* ログインしているときだけ出る */}
           <Suspense fallback={null}>
@@ -181,6 +184,9 @@ export function SettingsScreen({
           onSetSaturday={onSetSaturday}
         />,
       )
+      break
+    case 'backup':
+      content = sub(<BackupPage />)
       break
     case 'notify':
       content = sub(<NotifyPanel />)

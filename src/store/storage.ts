@@ -93,22 +93,26 @@ function toDayLog(v: unknown): DayLog | undefined {
   return { day: l.day, hours: l.hours }
 }
 
+/** 保存の形のデータを確かめて読む。おかしなところは捨てたり初期値で補ったりする（バックアップの読み込みでも使う） */
+export function toPersisted(data: unknown): Persisted | null {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return null
+  const d = data as Record<string, unknown>
+  return {
+    tasks: toTasks(d.tasks),
+    done: toTasks(d.done),
+    settings: toSettings(d.settings),
+    schedule: toSchedule(d.schedule),
+    today: toDayLog(d.today),
+    timetable: toTimetable(d.timetable),
+  }
+}
+
 /** 保存データを読む。ない・壊れている・読めないときは null */
 export function load(storage: StorageLike | undefined = defaultStorage()): Persisted | null {
   try {
     const raw = storage?.getItem(STORAGE_KEY)
     if (!raw) return null
-    const data: unknown = JSON.parse(raw)
-    if (!data || typeof data !== 'object') return null
-    const d = data as Record<string, unknown>
-    return {
-      tasks: toTasks(d.tasks),
-      done: toTasks(d.done),
-      settings: toSettings(d.settings),
-      schedule: toSchedule(d.schedule),
-      today: toDayLog(d.today),
-      timetable: toTimetable(d.timetable),
-    }
+    return toPersisted(JSON.parse(raw))
   } catch {
     return null
   }

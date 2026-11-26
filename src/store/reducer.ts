@@ -43,6 +43,8 @@ export type Action =
   | { type: 'setClass'; weekday: number; period: number; slot: ClassSlot | null }
   | { type: 'setPeriod'; period: number; time: Period }
   | { type: 'setSaturday'; on: boolean }
+  /** バックアップを読み込む。課題・予定・せっていなどを丸ごと置き換える */
+  | { type: 'replaceAll'; data: Persisted; now: number }
   | { type: 'undo' }
   | { type: 'dismissUndo' }
 
@@ -201,6 +203,14 @@ export function reducer(state: State, action: Action): State {
 
     case 'setSaturday':
       return { ...state, timetable: { ...state.timetable, saturday: action.on } }
+
+    case 'replaceAll':
+      return {
+        ...action.data,
+        schedule: pruneSchedule(action.data.schedule, action.now),
+        timetable: action.data.timetable ?? emptyTimetable(),
+        undo: null,
+      }
 
     case 'undo':
       return state.undo ? { ...state, ...state.undo.prev, undo: null } : state
