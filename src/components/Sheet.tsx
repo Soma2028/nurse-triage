@@ -61,8 +61,10 @@ export function Sheet({ open, title, onClose, children, focusFirstInput = false 
             data-no-tap
             tabIndex={-1}
             onClick={onClose}
-            // 暗い幕だと iOS 26 の Safari が上下のバーを暗く塗るので、背景と同じ色を半透明で重ねる
-            className="absolute inset-0 bg-paper/75 backdrop-blur-[3px]"
+            // 暗い幕だと iOS 26 の Safari が上下のバーを暗く塗るので、背景と同じ色を半透明で重ねる。
+            // ぼかし（backdrop-blur）は使わない：全画面をぼかしたまま濃さを変えると iPhone で重く、
+            // シートがせり上がる動きがもったりする
+            className="absolute inset-0 bg-paper/80"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -73,7 +75,8 @@ export function Sheet({ open, title, onClose, children, focusFirstInput = false 
             role="dialog"
             aria-modal="true"
             aria-label={title}
-            className="ui-card ui-card-raised relative flex max-h-[92dvh] w-full max-w-xl flex-col rounded-b-none wide:max-w-md wide:rounded-b-3xl"
+            // will-change: 動き出す前から別の層にしておき、せり上がりをなめらかにする
+            className="ui-card ui-card-raised relative flex max-h-[92dvh] w-full max-w-xl flex-col rounded-b-none will-change-transform wide:max-w-md wide:rounded-b-3xl"
             // キーボードが出ている間は、見えている高さに収める（上がはみ出さないように）
             style={keyboard.inset ? { maxHeight: keyboard.visible - 16 } : undefined}
             initial={{ y: '100%' }}

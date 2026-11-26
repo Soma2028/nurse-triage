@@ -40,8 +40,8 @@ export function Zoom({
           aria-modal="true"
           aria-label={label}
           onClick={onClose}
-          // 暗い幕だと iOS の上下のバーが暗くなるので、シートと同じく生成り色を重ねる
-          className="fixed inset-0 z-50 flex items-center justify-center bg-paper/90 backdrop-blur-[3px]"
+          // 暗い幕だと iOS の上下のバーが暗くなるので、シートと同じく生成り色を重ねる（ぼかしは重いので使わない）
+          className="fixed inset-0 z-50 flex items-center justify-center bg-paper/90"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
