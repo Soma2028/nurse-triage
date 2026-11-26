@@ -429,7 +429,7 @@ export function ScheduleScreen({
             <section className="flex flex-col gap-2">
               <h3 className={label}>この日が締切の課題</h3>
               {dayTasks.length === 0 ? (
-                <p className="text-sm leading-6 text-ink">この日が締切の課題はないよ。</p>
+                <p className="px-4 text-sm leading-6 text-ink">この日が締切の課題はないよ。</p>
               ) : (
                 <ul className="ui-card divide-y divide-line overflow-hidden rounded-2xl">
                   {dayTasks.map((a) => (

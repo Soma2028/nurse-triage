@@ -76,12 +76,12 @@ export default function App() {
     : practice !== autoPracticeToday(schedule, now)
       ? '今日だけ手で切り替えてるよ'
       : schedule[dayKey(now)] === 'off'
-        ? '今日は休みの日（スケジュールより）'
+        ? 'カレンダーで休みの日だよ'
         : schedule[dayKey(now)] === 'test'
-          ? '今日はテストの日（スケジュールより）'
+          ? 'カレンダーでテストの日だよ'
           : practice
-            ? '今日は実習の日（スケジュールより）'
-            : '今日はふだんの日（スケジュールより）'
+            ? 'カレンダーで実習の日だよ'
+            : 'カレンダーでふだんの日だよ'
   const plan = useMemo(() => buildPlan(analysed, hours), [analysed, hours])
   // フレンドに見せる今日の進み具合（数だけ）
   const progress = useMemo(

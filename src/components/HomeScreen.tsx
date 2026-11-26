@@ -326,7 +326,8 @@ function Empty({ mood, lines }: { mood: 'happy' | 'normal'; lines: [string, stri
   )
 }
 
-const label = 'text-xs font-bold tracking-wide text-ink-muted'
+/** 小見出し。せっていの Group の小見出しと同じく、白い面の中の文字にそろえて 16px 内側に置く */
+const label = 'px-4 text-xs font-bold tracking-wide text-ink-muted'
 
 /**
  * ホーム。今日やることだけ（つぎにやる1件・今日のプラン・ほかの急ぎ）。

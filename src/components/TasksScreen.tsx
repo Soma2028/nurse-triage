@@ -97,7 +97,7 @@ export function TasksScreen({
               )}
             </div>
           ) : done.length === 0 ? (
-            <p className="px-2 py-4 text-sm text-ink-muted">完了した課題はまだないよ。</p>
+            <p className="px-4 py-4 text-sm text-ink-muted">完了した課題はまだないよ。</p>
           ) : (
             <ul className="ui-card divide-y divide-line overflow-hidden rounded-2xl">
               {done.map((t) => (
