@@ -10,7 +10,19 @@ export default defineConfig({
   testDir: 'e2e',
   fullyParallel: true,
   reporter: 'list',
-  use: { baseURL: `http://localhost:${PORT}` },
+  use: {
+    baseURL: `http://localhost:${PORT}`,
+    // はじめの画面（アカウントを作る／ゲスト）は済ませた状態で始める。はじめの画面は e2e/welcome.spec.ts で確かめる
+    storageState: {
+      cookies: [],
+      origins: [
+        {
+          origin: `http://localhost:${PORT}`,
+          localStorage: [{ name: 'nurse-triage-welcomed', value: '1' }],
+        },
+      ],
+    },
+  },
   projects: [
     // 画面は iPhone と同じ WebKit で（devices の iPhone 15 は WebKit を使う）
     { name: 'iphone', use: { ...devices['iPhone 15'] }, testIgnore: /offline/ },

@@ -6,6 +6,8 @@ import App from './App.tsx'
 import { loadClerkKey } from './social/config.ts'
 import { inviteCodeInUrl, takeInviteFromUrl } from './social/invite.ts'
 import { Root } from './Root.tsx'
+import { FirstRunGate } from './FirstRunGate.tsx'
+import { isFirstRun } from './store/firstRun.ts'
 import { StoreProvider } from './store/StoreProvider.tsx'
 import { registerServiceWorker } from './sync/registerSW.ts'
 import { watchForUpdate } from './sync/updateCheck.ts'
@@ -15,6 +17,9 @@ import { fixViewportOnRotate } from './viewportFix.ts'
 // ホーム画面のアプリの中なら、コードを覚えてアドレスを / に戻し、アプリの上に招待のシートを出す。
 // Safari・LINE などで開いたら、アプリの代わりに招待の専用ページ（InvitePage）を出す
 // （iPhone ではリンクからホーム画面のアプリを開けないので、コードをコピーしてアプリで貼り付けてもらう）
+// 初めて開いたか（ストアが保存する前に調べる）。招待リンクから来たときは、招待の案内を優先する
+const firstRun = isFirstRun() && inviteCodeInUrl() === null
+
 const nav = navigator as Navigator & { standalone?: boolean }
 const standalone =
   nav.standalone === true || (window.matchMedia?.('(display-mode: standalone)').matches ?? false)
@@ -33,7 +38,9 @@ const SocialRoot = clerkKey
 
 const app = (
   <StoreProvider>
-    <App />
+    <FirstRunGate firstRun={firstRun}>
+      <App />
+    </FirstRunGate>
   </StoreProvider>
 )
 

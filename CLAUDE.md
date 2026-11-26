@@ -98,6 +98,13 @@
 - ホームの「今日の時間割」（`TodayClasses`。今日のプランの上。今日のプランと同じ白いカードに1コマ1行で「1限／9:00／授業名」の列をそろえる。横に並べる形・小さな札の形は見づらかったのでやめた）。行を押すと、そのコマを変えるシート（`ClassSheet`。せっていの時間割と同じ中身）。実習の日・休みの日は出さない（`logic/timetable.ts` の `todayClasses`）
 - 保存は `nurse-triage-v1` の `timetable`。端末の中だけで、サーバーには送らない。使える時間の計算には使わない
 
+## はじめの画面（実装済み）
+
+- 初めて開いたとき（ホーム画面に追加し直したときも、端末の保存が空なので同じ）は、アプリの代わりに「ようこそ」の画面（`WelcomePage`。`FirstRunGate` で出し分け）
+- 選べるのは：アカウントを作る（`WelcomeAccount`。メールの6桁コード → プロフィールがなければ作るシート。Clerk を使うので別のファイル）・ゲストではじめる・バックアップから読み込む（`useBackupImport`。せっていのバックアップと共通）
+- 「初めて」は `store/firstRun.ts`：`nurse-triage-v1` も `nurse-triage-welcomed` もないとき。main.tsx でストアが保存する前に調べる。招待リンクから来たときは出さない（招待の案内を優先）
+- e2e は `playwright.config.ts` の storageState で済ませた状態から始める。はじめの画面は `e2e/welcome.spec.ts`
+
 ## バックアップ（実装済み）
 
 - せってい →「バックアップ」（`BackupPage`）。書き出す（`navigator.share` でファイルを共有、できなければダウンロード）・読み込む（`readBackup` で確かめ、シートで件数を見せてから `replaceAll`）
