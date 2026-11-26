@@ -21,7 +21,7 @@ const MAX_ASSETS = 80
 const NAVIGATE_TIMEOUT = 4000
 const STATIC_FILES = [
   '/manifest.webmanifest',
-  '/favicon.svg',
+  '/favicon.png',
   '/apple-touch-icon.png',
   '/icon-192.png',
   '/icon-512.png',

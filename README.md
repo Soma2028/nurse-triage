@@ -39,7 +39,7 @@
 
 ## キャラクターの絵
 
-`src/assets/chara/` に `normal.png`（ふつう）・`worry.png`（心配）・`happy.png`（うれしい）を置くと、ビルド時に自動で読み込まれて差し替わります。置いていない表情は仮の SVG のままです。透過 PNG・正方形（512px 推奨）で用意してください（詳しくは [src/assets/chara/README.md](src/assets/chara/README.md)）。
+キャラクターはナースキャップのフクロウです。`src/assets/chara/` の `normal.png`（笑顔）・`worry.png`（困り顔）・`happy.png`（喜び）が、ビルド時に自動で読み込まれます（透過 PNG・256px）。ほかの表情は `extra/` に取ってあります（詳しくは [src/assets/chara/README.md](src/assets/chara/README.md)）。アプリのアイコンも笑顔の絵です。
 
 キャラクターは、ホームのいちばん上（今日のぶんの横。今日のぶんが終わると笑顔、黒・赤があると心配顔）、空いた画面（課題がないときのホーム、未完了がないときの課題）、完了したときのトーストに出ます。
 
