@@ -111,7 +111,7 @@ subscribe・sync 共通：deviceId と secret を受け取り、secret_hash と�
 **manifest と service worker**
 
 - `public/manifest.webmanifest`：`display: "standalone"`、name・short_name・アイコン（180/192/512）、背景色は生成り色。iOS でプッシュ通知を受けるにはこれが必要
-- `public/sw.js`：push（通知を表示）と notificationclick だけの小さな手書きにする。キャッシュはしない（古い画面が残る事故を防ぐ）
+- `public/sw.js`：push（通知を表示）と notificationclick の小さな手書き。あとから、電波がないときに開けるよう、ページ（電波を先に）と `/assets/`（名前に版の番号が入っている）だけを覚えるようにした。電波があるときはいつも新しい index.html を使い、新しい版の確認の `fetch('/')` は覚えたもので答えないので、古い画面は残らない
 - `main.tsx` で service worker を登録する
 
 **同期（src/sync/）**

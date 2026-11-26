@@ -34,6 +34,7 @@
 - **時間割**（いまは隠している）：せっていで月〜金・土 × 1〜6限に授業名・教室を入れ、ホームに今日の時間割を出す機能。`src/constants.ts` の `TIMETABLE_ENABLED` を `true` にすると出る（入れた時間割は消えずに残る）
 - 完了・削除・全消去のあと5秒間「元に戻す」
 - 課題はブラウザの localStorage に保存（課題を使うのにログインはいらない）。サーバーに送るのは、通知をオンにしたときの締切・種類・完了かどうかと、フレンドに見せる数だけ
+- 一度開いたあとは、電波がなくても開ける（service worker が画面のファイルを覚えておく。ログイン・フレンド・通知の設定は電波が要る）
 - アプリのように、ページ全体はスクロールしない（見出しと下のタブは固定、真ん中だけが動く）。360px 幅〜、iPhone SE でもどのタブも同じ形。ライトのみ（ダークモードには対応しない）
 
 ## キャラクターの絵
@@ -298,11 +299,11 @@ npm run dev        # 開発サーバー（http://localhost:5173）
 ## 画面の自動テスト
 
 ```bash
-npx playwright install webkit   # 初めてのときだけ
+npx playwright install webkit chromium   # 初めてのときだけ
 npm run e2e
 ```
 
-iPhone と同じ WebKit で開発サーバーを開き、どのタブもページ全体が動かないこと（iPhone SE・iPhone 15・360px・PC）、課題の追加、招待のページを確かめます（`e2e/`）。
+ビルドした版を開き、iPhone と同じ WebKit で、どのタブもページ全体が動かないこと（iPhone SE・iPhone 15・360px・PC）・課題の追加・招待のページ・ヘルプを確かめます。電波がないときに開けることは Chromium で確かめます（Playwright の WebKit は service worker を動かさないため）（`e2e/`）。
 
 ## デプロイ
 
@@ -347,7 +348,7 @@ migrations/004_rate_limits.sql   API の回数制限のテーブル
 migrations/005_profile_photo.sql プロフィールの写真の列
 migrations/006_api_errors.sql   サーバーのエラーの記録
 vercel.json                 招待リンク（/f/コード）で index.html を返す・セキュリティのヘッダー
-public/sw.js                通知を受け取る service worker（キャッシュはしない）
+public/sw.js                service worker（通知を受け取る・電波がないときも開けるよう、ページと /assets/ を覚える）
 ```
 
 ## 今後やりたいこと

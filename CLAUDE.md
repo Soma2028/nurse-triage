@@ -11,7 +11,7 @@
 - iPhone のホーム画面のアプリは裏で開いたまま残り、読み込み直さない。`src/sync/updateCheck.ts` が、アプリに戻ってきたとき（と30分おき）に index.html の JS の名前を見て、新しい版なら読み込み直す（シート・入力の途中は待つ）。後から読み込む JS が見つからないとき（`vite:preloadError`）も読み込み直す
 - 新しい画面はローカルで確認したあと、ユーザーが実機の iPhone で確かめる
 - 画面や仕様を変えたら `SPEC.md` と `README.md` も合わせて直す
-- 完成の条件：`npm run test` と `npm run lint` が通り、`npm run build` が警告なしで通る。`npm run e2e`（Playwright・WebKit。どのタブもページ全体が動かない・360px で横スクロールがない・課題の追加・招待のページ）が通る。画面を足したら `e2e/` にもテストを足す。初めての端末では `npx playwright install webkit` が要る
+- 完成の条件：`npm run test` と `npm run lint` が通り、`npm run build` が警告なしで通る。`npm run e2e`（Playwright・WebKit。どのタブもページ全体が動かない・360px で横スクロールがない・課題の追加・招待のページ）が通る。画面を足したら `e2e/` にもテストを足す。初めての端末では `npx playwright install webkit chromium` が要る
 
 ## 見た目の方針（夢のタネ寄り）
 
@@ -67,7 +67,8 @@
 ## 通知機能（作っている途中）
 
 - `SPEC-push.md` の段階どおりに進める。段階6（README）まで済み。cron-job.org は15分おきに動いている。テーブルは Neon（iad1）に作成済み
-- service worker（`public/sw.js`）は push と notificationclick だけ。キャッシュはしない
+- service worker（`public/sw.js`）は通知と、電波がないときに開けるようにする役。覚えるのは、ページ（電波を先に、だめなら覚えた index.html）・`/assets/`（一度取れば覚えたもの）・アイコンなどの決まったファイルだけ。`/api/` と、新しい版の確認の `fetch('/')`（ページを開くリクエストではない）には手を出さない（古い画面が残らないように）。`vercel.json` で `/sw.js` は `no-cache`。電波がないときのテストは `e2e/offline.spec.ts`（Playwright の WebKit は service worker を動かさないので Chromium）
+- `registerServiceWorker` は、main.tsx がログインのキーを待つ間にページの load が終わっていても、すぐ登録する（load を待つと登録されないことがあった）
 - 課題名はサーバーに送らないのが初期設定（課題名に患者の情報が入りやすいため）
 - 環境変数・Neon・cron-job.org の準備はユーザーがやる。段階3の前に必要なものを示して待つ
 - セキュリティのヘッダー（CSP・X-Frame-Options など）は `vercel.json` にある。CSP は自分のアプリと Clerk（`cosmic-chow-5908.clerk.accounts.dev`・`*.protect.clerk.com`・`img.clerk.com`）と Cloudflare のロボット対策だけを許す。Clerk を本番のインスタンスに切り替えたら、CSP の Clerk の場所も直す。外のサイトの読み込みを足すときも CSP を直す
